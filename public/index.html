@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#8b5e4a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestor 3D — V10</title>
+<style>
+:root{--bg:#f6f4f2;--card:#fff;--text:#2d2926;--muted:#77716c;--accent:#8b5e4a;--line:#e7e0dc;--good:#2f7d57;--danger:#b54b4b}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+.app{display:flex;min-height:100vh}.side{width:235px;background:#2f2926;color:white;padding:22px 16px;position:fixed;height:100vh}.brand{font-size:23px;font-weight:800;padding:8px 10px 25px}.brand small{display:block;font-size:11px;color:#cbbdb5;margin-top:4px;font-weight:500}
+.nav button{display:block;width:100%;border:0;background:none;color:#ddd;text-align:left;padding:12px 13px;border-radius:9px;margin:3px 0;font-size:14px;cursor:pointer}.nav button:hover,.nav button.active{background:#4a3c35;color:#fff}
+.main{margin-left:235px;width:calc(100% - 235px);padding:28px;max-width:1500px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}.top h1{margin:0;font-size:28px}.sub{color:var(--muted);font-size:13px;margin-top:5px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:20px}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}.label{font-size:12px;color:var(--muted)}.value{font-size:25px;font-weight:800;margin-top:8px}.good{color:var(--good)}
+.grid2{display:grid;grid-template-columns:1.5fr 1fr;gap:18px}.panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}.panel h2{font-size:16px;margin:0 0 15px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:11px 8px;border-bottom:1px solid #eee}th{color:var(--muted);font-size:11px;text-transform:uppercase}
+.btn{border:0;border-radius:9px;padding:10px 14px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}.btn.secondary{background:#eee5df;color:#4b403a}.btn.danger{background:#b54b4b}.actions{display:flex;gap:8px;flex-wrap:wrap}
+.formgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}.field input,.field select{width:100%;padding:10px;border:1px solid #ddd1ca;border-radius:8px;background:white}
+.material-row{display:grid;grid-template-columns:1.7fr .8fr auto;gap:8px;margin-bottom:8px;align-items:end}.component-row{display:grid;grid-template-columns:1.5fr .7fr .8fr auto;gap:8px;margin-bottom:8px;align-items:end}.material-row input,.component-row input{width:100%;padding:10px;border:1px solid #ddd1ca;border-radius:8px;background:white}.remove-material{border:0;background:#f3e5e1;color:#9b4a3f;border-radius:8px;padding:10px;cursor:pointer}.material-summary{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.hidden{display:none}.tag{display:inline-block;padding:4px 8px;border-radius:99px;background:#f0ebe8;font-size:11px}.tag.good{background:#e6f3ec;color:#276a4b}.tag.warn{background:#fff0df;color:#9b611d}.category-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}.category-dot{width:7px;height:7px;border-radius:50%;display:inline-block}.row-actions{display:flex;gap:6px;flex-wrap:wrap}.btn.xs{padding:7px 9px;font-size:11px}.btn.outline{background:#fff;color:#7b6c63;border:1px solid #d9cec8}.category-manager{margin-top:14px}.category-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #eee}.category-item:last-child{border-bottom:0}.color-input{width:42px;height:32px;padding:2px;border:1px solid #ddd1ca;border-radius:8px;background:#fff;cursor:pointer}
+.notice{padding:12px;background:#faf5f1;border:1px dashed #d9c7bc;border-radius:10px;color:#63564e;font-size:13px}
+@media(max-width:900px){.side{width:70px}.brand{font-size:0}.brand small{display:none}.nav button{font-size:0;text-align:center}.nav button::first-letter{font-size:20px}.main{margin-left:70px;width:calc(100% - 70px);padding:18px}.cards{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.formgrid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.cards{grid-template-columns:1fr}.formgrid{grid-template-columns:1fr}.main{padding:12px}}
+
+.nav-title{font-size:9px;letter-spacing:1.2px;color:#a99d95;margin:18px 10px 6px;font-weight:800}
+.side{width:250px;background:#fff;color:#342e2a;border-right:1px solid #e7e0dc;padding:20px 14px;position:fixed;height:100vh}
+.brand{color:#342e2a;padding:8px 10px 18px;font-size:22px}
+.brand small{color:#9b8c83}
+.nav button{color:#665d57;font-weight:600;padding:11px 12px}
+.nav button:hover,.nav button.active{background:#f6eee9;color:#8b5e4a}
+.main{margin-left:250px;background:#faf9f8;min-height:100vh}
+.top h1{font-size:27px;letter-spacing:-.5px}
+.card{box-shadow:0 2px 10px rgba(60,45,35,.035)}
+.card-foot{font-size:11px;color:#9a918c;margin-top:7px}
+.dashboard-cards .card{min-height:116px}
+.quick-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:0 0 20px}
+.quick-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px;display:flex;align-items:center;gap:12px;cursor:pointer;box-shadow:0 2px 8px rgba(60,45,35,.025)}
+.quick-card:hover{border-color:#cdb9ad;transform:translateY(-1px)}
+.quick-card b{display:block;font-size:13px}.quick-card span{display:block;color:var(--muted);font-size:11px;margin-top:3px}.quick-card strong{margin-left:auto;color:#9b8b82;font-size:22px}
+.quick-icon{width:34px;height:34px;border-radius:9px;background:#f7eee9;color:#9a624b;display:grid;place-items:center;font-weight:800}
+.store-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.store-item{border:1px solid var(--line);border-radius:11px;padding:14px;background:#fff}.store-item b{display:block}.store-item small{color:var(--muted)}
+@media(max-width:900px){.side{width:72px}.brand{font-size:0}.brand small{display:none}.nav-title,.nav button span{display:none}.nav button{text-align:center}.main{margin-left:72px;width:calc(100% - 72px)}.quick-grid{grid-template-columns:1fr}.store-grid{grid-template-columns:1fr}}
+
+.calc-tabs{display:flex;background:#eee9e6;border-radius:9px;padding:3px;width:max-content;margin-bottom:14px}.calc-tab{border:0;background:transparent;padding:9px 15px;border-radius:7px;color:#766b65;font-weight:700;cursor:pointer}.calc-tab.active{background:#fff;color:#8b5e4a;box-shadow:0 1px 4px #d8d0cc}
+.price-banner{background:#fff7f1;border:1px solid #ead7c9;border-radius:11px;padding:13px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}.price-banner span{display:block;font-size:12px;font-weight:800}.price-banner small{display:block;color:#998c84;margin-top:3px}.price-banner strong{font-size:23px;color:#e36e1b}
+.calc-layout{display:grid;grid-template-columns:1.25fr .75fr;gap:15px}.calc-block{border-top:1px solid #eee7e3;padding-top:15px;margin-top:15px}.calc-title{font-size:10px;letter-spacing:.7px;font-weight:800;color:#8a7d75;margin-bottom:10px}.result-panel{text-align:center;background:#fff9f5}.result-label{font-size:10px;font-weight:800;color:#a08e83}.result-price{font-size:38px;font-weight:900;color:#e36e1b;margin:8px 0 12px}.result-pills{display:flex;justify-content:center;gap:7px}.result-pills span{font-size:9px;padding:7px 9px;border-radius:5px;background:#f2edea;color:#877a72}.result-pills b{display:block;margin-top:2px;font-size:11px;color:#4d433d}.donut-wrap{display:flex;align-items:center;gap:20px}.donut{width:145px;height:145px;border-radius:50%;background:conic-gradient(#4b9fc2 0 45%,#e5a33e 45% 58%,#8b6d9c 58% 75%,#d46e54 75% 88%,#aaa 88%);position:relative}.donut:after{content:"";position:absolute;inset:36px;background:white;border-radius:50%}.legend-item{font-size:11px;margin:8px 0}.legend-dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}.analysis-row{display:flex;justify-content:space-between;border-bottom:1px solid #eee;padding:10px 0;font-size:12px}.analysis-row span{color:#81766f}.analysis-row b{font-weight:800}
+
+.inventory-tabs{display:flex;gap:4px;background:#f0ece9;padding:4px;border-radius:9px;overflow:auto;margin-bottom:14px}.inventory-tab{border:0;background:transparent;padding:9px 13px;border-radius:7px;color:#756b65;font-weight:700;white-space:nowrap;cursor:pointer}.inventory-tab.active{background:#fff;color:#8b5e4a;box-shadow:0 1px 4px #d8d0cc}
+.quote-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.quote-box{border:1px dashed #d9c8bd;border-radius:10px;padding:13px;background:#fcf8f5}.quote-list{margin-top:12px}.quote-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:12px}.empty-state{padding:35px;text-align:center;color:#948983;border:1px dashed #ddd3ce;border-radius:10px}
+
+.channel-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.channel-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px}.channel-head{display:flex;align-items:center;gap:10px}.channel-logo{width:42px;height:42px;border-radius:10px;background:#fff1eb;display:grid;place-items:center;color:#ee4d2d;font-weight:900;font-size:20px}.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:#c7c0bb;margin-right:5px}.status-dot.ok{background:#4aa875}.integration-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:15px 0}.step{border:1px solid var(--line);border-radius:10px;padding:13px}.step b{display:block;font-size:12px}.step span{font-size:11px;color:var(--muted)}.sync-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#faf6f3;border:1px solid #eadfd8;border-radius:10px;padding:12px;margin-top:12px}.channel-tabs{display:flex;gap:4px;background:#eee9e6;padding:4px;border-radius:9px;margin-bottom:14px;overflow:auto}.channel-tab{border:0;background:transparent;padding:9px 14px;border-radius:7px;font-weight:700;color:#756b65;white-space:nowrap}.channel-tab.active{background:#fff;color:#8b5e4a;box-shadow:0 1px 4px #d8d0cc}
+
+.product-loader{display:grid;grid-template-columns:minmax(250px,1fr) 1.4fr;gap:14px;align-items:end;background:#f7f8fa;border:1px solid #e7e9ed;border-radius:14px;padding:14px;margin-bottom:15px}
+.product-loader select{width:100%;padding:11px;border:1px solid #d9dde4;border-radius:10px;background:#fff}
+.tech-modal{position:fixed;inset:0;background:rgba(15,20,30,.45);display:none;align-items:center;justify-content:center;z-index:9999;padding:20px}
+.tech-modal.show{display:flex}
+.tech-card{width:min(820px,96vw);max-height:90vh;overflow:auto;background:#fff;border-radius:20px;box-shadow:0 20px 70px rgba(0,0,0,.22);padding:22px}
+.tech-head{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}
+.tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.tech-box{background:#f7f8fa;border-radius:13px;padding:13px}
+.tech-box span{display:block;color:#707783;font-size:12px;margin-bottom:5px}
+.tech-list{margin-top:12px;border-top:1px solid #eee}
+.tech-row{display:flex;justify-content:space-between;gap:15px;padding:10px 0;border-bottom:1px solid #eee}
+.close-tech{border:0;background:#eef0f3;border-radius:10px;padding:8px 12px;cursor:pointer}
+@media(max-width:720px){.product-loader,.tech-grid{grid-template-columns:1fr}}
+
+.shopee-live-msg{padding:10px 12px;border-radius:10px;background:#f5f7fa;margin-top:10px}
+.status-ok{color:#16834b;font-weight:700}.status-off{color:#a33;font-weight:700}
+
+.status-select{font-weight:800;border:2px solid transparent!important;min-width:125px;cursor:pointer}.status-recebido{background:#e8f1ff!important;color:#1769aa!important;border-color:#4aa3ff!important}.status-producao{background:#fff0c2!important;color:#9a6500!important;border-color:#ffbf26!important}.status-pronto{background:#dcf8e8!important;color:#08783f!important;border-color:#28c76f!important}.status-enviado{background:#eadfff!important;color:#6036b8!important;border-color:#9b6cff!important}.status-entregue{background:#d8f7f0!important;color:#087c68!important;border-color:#20c7a0!important}.status-cancelado{background:#ffe0e5!important;color:#b4233c!important;border-color:#ff526d!important}.status-pill{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;font-size:11px;font-weight:900;white-space:nowrap}.status-pill-recebido{background:#d9ebff;color:#1769aa}.status-pill-producao{background:#ffe8a3;color:#8a5b00}.status-pill-pronto{background:#c9f5dc;color:#08783f}.status-pill-enviado{background:#dfd0ff;color:#6036b8}.status-pill-entregue{background:#c9f3ea;color:#087c68}.status-pill-cancelado{background:#ffd1d9;color:#b4233c}
+
+.report-period{display:flex;align-items:center;gap:8px}.report-period label{font-size:12px;font-weight:700;color:#6f625c}.report-period input{min-width:150px}
+.state-map-panel{margin-top:18px}.state-map-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.state-map-head h2{margin:0}.state-map-filter{display:flex;align-items:center;gap:8px}.state-map-filter label{font-size:12px;font-weight:800;color:#6f625c}.state-map-filter select{padding:9px 12px;border:1px solid #ddd1ca;border-radius:9px;background:#fff;font-weight:700}.brazil-map{position:relative;width:100%;max-width:1120px;margin:8px auto 0;aspect-ratio:1400/788;overflow:hidden;border-radius:12px;background:#f7f3ee}.brazil-map img{width:100%;height:100%;display:block;object-fit:cover}.map-count{position:absolute;transform:translate(-50%,-50%);min-width:30px;height:30px;padding:0 7px;border-radius:999px;background:#fff;color:#2d2926;border:2px solid #8b5e4a;box-shadow:0 3px 10px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;line-height:1;z-index:2}.map-count.zero{opacity:.42}.map-legend{font-size:11px;color:#8a7d75;margin-top:8px}.map-total{font-size:12px;font-weight:800;color:#6b5d55}.map-state-tooltip{position:absolute;pointer-events:none;z-index:3;background:#2f2926;color:#fff;padding:5px 8px;border-radius:7px;font-size:11px;font-weight:800;display:none}.map-count:hover+.map-state-tooltip{display:block}
+@media(max-width:700px){.map-count{min-width:24px;height:24px;font-size:10px;padding:0 5px;border-width:1.5px}}
+
+.dashboard-summary-cards{grid-template-columns:repeat(4,1fr)}
+.dashboard-summary-cards .card{display:flex;align-items:center;gap:12px;min-height:112px}.dash-card-icon{width:42px;height:42px;border-radius:50%;background:#f7ebe4;color:#8b5e4a;display:grid;place-items:center;font-size:20px;font-weight:800;flex:0 0 auto}.dashboard-summary-cards .value{font-size:24px}.dashboard-map-panel{padding:20px}.state-map-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.8fr);gap:20px;align-items:stretch;margin-top:12px}.map-area{min-width:0}.brazil-map{position:relative;width:min(100%,720px);height:520px;margin:8px auto 0;overflow:hidden;border-radius:16px;background:#fbf8f5}.brazil-map img{width:100%;height:100%;display:block;object-fit:contain;opacity:.72;filter:saturate(.55) brightness(1.04)}.brazil-map:after{content:"";position:absolute;inset:0;background:rgba(255,250,246,.14);pointer-events:none;z-index:1}.map-count{position:absolute;transform:translate(-50%,-50%);min-width:31px;height:31px;padding:0 7px;border-radius:50%;background:#fff;color:#5b463c;border:1px solid #d8c5ba;box-shadow:0 2px 7px rgba(60,45,35,.10);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;line-height:1;z-index:2}.map-count.zero{opacity:.38}.map-total{font-size:12px;font-weight:800;color:#75675f;margin:2px 0 4px}.map-legend{font-size:11px;color:#93867e;margin-top:6px}.legend-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#c99476;margin-right:5px}.state-ranking-panel{border:1px solid #eee4df;border-radius:14px;padding:16px;background:#fff;display:flex;flex-direction:column;min-height:100%}.ranking-title{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#342e2a;margin-bottom:10px}.ranking-title:first-letter{color:#9a624b}.ranking-row{display:grid;grid-template-columns:24px 34px 1fr 46px;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0ebe8;font-size:12px}.ranking-row:last-child{border-bottom:0}.ranking-rank{color:#a19791}.ranking-uf{font-weight:800}.ranking-bar{height:8px;background:#f0ece9;border-radius:99px;overflow:hidden}.ranking-bar i{display:block;height:100%;background:#c99476;border-radius:99px}.ranking-value{text-align:right;font-weight:800}.ranking-empty{padding:22px 0;color:#978b84;font-size:12px;text-align:center}.ranking-summary{margin-top:auto;padding-top:14px;border-top:1px solid #eee4df;display:grid;grid-template-columns:1fr 1fr;gap:12px}.ranking-summary div{padding:10px;border-radius:10px;background:#faf6f3}.ranking-summary span{display:block;color:#91857d;font-size:10px}.ranking-summary b{display:block;margin-top:4px;font-size:20px;color:#342e2a}
+@media(max-width:1050px){.state-map-layout{grid-template-columns:1fr}.state-ranking-panel{min-height:260px}.brazil-map{height:500px}}
+@media(max-width:900px){.dashboard-summary-cards{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.dashboard-summary-cards{grid-template-columns:1fr}.brazil-map{height:390px}}
+
+/* V54 — mapa exatamente no modelo de referência enviado, mantendo as cores */
+.state-map-panel{padding:24px 22px 22px;background:#fff;border:1px solid #eee7e2;border-radius:16px}.state-map-head{align-items:center;margin-bottom:4px}.state-map-title{display:flex;align-items:center;gap:12px}.map-title-icon{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#f7ebe4;color:#8b5e4a;font-size:22px}.state-map-title h2{font-size:20px}.state-map-title .sub{font-size:13px;color:#6e655f;margin-top:2px}.state-map-filter{background:#fff;border:1px solid #e4ddd8;border-radius:12px;padding:9px 13px;min-width:205px;box-shadow:0 1px 2px rgba(60,45,35,.03)}.state-map-filter label{display:none}.state-map-filter select{border:0!important;padding:0 4px!important;background:transparent!important;font-size:14px;font-weight:700;color:#2f2926;outline:0;width:155px}.map-filter-icon{color:#8b5e4a;font-size:17px;margin-right:5px}.state-map-layout{grid-template-columns:minmax(0,1.65fr) minmax(310px,.82fr);gap:24px;margin-top:10px}.map-area{position:relative;min-width:0}.brazil-map{position:relative;width:min(100%,760px);aspect-ratio:1283/1226;height:auto;margin:4px auto 0;background:#fff;border-radius:0;overflow:hidden;display:block}.brazil-map img{width:100%;height:100%;display:block;object-fit:contain;opacity:1;filter:none}.brazil-map:after{display:none}.map-label{position:absolute;transform:translate(-50%,0);display:flex;align-items:center;justify-content:center;color:#4f3a30;text-align:center;line-height:1;font-size:15px;font-weight:900;z-index:3;pointer-events:none;text-shadow:0 1px 1px rgba(255,255,255,.7);padding-top:17px;min-width:28px}.map-label span{font-size:14px;font-weight:900;display:block;line-height:1}.map-label.dark-state{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45)}.map-label.zero{opacity:.42}.state-ranking-panel{border:1px solid #eee4df;border-radius:14px;padding:18px 18px 16px;background:#fff;min-height:655px}.ranking-title{font-size:17px;margin-bottom:12px}.ranking-row{grid-template-columns:24px 42px 1fr 42px;padding:10px 0;border-bottom:0;gap:9px;font-size:13px}.ranking-bar{height:9px;background:#eeeae7}.ranking-bar i{background:linear-gradient(90deg,#eabfa5,#8b5e4a)}.ranking-value{font-size:13px}.ranking-summary{padding-top:16px}.map-scale{width:255px;padding:13px 16px 12px;border:1px solid #eee4df;border-radius:12px;background:#fff;margin:0 0 0 10px}.scale-title{display:block;font-size:12px;color:#625953;margin-bottom:8px}.scale-gradient{height:12px;border-radius:7px;background:linear-gradient(90deg,#f8e0d1,#e7b99d,#8b5e4a)}.scale-labels{display:flex;justify-content:space-between;font-size:11px;color:#91857d;margin-top:6px}.map-total{font-size:12px;margin:0 0 2px 8px;color:#71655e}.map-legend{display:none}
+@media(max-width:1050px){.state-map-layout{grid-template-columns:1fr}.state-ranking-panel{min-height:320px}.brazil-map{height:620px}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+  <div class="brand">Gestor 3D<small>V57 • Vendas • Estoque • Lucro</small></div>
+  <div class="nav">
+    <div class="nav-title">GERAL</div>
+    <button class="active" onclick="show('dashboard',this)">⌂ <span>Dashboard</span></button>
+    <button onclick="show('pricing',this)">◉ <span>Calculadora</span></button>
+    <div class="nav-title">GESTÃO</div>
+    <button onclick="show('products',this)">▣ <span>Produtos</span></button>
+    <button onclick="show('sales',this)">▤ <span>Vendas & Pedidos</span></button>
+    <button onclick="show('finance',this)">$ <span>Financeiro</span></button>
+    <button onclick="show('stock',this)">▥ <span>Estoque</span></button>
+    <button onclick="show('materials',this)">◈ <span>Filamento / Insumos</span></button>
+    <button onclick="show('movements',this)">↕ <span>Movimentações</span></button>
+    <button onclick="show('consumption',this)">◫ <span>Consumo de materiais</span></button>
+    <div class="nav-title">CANAIS</div>
+    <button onclick="show('shopee',this)">◇ <span>Shopee</span></button>
+    <button onclick="show('storefront',this)">▱ <span>Vitrine</span></button>
+    <button onclick="show('marketing',this)">✦ <span>Marketing</span></button>
+    <div class="nav-title">SISTEMA</div>
+    <button onclick="show('settings',this)">⚙ <span>Configurações</span></button>
+  </div>
+</aside>
+<main class="main">
+<section id="dashboard">
+<div class="top">
+  <div><h1>Dashboard</h1><div class="sub">Resumo das suas vendas e produção</div></div>
+  <div class="actions"><div class="report-period"><label for="dashboardPeriod">Período:</label><select id="dashboardPeriod" onchange="setDashboardPeriod(this.value)"></select></div><button class="btn secondary" onclick="show('products')">+ Produto</button><button class="btn" onclick="show('sales')">+ Registrar venda</button></div>
+</div>
+
+<div class="cards dashboard-cards dashboard-summary-cards">
+<div class="card"><div class="dash-card-icon">⌁</div><div><div class="label" id="dashRevenueLabel">Total de vendas</div><div class="value" id="dashRevenue">R$ 0,00</div><div class="card-foot" id="dashRevenueFoot">Todos os períodos</div></div></div>
+<div class="card"><div class="dash-card-icon">▥</div><div><div class="label">Vendas líquidas</div><div class="value" id="dashNetRevenue">R$ 0,00</div><div class="card-foot" id="dashNetFoot">Após descontos e taxas</div></div></div>
+<div class="card"><div class="dash-card-icon">▢</div><div><div class="label">Pedidos</div><div class="value" id="dashOrders">0</div><div class="card-foot" id="dashOrdersFoot">Pedidos registrados</div></div></div>
+<div class="card"><div class="dash-card-icon">◎</div><div><div class="label">Lucro estimado</div><div class="value good" id="dashProfit">R$ 0,00</div><div class="card-foot" id="dashProfitFoot">Após custos e taxas</div></div></div>
+</div>
+
+<div class="panel state-map-panel dashboard-map-panel">
+<div class="state-map-head"><div class="state-map-title"><div class="map-title-icon">⌖</div><div><h2>Vendas por estado</h2><div class="sub">Quantidade total de vendas por estado</div></div></div><div class="state-map-filter"><span class="map-filter-icon">▣</span><select id="stateMapPeriod" onchange="setDashboardPeriod(this.value)"></select></div></div>
+<div class="state-map-layout">
+  <div class="map-area">
+    <div id="stateMapTotal" class="map-total"></div>
+    <div class="brazil-map" id="brazilMap"><img src="/mapa-brasil-modelo-exato.png" alt="Mapa do Brasil por estado"><div id="stateMapCounts"></div></div>
+    <div class="map-scale"><span class="scale-title">Quantidade de vendas</span><div class="scale-gradient"></div><div class="scale-labels"><span>Menor</span><span>Maior</span></div></div>
+  </div>
+  <div class="state-ranking-panel">
+    <div class="ranking-title">▥ <span>Ranking de estados</span></div>
+    <div id="stateRanking"></div>
+    <div class="ranking-summary"><div><span>Total de vendas</span><b id="stateMapTotalOrders">0</b></div><div><span>Estados com vendas</span><b id="stateMapStatesWithSales">0</b></div></div>
+  </div>
+</div>
+</div>
+
+<div class="quick-grid">
+<div class="quick-card" onclick="show('pricing')"><div class="quick-icon">◉</div><div><b>Calculadora de preços</b><span>Calcule o custo das suas impressões</span></div><strong>›</strong></div>
+<div class="quick-card" onclick="show('materials')"><div class="quick-icon">◈</div><div><b>Filamento e insumos</b><span>Gerencie materiais e estoque</span></div><strong>›</strong></div>
+<div class="quick-card" onclick="show('stock')"><div class="quick-icon">▥</div><div><b>Estoque</b><span>Veja produtos e materiais disponíveis</span></div><strong>›</strong></div>
+<div class="quick-card" onclick="show('finance')"><div class="quick-icon">$</div><div><b>Relatório financeiro</b><span>Acompanhe receitas, custos e lucro</span></div><strong>›</strong></div>
+</div>
+
+<div class="grid2">
+<div class="panel"><h2>Últimas vendas</h2><div id="dashSales"></div></div>
+<div class="panel"><h2>Estoque baixo</h2><div id="lowStock"></div></div>
+</div>
+</section>
+<section id="products" class="hidden">
+<div class="top"><div><h1>Produtos</h1><div class="sub">Cadastre a ficha técnica, receita, custos e vínculo com a Shopee</div></div><button class="btn" onclick="toggle('productForm')">+ Novo produto</button></div>
+<div id="productForm" class="panel hidden"><h2 id="productFormTitle">Novo produto</h2><div class="formgrid">
+<div class="field"><label>Nome</label><input id="pName"></div><div class="field"><label>SKU</label><input id="pSku"></div><div class="field"><label>Loja (opcional)</label><select id="pStore"><option value="">Sem loja definida</option><option value="F4R Studio 3D">F4R Studio 3D</option><option value="F4RM 3D">F4RM 3D</option></select><div class="sub">Os mesmos produtos podem ser vendidos nas duas lojas. A loja é escolhida no momento da venda.</div></div>
+<div class="field"><label>SKU Shopee</label><input id="pShopeeSku" placeholder="Ex.: MINI-JESUS-01"></div>
+<div class="field"><label>Nome do anúncio Shopee</label><input id="pShopeeName" placeholder="Nome usado no anúncio"></div>
+<div class="field" style="grid-column:1/-1">
+<label><b>Materiais / insumos da receita</b></label>
+<div id="materialsList"></div>
+<button type="button" class="btn secondary" onclick="addMaterialRow()">+ Adicionar material / insumo</button>
+<div class="sub" style="margin-top:6px">Selecione qualquer material cadastrado e informe quanto é consumido para fabricar 1 unidade. O sistema aceita frações: por exemplo, 1/15 de uma folha.</div>
+</div>
+
+<div class="field"><label id="pMaterialCostLabel">Custo dos materiais / unidade (R$)</label><input id="pFilamentCost" type="number" min="0" step=".0001" placeholder="Calculado automaticamente" disabled><div class="sub" id="pMaterialCostHint">Calculado automaticamente a partir da receita.</div></div>
+<div class="field"><label>Dados da produção</label><select id="pBasis" onchange="updateProductBasisUI()"><option value="unit">Consumo e tempo por unidade</option><option value="batch">Consumo e tempo do lote inteiro</option></select></div>
+<div class="field"><label>Quantidade produzida no lote</label><input id="pBatchQty" type="number" min="1" step="1" value="1" oninput="updateProductBasisUI()"></div>
+<div class="field"><label id="pPrintHoursLabel">Tempo de impressão por unidade</label><input id="pPrintHours" type="text" inputmode="decimal" placeholder="Ex.: 2,5 ou 2:30"></div>
+<div class="sub" id="pBasisHint" style="grid-column:1/-1;margin-top:-8px">Para dados do fatiador do lote, escolha “lote inteiro”, informe a quantidade e coloque o consumo total de cada filamento/insumo.</div>
+<div class="field"><label>Embalagem do pedido (R$) <span class="sub" id="pPackHint">por pedido</span></label><input id="pPack" type="number" step=".01"></div><div class="field"><label>Mão de obra (R$) <span class="sub" id="pLaborHint">total do lote</span></label><input id="pLabor" type="number" step=".01" placeholder="Ex.: 5,00"></div><div class="field"><label>Outros custos (R$) <span class="sub" id="pOtherHint">por unidade</span></label><input id="pOther" type="number" step=".01"></div>
+<div class="field"><label>Taxa marketplace (%)</label><input id="pFee" type="number" step=".1" value="20"></div><div class="field"><label>Margem desejada (%)</label><input id="pMargin" type="number" step=".1" value="30"></div><div class="field"><label>Estoque inicial</label><input id="pStock" type="number" value="0"></div>
+</div><br><button class="btn" id="productSaveBtn" onclick="addProduct()">Salvar produto</button> <button type="button" class="btn secondary" onclick="cancelProductEdit()">Cancelar</button></div>
+<div class="panel"><table><thead><tr><th>Produto</th><th>SKU</th><th>Loja</th><th>Materiais da receita</th><th>Custo / un.</th><th>Preço sugerido / un.</th><th>Estoque</th><th>Ficha técnica</th><th>Ações</th></tr></thead><tbody id="productsTable"></tbody></table></div>
+</section>
+
+
+
+<section id="storefront" class="hidden">
+<div class="top"><div><h1>Vitrine</h1><div class="sub">Organize seus produtos e acompanhe os preços publicados.</div></div></div>
+<div class="panel"><h2>Produtos em destaque</h2><div id="storefrontGrid" class="store-grid"></div></div>
+</section>
+
+<section id="marketing" class="hidden">
+<div class="top"><div><h1>Marketing</h1><div class="sub">Acompanhe anúncios, investimento e retorno.</div></div></div>
+<div class="cards">
+<div class="card"><div class="label">Investimento em anúncios</div><div class="value">R$ 0,00</div></div>
+<div class="card"><div class="label">Vendas atribuídas</div><div class="value">0</div></div>
+<div class="card"><div class="label">ROAS</div><div class="value">—</div></div>
+</div>
+<div class="notice">Na próxima etapa podemos conectar os dados de publicidade da Shopee e acompanhar ROAS por produto.</div>
+</section>
+
+<section id="settings" class="hidden">
+<div class="top"><div><h1>Configurações</h1><div class="sub">Preferências gerais do Gestor 3D.</div></div></div>
+<div class="panel"><h2>Operação</h2><div class="formgrid">
+<div class="field"><label>Loja principal</label><select><option>F4R Studio 3D</option><option>F4RM 3D</option></select></div>
+<div class="field"><label>Moeda</label><input value="BRL — Real brasileiro" disabled></div>
+<div class="field"><label>Marketplace</label><input value="Shopee" disabled></div>
+</div></div>
+<div class="panel"><h2>Logo para orçamentos</h2><div class="formgrid">
+<div class="field"><label>Enviar logo</label><input id="companyLogoInput" type="file" accept="image/png,image/jpeg,image/webp" onchange="saveCompanyLogo(this)"><div class="sub">A logo fica salva neste navegador e será usada nos orçamentos impressos.</div></div>
+<div class="field"><label>Logo atual</label><div id="companyLogoPreview" class="quote-box" style="min-height:70px;display:flex;align-items:center;justify-content:center">Nenhuma logo cadastrada.</div></div>
+<div class="field" style="display:flex;align-items:end"><button class="btn secondary" type="button" onclick="removeCompanyLogo()">Remover logo</button></div>
+</div></div>
+</section>
+
+<section id="materials" class="hidden">
+<div class="top">
+  <div><h1>Materiais</h1><div class="sub">Cadastre filamentos, argolas, LEDs, embalagens e outros componentes usados nos produtos.</div></div>
+  <div class="actions"><button class="btn secondary" onclick="toggle('categoryManager');renderCategories()">⚙ Categorias</button><button class="btn" onclick="openMaterialNew()">+ Novo material</button></div>
+</div>
+
+<div id="materialForm" class="panel hidden">
+  <h2 id="materialFormTitle">Novo material</h2>
+  <div class="formgrid">
+    <div class="field"><label>Nome do material</label><input id="mName" placeholder="Ex.: PLA+ Branco"></div>
+    <div class="field"><label>Categoria</label>
+      <select id="mCategory"></select>
+    </div>
+    <div class="field"><label>Marca</label><input id="mBrand" placeholder="Ex.: Sunlu"></div>
+    <div class="field"><label>Tipo</label><input id="mType" placeholder="Ex.: PLA+, PLA Basic"></div>
+    <div class="field"><label>Cor / descrição</label><input id="mColor" placeholder="Ex.: Branco"></div>
+    <div class="field"><label>Unidade de controle</label>
+      <select id="mUnit">
+        <option>gramas</option>
+        <option>unidades</option>
+        <option>folhas</option>
+        <option>pares</option>
+        <option>metros</option>
+        <option>mililitros</option>
+        <option>litros</option>
+      </select>
+    </div>
+    <div class="field"><label>Quantidade comprada</label><input id="mPurchaseQty" type="number" min="0" step=".01" placeholder="Ex.: 1000"></div>
+    <div class="field"><label>Preço de compra (R$)</label><input id="mPurchasePrice" type="number" min="0" step=".01" placeholder="Ex.: 119,90"></div>
+    <div class="field"><label>Fornecedor</label><input id="mSupplier" placeholder="Ex.: Loja própria / Shopee"></div>
+    <div class="field"><label>Estoque atual</label><input id="mStock" type="number" min="0" step=".01" placeholder="Ex.: 750"></div>
+    <div class="field"><label>Estoque mínimo</label><input id="mMinStock" type="number" min="0" step=".01" value="0"></div>
+  </div>
+  <div class="notice" id="materialCostPreview" style="margin-top:14px">Informe quantidade e preço de compra para calcular o custo unitário.</div>
+  <br>
+  <div class="actions"><button class="btn" onclick="saveMaterial()">Salvar material</button><button type="button" class="btn secondary" onclick="closeMaterialForm()">Cancelar</button></div>
+</div>
+
+<div id="categoryManager" class="panel hidden category-manager">
+  <div class="top" style="margin-bottom:12px"><div><h2 style="margin:0">Categorias</h2><div class="sub">Defina o nome e a cor usada para identificar os materiais no estoque.</div></div></div>
+  <div class="formgrid">
+    <div class="field"><label>Nova categoria</label><input id="newCategoryName" placeholder="Ex.: Papelaria"></div>
+    <div class="field"><label>Cor</label><input id="newCategoryColor" class="color-input" type="color" value="#8b5e4a"></div>
+    <div class="field" style="display:flex;align-items:end"><button class="btn" onclick="addCategory()">+ Adicionar categoria</button></div>
+  </div>
+  <div id="categoriesList" style="margin-top:12px"></div>
+</div>
+
+<div class="panel">
+  <h2>Materiais cadastrados</h2>
+  <table>
+    <thead><tr><th>Material</th><th>Categoria</th><th>Marca / tipo</th><th>Unidade</th><th>Custo unitário</th><th>Estoque</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody id="materialsTable"></tbody>
+  </table>
+</div>
+</section>
+
+
+<section id="pricing" class="hidden">
+<div class="top">
+  <div><h1>Calculadora</h1><div class="sub">Orçamentos para clientes e cálculo interno de produção.</div></div>
+</div>
+
+<div class="calc-tabs">
+  <button class="calc-tab active" onclick="calcMode('quote',this)">▣ Orçamento para Cliente</button>
+  <button class="calc-tab" onclick="calcMode('production',this)">⚙ Perfil de Produção</button>
+</div>
+
+<div id="quoteMode">
+  <div class="price-banner">
+    <div><span>Preço de venda sugerido</span><small id="calcSummary">Margem e custos calculados automaticamente</small></div>
+    <strong id="calcTopPrice">R$ 0,00</strong>
+  </div>
+
+  <div class="calc-layout">
+    <div>
+      <div class="panel">
+        <h2>Dados da Impressão</h2>
+        <div class="product-loader">
+          <div>
+            <label>Produto cadastrado</label>
+            <select id="calcProductSelect" onchange="loadProductToCalc()">
+              <option value="">Selecione um produto para carregar a ficha técnica</option>
+            </select>
+            <div class="quote-actions" style="margin-top:8px">
+              <button type="button" class="btn secondary" onclick="saveCalculatorAsProduct()">＋ Salvar como produto</button>
+            </div>
+          </div>
+          <div class="sub">Ao carregar, a receita de filamentos, componentes, mão de obra, embalagem, taxa e margem são preenchidos automaticamente.</div>
+        </div>
+        <div class="formgrid">
+          <div class="field"><label>Nome do produto / projeto</label><input id="calcProjectName" placeholder="Ex.: Mini Jesus"></div>
+          <div class="field"><label>Quantidade produzida</label><input id="calcQty" type="number" min="1" value="1" oninput="runCalc()"></div>
+          <div class="field"><label>Cores / acabamento</label><input id="calcColors" placeholder="Ex.: Branco e dourado"></div>
+          <div class="field"><label>Como os dados da impressão foram informados?</label><select id="calcBasis" onchange="updateCalcBasisUI();runCalc()"><option value="unit">Por unidade</option><option value="batch">Total do lote</option></select></div>
+        </div>
+        <div id="calcBasisNotice" class="notice" style="margin-top:10px">Por unidade: informe o consumo e o tempo de impressão de uma peça.</div>
+
+        <div class="calc-block">
+          <div class="calc-title">◈ MATERIAL</div>
+          <div id="calcMaterials"></div>
+          <button class="btn secondary" onclick="addCalcMaterial()">+ Adicionar filamento</button>
+        </div>
+
+        <div class="calc-block">
+          <div class="calc-title">◷ TEMPO E ENERGIA</div>
+          <div class="formgrid">
+            <div class="field"><label>Tempo de impressão por unidade (horas)</label><input id="calcHours" type="number" min="0" step=".01" value="1" oninput="runCalc()"></div>
+            <div class="field"><label>Potência da impressora (W)</label><input id="calcWatts" type="number" min="0" step="1" value="200" oninput="runCalc()"></div>
+            <div class="field"><label>Custo da energia (R$/kWh)</label><input id="calcKwh" type="number" min="0" step=".01" value="0.90" oninput="runCalc()"></div>
+          </div>
+        </div>
+
+        <div class="calc-block">
+          <div class="calc-title">⚙ DEPRECIAÇÃO E DESGASTE</div>
+          <div class="formgrid">
+            <div class="field"><label>Valor da impressora (R$)</label><input id="calcPrinterValue" type="number" min="0" step=".01" value="3000" oninput="runCalc()"></div>
+            <div class="field"><label>Vida útil estimada (horas)</label><input id="calcPrinterLife" type="number" min="1" step="1" value="5000" oninput="runCalc()"></div>
+            <div class="field"><label>Desgaste bico/mecânica por hora (R$)</label><input id="calcWear" type="number" min="0" step=".01" value="0.20" oninput="runCalc()"></div>
+          </div>
+        </div>
+
+        <div class="calc-block">
+          <div class="calc-title">▣ CUSTOS ADICIONAIS</div>
+          <div class="formgrid">
+            <div class="field"><label>Mão de obra (R$)</label><input id="calcLabor" type="number" min="0" step=".01" value="0" oninput="runCalc()"></div>
+            <div class="field"><label>Embalagem (R$)</label><input id="calcPack" type="number" min="0" step=".01" value="0" oninput="runCalc()"></div>
+            <div class="field"><label>Outros / risco (R$)</label><input id="calcOther" type="number" min="0" step=".01" value="0" oninput="runCalc()"></div>
+          </div>
+        </div>
+
+        <div class="calc-block">
+          <div class="calc-title">💰 FORMAÇÃO DO PREÇO</div>
+          <div class="formgrid">
+            <div class="field"><label>Markup sobre o custo (%)</label><input id="calcMarkup" type="number" min="0" step=".1" value="50" oninput="runCalc()"></div>
+            <div class="field"><label>Margem desejada (%)</label><input id="calcMargin" type="number" min="0" max="99" step=".1" value="33" oninput="runCalc()"></div>
+            <div class="field"><label>Taxa marketplace (%)</label><input id="calcFee" type="number" min="0" max="99" step=".1" value="20" oninput="runCalc()"></div>
+          </div>
+        </div>
+      <div class="quote-box" style="margin-top:15px">
+          <div class="calc-title">DETALHES DO PROJETO</div>
+          <div class="field"><label>Observações</label><input id="calcDetails" placeholder="Ex.: personalizado, acabamento, prazo..."></div>
+          <div class="quote-actions">
+            <button class="btn secondary" onclick="saveQuote('salvo')">💾 Salvar orçamento</button>
+            <button class="btn" onclick="saveQuote('produção')">✓ Salvar + Produzir</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel result-panel">
+        <div class="result-label">PREÇO DE VENDA SUGERIDO</div>
+        <div class="result-price" id="calcPrice">R$ 0,00</div>
+        <div class="result-pills">
+          <span>MARKUP <b id="resMarkup">50%</b></span>
+          <span>LUCRO <b id="resProfit">R$ 0,00</b></span>
+          <span>MARGEM <b id="resMargin">0%</b></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Distribuição de Custos</h2>
+        <div class="donut-wrap"><div class="donut" id="costDonut"></div><div id="costLegend"></div></div>
+      </div>
+
+      <div class="panel">
+        <h2>Análise de Custos</h2>
+        <div id="costAnalysis"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="productionMode" class="hidden">
+  <div class="panel">
+    <h2>Perfil de Produção</h2>
+    <div class="notice">Aqui ficam as configurações padrão usadas pela calculadora. Você pode ajustar os valores para refletir sua impressora e sua operação.</div>
+    <br>
+    <div class="formgrid">
+      <div class="field"><label>Potência padrão (W)</label><input type="number" value="200" oninput="document.getElementById('calcWatts').value=this.value;runCalc()"></div>
+      <div class="field"><label>Custo de energia (R$/kWh)</label><input type="number" value="0.90" step=".01" oninput="document.getElementById('calcKwh').value=this.value;runCalc()"></div>
+      <div class="field"><label>Vida útil (horas)</label><input type="number" value="5000" oninput="document.getElementById('calcPrinterLife').value=this.value;runCalc()"></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section id="stock" class="hidden">
+<div class="top"><div><h1>Estoque</h1><div class="sub">Controle de materiais, produtos acabados e compras.</div></div><button class="btn" onclick="show('movements')">+ Movimentar estoque</button></div>
+
+<div class="inventory-tabs">
+<button class="inventory-tab active" onclick="inventoryTab('filaments',this)">🧵 Filamentos</button>
+<button class="inventory-tab" onclick="inventoryTab('finished',this)">◈ Peças Acabadas</button>
+<button class="inventory-tab" onclick="inventoryTab('paints',this)">🎨 Tintas</button>
+<button class="inventory-tab" onclick="inventoryTab('tools',this)">⚒ Ferramentas</button>
+<button class="inventory-tab" onclick="inventoryTab('projects',this)">⌘ Projetos</button>
+<button class="inventory-tab" onclick="inventoryTab('purchases',this)">🛒 Compras</button>
+</div>
+
+<div id="inv-filaments" class="inventory-pane">
+<div class="panel"><h2>Filamentos e insumos</h2>
+<table><thead><tr><th>Material</th><th>Categoria</th><th>Marca / tipo</th><th>Custo unitário</th><th>Estoque</th><th>Mínimo</th><th>Status</th><th>Ações</th></tr></thead><tbody id="stockMaterialsTable"></tbody></table></div>
+</div>
+
+<div id="inv-finished" class="inventory-pane hidden">
+<div class="panel"><h2>Peças acabadas</h2>
+<table><thead><tr><th>Produto</th><th>SKU</th><th>Loja</th><th>Estoque</th><th>Preço sugerido</th><th>Custo</th></tr></thead><tbody id="finishedTable"></tbody></table></div>
+</div>
+
+<div id="inv-paints" class="inventory-pane hidden">
+<div class="panel"><h2>Tintas</h2><div class="empty-state">Cadastre tintas em <b>Filamento / Insumos</b> usando a categoria <b>Outro</b>. A aba específica será automatizada na próxima etapa.</div></div>
+</div>
+
+<div id="inv-tools" class="inventory-pane hidden">
+<div class="panel"><h2>Ferramentas</h2><div class="empty-state">Ferramentas não entram no consumo de cada venda. Elas ficarão separadas como patrimônio/equipamentos.</div></div>
+</div>
+
+<div id="inv-projects" class="inventory-pane hidden">
+<div class="panel"><h2>Projetos e orçamentos</h2><table><thead><tr><th>Data</th><th>Projeto</th><th>Quantidade</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead><tbody id="projectsTable"></tbody></table></div>
+</div>
+
+<div id="inv-purchases" class="inventory-pane hidden">
+<div class="panel"><div class="top" style="margin-bottom:12px"><h2>Registro de compras</h2><button class="btn" onclick="show('materials');toggle('materialForm')">+ Nova compra/material</button></div>
+<table><thead><tr><th>Data</th><th>Material</th><th>Quantidade</th><th>Valor</th><th>Fornecedor</th></tr></thead><tbody id="purchasesTable"></tbody></table></div>
+</div>
+</section>
+<section id="movements" class="hidden">
+<div class="top"><div><h1>Movimentações</h1><div class="sub">Registre entradas, ajustes e saídas de materiais.</div></div></div>
+<div class="panel">
+<h2>Nova movimentação</h2>
+<div class="formgrid">
+<div class="field"><label>Material</label><select id="mvMaterial"></select></div>
+<div class="field"><label>Tipo</label><select id="mvType"><option value="entrada">Entrada</option><option value="saida">Saída</option><option value="ajuste">Ajuste de estoque</option></select></div>
+<div class="field"><label>Quantidade</label><input id="mvQty" type="number" min="0" step=".01"></div>
+<div class="field"><label>Motivo / observação</label><input id="mvNote" placeholder="Ex.: compra de filamento"></div>
+</div><br><button class="btn" onclick="addMovement()">Registrar movimentação</button>
+</div>
+<div class="panel">
+<h2>Histórico</h2>
+<table><thead><tr><th>Data</th><th>Material</th><th>Tipo</th><th>Quantidade</th><th>Observação</th></tr></thead>
+<tbody id="movementsTable"></tbody></table>
+</div>
+</section>
+
+<section id="consumption" class="hidden">
+<div class="top"><div><h1>Consumo de materiais</h1><div class="sub">Acompanhe quanto de cada material saiu e quanto ainda resta em estoque.</div></div></div>
+<div class="cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+  <div class="card"><div class="label">Materiais acompanhados</div><div class="value" id="consumptionMaterialsCount">0</div></div>
+  <div class="card"><div class="label">Materiais com consumo</div><div class="value" id="consumptionUsedCount">0</div></div>
+  <div class="card"><div class="label">Estoque baixo / zerado</div><div class="value" id="consumptionLowCount">0</div></div>
+</div>
+<div class="panel">
+<div class="top" style="margin-bottom:12px"><div><h2>Resumo por material</h2><div class="sub">“Quantidade que saiu” soma todas as saídas registradas. “Quantidade que ficou” mostra o estoque atual.</div></div></div>
+<table><thead><tr><th>Material</th><th>Categoria</th><th>Quantidade que saiu</th><th>Quantidade que ficou</th><th>Unidade</th><th>Situação</th></tr></thead>
+<tbody id="consumptionTable"></tbody></table>
+</div>
+<div class="panel">
+<h2>Últimos consumos</h2>
+<table><thead><tr><th>Data</th><th>Material</th><th>Quantidade que saiu</th><th>Estoque antes</th><th>Estoque depois</th><th>Origem / observação</th></tr></thead>
+<tbody id="consumptionHistoryTable"></tbody></table>
+</div>
+</section>
+
+<section id="sales" class="hidden">
+<div class="top"><div><h1>Vendas & Pedidos</h1><div class="sub">Registre, acompanhe e finalize seus pedidos.</div></div></div>
+<div class="cards" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px">
+<div class="card"><div class="label">Total de pedidos</div><div class="value" id="salesTotal">0</div></div>
+<div class="card"><div class="label">Em produção</div><div class="value" id="salesInProduction">0</div></div>
+<div class="card"><div class="label">Prontos</div><div class="value" id="salesReady">0</div></div>
+<div class="card"><div class="label">Atrasados</div><div class="value" id="salesLate">0</div></div>
+<div class="card"><div class="label">Entregues</div><div class="value" id="salesDelivered">0</div></div>
+</div>
+<div class="panel"><h2 id="saleFormTitle">Registrar venda / pedido</h2><div class="formgrid">
+<div class="field"><label>Data da compra</label><input id="sDate" type="date"></div>
+<div class="field"><label>Horário da compra</label><input id="sTime" type="time"></div>
+<div class="field"><label>Primeiro nome do cliente</label><input id="sCustomerName" type="text" placeholder="Ex.: Maria"></div>
+<div class="field"><label>Estado da compra</label><select id="sState"><option value="">Selecione o estado</option><option value="AC">Acre (AC)</option><option value="AL">Alagoas (AL)</option><option value="AP">Amapá (AP)</option><option value="AM">Amazonas (AM)</option><option value="BA">Bahia (BA)</option><option value="CE">Ceará (CE)</option><option value="DF">Distrito Federal (DF)</option><option value="ES">Espírito Santo (ES)</option><option value="GO">Goiás (GO)</option><option value="MA">Maranhão (MA)</option><option value="MT">Mato Grosso (MT)</option><option value="MS">Mato Grosso do Sul (MS)</option><option value="MG">Minas Gerais (MG)</option><option value="PA">Pará (PA)</option><option value="PB">Paraíba (PB)</option><option value="PR">Paraná (PR)</option><option value="PE">Pernambuco (PE)</option><option value="PI">Piauí (PI)</option><option value="RJ">Rio de Janeiro (RJ)</option><option value="RN">Rio Grande do Norte (RN)</option><option value="RS">Rio Grande do Sul (RS)</option><option value="RO">Rondônia (RO)</option><option value="RR">Roraima (RR)</option><option value="SC">Santa Catarina (SC)</option><option value="SP">São Paulo (SP)</option><option value="SE">Sergipe (SE)</option><option value="TO">Tocantins (TO)</option></select></div>
+<div class="field"><label>Prazo para postagem</label><select id="sPostDays"><option value="1">1 dia útil</option><option value="2">2 dias úteis</option><option value="3">3 dias úteis</option><option value="4">4 dias úteis</option><option value="5">5 dias úteis</option></select></div>
+<div class="field"><label>Data limite para postagem</label><input id="sDueDate" type="date" readonly></div>
+<div class="field"><label>Produto</label><select id="sProduct"></select></div>
+<div class="field"><label>Loja</label><select id="sStore"><option value="F4R Studio 3D">F4R Studio 3D</option><option value="F4RM 3D">F4RM 3D</option></select></div>
+<div class="field"><label>Quantidade</label><input id="sQty" type="number" value="1" min="1"></div>
+<div class="field"><label>Valor total da venda (R$)</label><input id="sGross" type="number" step=".01" placeholder="Valor pago pelo cliente"></div>
+<div class="field"><label>Valor líquido recebido (R$)</label><input id="sNet" type="number" step=".01" placeholder="Após taxas/descontos"></div>
+<div class="field"><label>Status do pedido</label><select id="sStatus"><option>Recebido</option><option>Em produção</option><option>Pronto</option><option>Enviado</option><option>Entregue</option><option>Cancelado</option></select></div>
+<div class="field" style="grid-column:1/-1"><label>Observações</label><input id="sNotes" placeholder="Ex.: personalização, nome, cor, envio..."></div>
+</div><br><button id="saleSubmitBtn" class="btn" onclick="saveSaleForm()">Registrar pedido</button> <button id="saleCancelEditBtn" class="btn outline hidden" type="button" onclick="cancelEditSale()">Cancelar edição</button></div>
+<div class="panel"><div class="top" style="margin-bottom:12px"><h2>Pedidos</h2><select id="salesFilter" onchange="renderSalesTable()" style="max-width:220px"><option value="todos">Todos</option><option value="Recebido">Recebidos</option><option value="Em produção">Em produção</option><option value="Pronto">Prontos</option><option value="Enviado">Enviados</option><option value="Entregue">Entregues</option><option value="Cancelado">Cancelados</option><option value="atrasados">Atrasados</option></select></div><div style="overflow:auto"><table><thead><tr><th>Compra</th><th>Cliente</th><th>Estado</th><th>Produto</th><th>Loja</th><th>Qtd.</th><th>Postagem até</th><th>Venda / Líquido</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="salesTable"></tbody></table></div></div>
+</section>
+
+<section id="finance" class="hidden">
+<div class="top"><div><h1>Financeiro</h1><div class="sub">Resultado consolidado das vendas registradas</div></div><div class="report-period"><label for="financeMonth">Período:</label><input id="financeMonth" type="month" onchange="setReportMonth(this.value)"></div></div>
+<div class="cards">
+<div class="card"><div class="label">Receita</div><div class="value" id="finRevenue">R$ 0,00</div></div>
+<div class="card"><div class="label">Custo dos produtos</div><div class="value" id="finCost">R$ 0,00</div></div>
+<div class="card"><div class="label">Taxas estimadas</div><div class="value" id="finFees">R$ 0,00</div></div>
+<div class="card"><div class="label">Lucro estimado</div><div class="value good" id="finProfit">R$ 0,00</div></div>
+</div>
+</section>
+
+
+<section id="shopee" class="hidden">
+<div class="top"><div><h1>Integração Shopee</h1><div class="sub">Autorização OAuth, pedidos, produtos e estoque.</div></div><div class="actions"><button class="btn secondary" onclick="refreshShopeeStatus()">↻ Atualizar status</button></div></div>
+<div class="channel-tabs">
+<button class="channel-tab active" onclick="channelTab('shopeeConnect',this)">🔗 Conexão</button>
+<button class="channel-tab" onclick="channelTab('shopeeOrders',this)">🛒 Pedidos</button>
+<button class="channel-tab" onclick="channelTab('shopeeProducts',this)">📦 Produtos</button>
+<button class="channel-tab" onclick="channelTab('shopeeStock',this)">📊 Estoque</button>
+</div>
+<div id="shopeeConnect">
+<div class="channel-grid">
+<div class="channel-card">
+<div class="channel-head"><div class="channel-logo">S</div><div><h2 style="margin:0">F4R Studio 3D</h2><div id="shopStatus1" class="sub"><span class="status-dot"></span>Verificando...</div></div></div>
+<div class="formgrid">
+<div class="field"><label>Nome interno</label><input id="shopName1" placeholder="Ex.: Minha F4R Studio 3D"></div>
+<div class="field"><label>Shop ID</label><input id="shopId1" disabled placeholder="Após autorização"></div>
+</div>
+<div class="quote-actions"><button class="btn" onclick="connectShopee(1)">🔗 Conectar F4R Studio 3D</button><button class="btn secondary" onclick="refreshShopee(1)">↻ Renovar token</button></div>
+</div>
+<div class="channel-card">
+<div class="channel-head"><div class="channel-logo">S</div><div><h2 style="margin:0">F4RM 3D</h2><div id="shopStatus2" class="sub"><span class="status-dot"></span>Verificando...</div></div></div>
+<div class="formgrid">
+<div class="field"><label>Nome interno</label><input id="shopName2" placeholder="Ex.: Minha F4RM 3D"></div>
+<div class="field"><label>Shop ID</label><input id="shopId2" disabled placeholder="Após autorização"></div>
+</div>
+<div class="quote-actions"><button class="btn" onclick="connectShopee(2)">🔗 Conectar F4RM 3D</button><button class="btn secondary" onclick="refreshShopee(2)">↻ Renovar token</button></div>
+</div>
+</div>
+<div class="notice" style="margin-top:15px"><b>Importante:</b> a senha da Shopee não é armazenada pelo Gestor 3D. A autorização acontece na própria Shopee. O backend guarda somente os tokens necessários para as APIs.</div>
+<div class="integration-steps">
+<div class="step"><b>1. App Shopee</b><span>Partner ID e Partner Key no Open Platform.</span></div>
+<div class="step"><b>2. Autorizar loja</b><span>A loja entra na Shopee e concede as permissões.</span></div>
+<div class="step"><b>3. Sincronizar</b><span>Pedidos, anúncios e estoque passam a conversar com o Gestor.</span></div>
+</div>
+</div>
+
+<div id="shopeeOrders" class="hidden">
+<div class="sync-bar"><div><b>Pedidos Shopee</b><div class="sub">Busca pedidos atualizados dos últimos 7 dias.</div></div><div class="actions"><select id="orderStore"><option value="1">F4R Studio 3D</option><option value="2">F4RM 3D</option></select><button class="btn secondary" onclick="syncShopeeOrders()">↻ Sincronizar pedidos</button></div></div>
+<div id="shopeeOrderMsg" class="notice hidden" style="margin-top:12px"></div>
+<div class="panel" style="margin-top:14px"><table><thead><tr><th>Pedido</th><th>Loja</th><th>Produto/SKU</th><th>Qtd.</th><th>Status</th><th>Total</th><th>Ação</th></tr></thead><tbody id="shopeeOrdersTable"><tr><td colspan="7" class="sub">Nenhum pedido sincronizado.</td></tr></tbody></table></div>
+</div>
+
+<div id="shopeeProducts" class="hidden">
+<div class="sync-bar"><div><b>Produtos Shopee</b><div class="sub">Importe anúncios e use o Item ID para vincular ao produto interno.</div></div><div class="actions"><select id="productStore"><option value="1">F4R Studio 3D</option><option value="2">F4RM 3D</option></select><button class="btn secondary" onclick="syncShopeeProducts()">↓ Importar produtos</button></div></div>
+<div class="panel" style="margin-top:14px"><table><thead><tr><th>Item ID</th><th>SKU</th><th>Nome</th><th>Estoque Shopee</th><th>Vincular</th></tr></thead><tbody id="shopeeProductsTable"><tr><td colspan="5" class="sub">Nenhum produto importado.</td></tr></tbody></table></div>
+</div>
+
+<div id="shopeeStock" class="hidden">
+<div class="sync-bar"><div><b>Sincronização de estoque</b><div class="sub">Envia o estoque do produto interno para o anúncio vinculado.</div></div><div class="actions"><select id="stockStore"><option value="1">F4R Studio 3D</option><option value="2">F4RM 3D</option></select><button class="btn" onclick="pushAllShopeeStock()">↑ Atualizar estoque</button></div></div>
+<div class="panel" style="margin-top:14px"><table><thead><tr><th>Produto</th><th>SKU</th><th>Item ID</th><th>Estoque interno</th><th>Status</th></tr></thead><tbody id="shopeeStockTable"></tbody></table></div>
+</div>
+</section>
+
+</main></div>
+
+<script>
+const KEY='gestor3d_v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'{"products":[],"sales":[],"materials":[]}');
+db.materials=db.materials||[];
+db.categories=db.categories||[
+ {name:"Filamento",color:"#5b8def"},
+ {name:"Componente",color:"#8b5cf6"},
+ {name:"Embalagem",color:"#e3a008"},
+ {name:"Outro",color:"#7c8b93"}
+];
+let editingMaterialId=null;
+db.movements=db.movements||[];
+db.quotes=db.quotes||[];
+db.purchases=db.purchases||[];
+db.materials.forEach(m=>{if(m.minStock===undefined)m.minStock=0;}); db.products.forEach(p=>{if(p.printHours===undefined)p.printHours=0; if(p.stockManaged===undefined)p.stockManaged=false;});
+function categoryInfo(name){ return (db.categories||[]).find(c=>c.name===name) || {name:name||"Sem categoria",color:"#7c8b93"}; }
+function categoryBadge(name){ const c=categoryInfo(name); return `<span class="category-badge" style="background:${c.color}18;color:${c.color}"><span class="category-dot" style="background:${c.color}"></span>${c.name}</span>`; }
+function renderCategorySelect(){ const el=document.getElementById("mCategory"); if(!el)return; const current=el.value; el.innerHTML=(db.categories||[]).map(c=>`<option value="${c.name}">${c.name}</option>`).join(""); if(current && (db.categories||[]).some(c=>c.name===current))el.value=current; }
+function renderCategories(){ const box=document.getElementById("categoriesList"); if(!box)return; box.innerHTML=(db.categories||[]).map((c,i)=>`<div class="category-item"><input class="color-input" type="color" value="${c.color}" onchange="updateCategoryColor(${i},this.value)"><div style="flex:1"><b>${c.name}</b><div class="sub">${(db.materials||[]).filter(m=>m.category===c.name).length} material(is)</div></div>${categoryBadge(c.name)}<button class="btn xs outline" onclick="renameCategory(${i})">Editar</button><button class="btn xs danger" onclick="deleteCategory(${i})">Excluir</button></div>`).join("")||'<div class="sub">Nenhuma categoria cadastrada.</div>'; }
+function addCategory(){ const input=document.getElementById("newCategoryName"), color=document.getElementById("newCategoryColor"); const name=input.value.trim(); if(!name){alert("Informe o nome da categoria.");return;} if((db.categories||[]).some(c=>c.name.toLowerCase()===name.toLowerCase())){alert("Essa categoria já existe.");return;} db.categories.push({name,color:color.value||"#8b5e4a"}); save(); renderCategorySelect(); renderCategories(); input.value=""; }
+function updateCategoryColor(i,color){ if(!db.categories[i])return; db.categories[i].color=color; save(); renderCategories(); }
+function renameCategory(i){ const c=db.categories[i]; if(!c)return; const name=prompt("Novo nome da categoria:",c.name); if(name===null)return; const n=name.trim(); if(!n||n===c.name)return; if(db.categories.some((x,j)=>j!==i&&x.name.toLowerCase()===n.toLowerCase())){alert("Essa categoria já existe.");return;} db.materials.forEach(m=>{if(m.category===c.name)m.category=n;}); c.name=n; save(); renderCategorySelect(); renderCategories(); }
+function deleteCategory(i){ const c=db.categories[i]; if(!c)return; const used=db.materials.filter(m=>m.category===c.name); if(used.length){alert(`Não é possível excluir "${c.name}" porque ela está sendo usada por ${used.length} material(is). Edite os materiais para outra categoria primeiro.`);return;} if(db.categories.length<=1){alert("Mantenha pelo menos uma categoria.");return;} if(!confirm(`Excluir a categoria "${c.name}"?`))return; db.categories.splice(i,1); save(); renderCategorySelect(); renderCategories(); }
+function openMaterialNew(){ editingMaterialId=null; document.getElementById("materialFormTitle").textContent="Novo material"; document.getElementById("materialForm").classList.remove("hidden"); clearMaterialForm(); renderCategorySelect(); }
+function closeMaterialForm(){ editingMaterialId=null; document.getElementById("materialForm").classList.add("hidden"); clearMaterialForm(); }
+function clearMaterialForm(){ ["mName","mBrand","mType","mColor","mPurchaseQty","mPurchasePrice","mSupplier","mStock","mMinStock"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";}); if(document.getElementById("mMinStock"))document.getElementById("mMinStock").value=0; if(document.getElementById("mCategory"))document.getElementById("mCategory").selectedIndex=0; if(document.getElementById("mUnit"))document.getElementById("mUnit").selectedIndex=0; updateMaterialPreview(); }
+function editMaterial(id){ const m=db.materials.find(x=>String(x.id)===String(id)); if(!m)return; editingMaterialId=m.id; document.getElementById("materialFormTitle").textContent="Editar material"; document.getElementById("materialForm").classList.remove("hidden"); renderCategorySelect(); document.getElementById("mName").value=m.name||""; document.getElementById("mCategory").value=m.category||""; document.getElementById("mBrand").value=m.brand||""; document.getElementById("mType").value=m.type||""; document.getElementById("mColor").value=m.color||""; document.getElementById("mUnit").value=m.unit||"unidades"; document.getElementById("mPurchaseQty").value=m.purchaseQty??""; document.getElementById("mPurchasePrice").value=m.purchasePrice??""; document.getElementById("mSupplier").value=m.supplier||""; document.getElementById("mStock").value=m.stock??0; document.getElementById("mMinStock").value=m.minStock??0; updateMaterialPreview(); document.getElementById("materialForm").scrollIntoView({behavior:"smooth",block:"start"}); }
+function deleteMaterial(id){ const m=db.materials.find(x=>String(x.id)===String(id)); if(!m)return; const used=db.products.filter(p=>(p.materials||[]).some(r=>String(r.materialId)===String(id))); if(used.length){alert(`Não é possível excluir "${m.name}" porque ele está na receita de ${used.length} produto(s). Edite essas receitas primeiro.`);return;} if(!confirm(`Excluir o material "${m.name}" do estoque?`))return; db.materials=db.materials.filter(x=>String(x.id)!==String(id)); save(); }
+
+function seedTagProduct(){
+ const has=db.products.some(p=>p.name==="TAG em Papel Fotográfico com Brinco");
+ if(has)return;
+ const paper={id:Date.now()+11,name:"Papel Fotográfico",category:"Outro",brand:"",type:"Papel fotográfico",color:"",unit:"folhas",purchaseQty:50,purchasePrice:19.90,supplier:"",stock:50,minStock:5,unitCost:19.90/50};
+ const earring={id:Date.now()+12,name:"Brinco",category:"Componente",brand:"",type:"Brinco",color:"",unit:"unidades",purchaseQty:1000,purchasePrice:51,supplier:"",stock:1000,minStock:50,unitCost:51/1000};
+ db.materials.push(paper,earring);
+ db.purchases=db.purchases||[];
+ db.purchases.unshift({id:Date.now()+13,date:new Date().toLocaleDateString("pt-BR"),material:"Papel Fotográfico",qty:50,unit:"folhas",value:19.90,supplier:""});
+ db.purchases.unshift({id:Date.now()+14,date:new Date().toLocaleDateString("pt-BR"),material:"Brinco",qty:1000,unit:"unidades",value:51,supplier:""});
+ db.products.push({id:Date.now()+15,name:"TAG em Papel Fotográfico com Brinco",sku:"TAG-PAPEL-BRINCO",store:"F4R Studio 3D",shopeeSku:"",shopeeName:"",materials:[{materialId:paper.id,name:paper.name,qty:1/15,unit:"folhas",unitCost:paper.unitCost},{materialId:earring.id,name:earring.name,qty:2,unit:"unidades",unitCost:earring.unitCost}],components:[],filamentCost:(1/15)*paper.unitCost+2*earring.unitCost,pack:0,labor:0,other:0,fee:20,margin:30,stock:0,printHours:0,shopeeItemId:"",shopeeModelId:"0",stockManaged:false});
+ localStorage.setItem(KEY,JSON.stringify(db));
+}
+seedTagProduct();
+
+// Migração inicial: garante apenas UMA cópia do pedido que estava sendo cadastrado antes do erro da V28.
+function seedPedidoEmAndamento(){
+ const key="pedido_20261001_1036_50_7590";
+ db.sales=db.sales||[];
+ const matches=db.sales.filter(s=>
+   String(s.dateISO||"")==="2026-10-01" && String(s.time||"")==="10:36" &&
+   Number(s.qty||0)===50 && Math.abs((Number(s.grossValue??s.value)||0)-75.90)<0.001 &&
+   String(s.store||"")==="F4RM 3D" && String(s.product||"").toLowerCase().includes("kit chaveiros outubro rosa")
+ );
+ if(matches.length){
+   const keep=matches[0];
+   keep.manualKey=key; keep.dateISO="2026-10-01"; keep.time="10:36"; keep.dueDate=keep.dueDate||"2026-10-06"; keep.postDays=keep.postDays||3;
+   // Remove cópias criadas em versões anteriores.
+   db.sales=db.sales.filter(s=>s===keep || !matches.includes(s));
+   localStorage.setItem(KEY,JSON.stringify(db));
+   return;
+ }
+ const p=db.products.find(x=>String(x.name||"").toLowerCase().includes("kit chaveiros outubro rosa"));
+ const gross=75.90, net=56.22, qty=50, packaging=Number(p?.pack)||0;
+ const unitCost=p ? saleProductionCost(p) : 0;
+ db.sales.unshift({
+   id:Date.now()+777, manualKey:key, dateISO:"2026-10-01", time:"10:36", dueDate:"2026-10-06", postDays:3,
+   date:"01/10/2026", product:p?.name||"Kit Chaveiros Outubro Rosa", productId:p?.id||null, store:"F4RM 3D",
+   value:gross, grossValue:gross, netValue:net, qty, status:"Em produção", cost:unitCost*qty+packaging, fee:gross-net, packaging, notes:""
+ });
+ localStorage.setItem(KEY,JSON.stringify(db));
+}
+seedPedidoEmAndamento();
+let editingSaleId=null;
+
+const money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+// Compatibilidade: evita que uma referência antiga a "cost" interrompa o salvamento do pedido.
+if(typeof globalThis.cost === "undefined") globalThis.cost = 0;
+function save(){localStorage.setItem(KEY,JSON.stringify(db)); try{render();}catch(e){console.error("Pedido salvo, mas houve erro ao atualizar a tela:",e);}}
+function show(id,btn){if(id==='sales')setTimeout(populateSaleProducts,0);document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render();if(id==='shopee'){refreshShopeeStatus();renderShopeeStock();}}
+function toggle(id){document.getElementById(id).classList.toggle('hidden')}
+function materialCost(p){
+ if(Array.isArray(p.materials)) return p.materials.reduce((sum,m)=>sum+(+m.qty||+m.grams||0)*(+m.unitCost||+m.costPerGram||0),0);
+ return +p.filamentCost||+p.material||0;
+}
+function componentCost(p){return (p.components||[]).reduce((sum,c)=>sum+(+c.qty||0)*(+c.unitCost||0),0)}
+function productionUnitCost(p){return materialCost(p)+componentCost(p)+(+p.labor||0)+(+p.other||0)}
+function totalCost(p){return productionUnitCost(p)}
+function suggested(p){let cost=productionUnitCost(p), f=(+p.fee||0)/100,m=(+p.margin||0)/100;return (1-f-m)>0?cost/(1-f-m):0}
+function addMaterialRow(materialId="",qty=""){
+ const wrap=document.getElementById("materialsList");
+ const row=document.createElement("div"); row.className="material-row";
+ const options=(db.materials||[]).map(m=>`<option value="${m.id}" ${String(m.id)===String(materialId)?"selected":""}>${m.name} — ${m.unit} (${money(m.unitCost)}/${m.unit})</option>`).join("");
+ row.innerHTML=`<div><label class="sub">Material / insumo</label><select class="mat-select" onchange="syncMaterialRow(this)"><option value="">Selecione um material</option>${options}</select></div>
+ <div><label class="sub">Consumo por unidade</label><input class="mat-qty" type="number" min="0" step="0.0001" placeholder="Ex.: 0,0667" value="${qty}"></div>
+ <button type="button" class="remove-material" onclick="this.parentElement.remove();updateProductMaterialTotal()">Remover</button>`;
+ wrap.appendChild(row);
+ row.querySelector(".mat-qty").addEventListener("input",updateProductMaterialTotal);
+ syncMaterialRow(row.querySelector(".mat-select"));
+ updateProductBasisUI();
+}
+function syncMaterialRow(select){ updateProductMaterialTotal(); }
+function updateProductMaterialTotal(){
+ const batch=document.getElementById("pBasis")?.value==="batch";
+ const qty=Math.max(1,+document.getElementById("pBatchQty")?.value||1);
+ const totalEntered=[...document.querySelectorAll("#materialsList .material-row")].reduce((sum,r)=>{
+   const m=(db.materials||[]).find(x=>String(x.id)===String(r.querySelector(".mat-select").value));
+   return sum+(m?(+r.querySelector(".mat-qty").value||0)*(+m.unitCost||0):0);
+ },0);
+ const totalUnit=batch?totalEntered/qty:totalEntered;
+ const el=document.getElementById("pFilamentCost"); if(el)el.value=totalUnit.toFixed(4);
+}
+
+function saveMaterial(){
+ const purchaseQty=+mPurchaseQty.value||0;
+ const purchasePrice=+mPurchasePrice.value||0;
+ const stock=+mStock.value||0;
+ const name=mName.value.trim();
+ if(!name){alert("Informe o nome do material.");return}
+ if(purchaseQty<=0 || purchasePrice<0){alert("Informe uma quantidade comprada válida e o preço de compra.");return}
+ const unitCost=purchasePrice/purchaseQty;
+ db.materials=db.materials||[];
+ const payload={name,category:mCategory.value,brand:mBrand.value.trim(),type:mType.value.trim(),color:mColor.value.trim(),unit:mUnit.value,purchaseQty,purchasePrice,supplier:mSupplier.value.trim(),stock,minStock:+mMinStock.value||0,unitCost};
+ if(editingMaterialId!==null){
+   const m=db.materials.find(x=>String(x.id)===String(editingMaterialId));
+   if(!m)return;
+   Object.assign(m,payload);
+   alert("Material atualizado com sucesso.");
+ }else{
+   const materialId=Date.now();
+   db.materials.push({id:materialId,...payload});
+   db.purchases=db.purchases||[];
+   db.purchases.unshift({id:Date.now()+1,date:new Date().toLocaleDateString("pt-BR"),material:name,qty:purchaseQty,unit:mUnit.value,value:purchasePrice,supplier:mSupplier.value.trim()});
+ }
+ save();
+ closeMaterialForm();
+ renderCategorySelect();
+}
+function addMaterial(){ openMaterialNew(); }
+
+function updateMaterialPreview(){
+ const q=+mPurchaseQty.value||0, p=+mPurchasePrice.value||0;
+ materialCostPreview.textContent=q>0 ? `Custo por ${mUnit.value}: ${money(p/q)}` : "Informe quantidade e preço de compra para calcular o custo unitário.";
+}
+
+function parseHoursInput(value){
+ const s=String(value??"").trim().replace(",",".");
+ if(!s)return 0;
+ if(/^\d+(?:\.\d+)?$/.test(s))return parseFloat(s)||0;
+ const m=s.match(/^(\d+)\s*[:h]\s*(\d{1,2})$/i);
+ if(m)return (+m[1]||0)+((+m[2]||0)/60);
+ const hm=s.match(/^(\d+)\s*h\s*(\d{1,2})?\s*(?:min)?$/i);
+ if(hm)return (+hm[1]||0)+((+hm[2]||0)/60);
+ return 0;
+}
+function updateProductBasisUI(){
+ const batch=document.getElementById("pBasis")?.value==="batch";
+ const qty=Math.max(1,+document.getElementById("pBatchQty")?.value||1);
+ const label=document.getElementById("pPrintHoursLabel");
+ const hint=document.getElementById("pBasisHint");
+ if(label)label.textContent=batch?"Tempo total de impressão do lote":"Tempo de impressão por unidade";
+ if(hint)hint.textContent=batch?`Lote de ${qty} unidade${qty===1?"":"s"}: informe o consumo total de cada material e o tempo total. O sistema dividirá esses dados pela quantidade; a embalagem permanece como custo de um pedido.` : "Por unidade: informe o consumo e o tempo de impressão de uma peça.";
+ const ph=document.getElementById("pPackHint"), lh=document.getElementById("pLaborHint"), oh=document.getElementById("pOtherHint"); if(ph)ph.textContent="por pedido"; if(lh)lh.textContent=batch?"total do lote":"por unidade"; if(oh)oh.textContent=batch?"total do lote":"por unidade";
+ const costLabel=document.getElementById("pMaterialCostLabel");
+ const costHint=document.getElementById("pMaterialCostHint");
+ if(costLabel)costLabel.textContent=batch?"Custo dos materiais / unidade (R$)":"Custo dos materiais / unidade (R$)";
+ if(costHint)costHint.textContent=batch?`Custo unitário calculado dividindo o consumo total do lote de ${qty} unidade${qty===1?"":"s"} pela quantidade.`:"Calculado automaticamente a partir da receita por unidade.";
+ document.querySelectorAll("#materialsList .material-row .sub").forEach((el)=>{ if(el.textContent.includes("Consumo")) el.textContent=batch?"Consumo total no lote":"Consumo por unidade"; });
+ updateProductMaterialTotal();
+}
+
+function addProduct(){
+ const batch=document.getElementById("pBasis")?.value==="batch";
+ const batchQty=Math.max(1,+document.getElementById("pBatchQty")?.value||1);
+ const editingId=window.editingProductId||null;
+ let materials=[...document.querySelectorAll("#materialsList .material-row")].map(r=>{
+   const select=r.querySelector(".mat-select");
+   const m=(db.materials||[]).find(x=>String(x.id)===String(select.value));
+   const entered=+r.querySelector(".mat-qty").value||0;
+   const qty=batch?entered/batchQty:entered;
+   return {materialId:m?.id||"", name:m?.name||"", qty, unit:m?.unit||"", unitCost:m?.unitCost||0, sourceQty:entered};
+ }).filter(m=>m.name && m.qty>0);
+ const enteredHours=parseHoursInput(document.getElementById("pPrintHours")?.value);
+ const printHours=batch?enteredHours/batchQty:enteredHours;
+ const packEntered=+pPack.value||0, laborEntered=+pLabor.value||0, otherEntered=+pOther.value||0;
+ const pack=packEntered;
+ const labor=batch?laborEntered/batchQty:laborEntered;
+ const other=batch?otherEntered/batchQty:otherEntered;
+ const old=editingId?(db.products||[]).find(x=>String(x.id)===String(editingId)):null;
+ let p={...(old||{}),id:editingId||Date.now(),name:pName.value.trim(),sku:pSku.value.trim(),store:pStore.value,shopeeSku:pShopeeSku.value.trim(),shopeeName:pShopeeName.value.trim(),materials,
+ filamentCost:materials.reduce((sum,m)=>sum+(+m.qty||0)*(+m.unitCost||0),0),pack,labor,other,
+ fee:+pFee.value||0,margin:+pMargin.value||0,stock:+pStock.value||0,printHours,productionBatchQty:batch?batchQty:1,productionBasis:batch?"batch":"unit",productionSourceHours:enteredHours,productionSourcePack:packEntered,productionSourceLabor:laborEntered,productionSourceOther:otherEntered,productionSourceMaterials:batch?materials.map(m=>({materialId:m.materialId,sourceQty:m.sourceQty})):null,stockManaged:old?.stockManaged||false};
+ if(!p.name){alert("Informe o nome do produto.");return}
+ if(!materials.length){alert("Adicione pelo menos um material ou insumo.");return}
+ if(editingId){
+   const idx=db.products.findIndex(x=>String(x.id)===String(editingId));
+   if(idx>=0)db.products[idx]=p;
+ }else db.products.push(p);
+ save();
+ window.editingProductId=null;
+ document.getElementById("productForm").classList.add("hidden");
+ document.getElementById("productFormTitle").textContent="Novo produto";
+ document.getElementById("productSaveBtn").textContent="Salvar produto";
+ ["pName","pSku","pFilamentCost","pPrintHours","pPack","pLabor","pOther","pStock","pShopeeSku","pShopeeName","pShopeeItemId","pShopeeModelId"].forEach(x=>{const e=document.getElementById(x);if(e)e.value="";});
+ const basis=document.getElementById("pBasis"); if(basis)basis.value="unit"; const bq=document.getElementById("pBatchQty"); if(bq)bq.value=1; updateProductBasisUI();
+ document.getElementById("materialsList").innerHTML=""; addMaterialRow();
+ render();
+ alert(editingId?"Produto atualizado com sucesso.":(batch?`Produto salvo. Os dados do lote de ${batchQty} unidades foram convertidos para consumo e custos por unidade.`:"Produto salvo com sucesso."));
+}
+
+function editProduct(id){
+ const p=(db.products||[]).find(x=>String(x.id)===String(id));
+ if(!p)return;
+ window.editingProductId=p.id;
+ document.getElementById("productForm").classList.remove("hidden");
+ document.getElementById("productFormTitle").textContent="Editar produto";
+ document.getElementById("productSaveBtn").textContent="Salvar alterações";
+ pName.value=p.name||""; pSku.value=p.sku||""; pStore.value=p.store||""; pShopeeSku.value=p.shopeeSku||""; pShopeeName.value=p.shopeeName||"";
+ pFee.value=p.fee??20; pMargin.value=p.margin??30; pStock.value=p.stock??0;
+ const basis=document.getElementById("pBasis"); basis.value=p.productionBasis==="batch"?"batch":"unit";
+ const bq=document.getElementById("pBatchQty"); bq.value=p.productionBatchQty||1;
+ document.getElementById("pPrintHours").value=p.productionBasis==="batch"?(p.productionSourceHours||0):(p.printHours||0);
+ document.getElementById("pPack").value=p.productionSourcePack??(p.pack||0);
+ document.getElementById("pLabor").value=p.productionBasis==="batch"?(p.productionSourceLabor??((+p.labor||0)*(+bq.value||1))):(p.labor||0);
+ document.getElementById("pOther").value=p.productionBasis==="batch"?(p.productionSourceOther??((+p.other||0)*(+bq.value||1))):(p.other||0);
+ document.getElementById("materialsList").innerHTML="";
+ (p.materials||[]).forEach(r=>{
+   const batchQty=Math.max(1,+bq.value||1);
+   const displayQty=p.productionBasis==="batch" ? (r.sourceQty!==undefined ? r.sourceQty : ((+r.qty||0)*batchQty)) : (r.qty||0);
+   addMaterialRow(r.materialId,displayQty);
+ });
+ if(!(p.materials||[]).length)addMaterialRow();
+ updateProductBasisUI(); updateProductMaterialTotal();
+ document.getElementById("products").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function cancelProductEdit(){
+ window.editingProductId=null;
+ document.getElementById("productForm").classList.add("hidden");
+ document.getElementById("productFormTitle").textContent="Novo produto";
+ document.getElementById("productSaveBtn").textContent="Salvar produto";
+}
+
+function inventoryTab(tab,btn){
+ document.querySelectorAll(".inventory-pane").forEach(x=>x.classList.add("hidden"));
+ document.getElementById("inv-"+tab).classList.remove("hidden");
+ document.querySelectorAll(".inventory-tab").forEach(x=>x.classList.remove("active"));
+ if(btn)btn.classList.add("active");
+}
+function refreshMovementSelect(){
+ const sel=document.getElementById("mvMaterial");
+ if(!sel)return;
+ sel.innerHTML=(db.materials||[]).map(m=>`<option value="${m.id}">${m.name} — estoque: ${m.stock} ${m.unit}</option>`).join("");
+}
+function addMovement(){
+ const m=db.materials.find(x=>String(x.id)===String(mvMaterial.value));
+ const qty=+mvQty.value||0;
+ if(!m || qty<=0){alert("Selecione um material e informe uma quantidade válida.");return}
+ const type=mvType.value;
+ const before=+m.stock||0;
+ if(type==="entrada")m.stock=before+qty;
+ else if(type==="saida")m.stock=Math.max(0,before-qty);
+ else m.stock=qty;
+ db.movements.unshift({id:Date.now(),date:new Date().toLocaleString("pt-BR"),materialId:m.id,material:m.name,type,qty,note:mvNote.value.trim(),before,after:m.stock});
+ mvQty.value="";mvNote.value="";save();
+}
+
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function addBusinessDays(dateISO, days){
+ const d=new Date(String(dateISO||todayISO())+'T12:00:00');
+ let remaining=Math.max(0,Number(days)||0);
+ while(remaining>0){
+  d.setDate(d.getDate()+1);
+  const day=d.getDay();
+  if(day!==0 && day!==6) remaining--;
+ }
+ return d.toISOString().slice(0,10);
+}
+function updatePostDate(){
+ const dateEl=document.getElementById("sDate"), daysEl=document.getElementById("sPostDays"), dueEl=document.getElementById("sDueDate");
+ if(!dateEl||!daysEl||!dueEl)return;
+ dueEl.value=addBusinessDays(dateEl.value||todayISO(), Number(daysEl.value)||1);
+}
+function formatDateISO(v){ if(!v)return "—"; const parts=String(v).split("-"); return parts.length===3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : v; }
+function isLate(s){ return s.status!=="Entregue" && s.status!=="Cancelado" && s.dueDate && s.dueDate < todayISO(); }
+function saleProduct(s){ return db.products.find(x=>String(x.id)===String(s.productId)); }
+function materialConsumptionForSale(p,r,orderQty){
+ const q=Math.max(0,Number(orderQty)||0);
+ const mat=(db.materials||[]).find(x=>String(x.id)===String(r?.materialId));
+ const rawName=String(r?.name||mat?.name||p?.materials?.find(x=>String(x.materialId)===String(r?.materialId))?.name||"");
+ const name=rawName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+ // Saquinhos para chaveiros: 1 a cada 25 unidades, arredondando para cima.
+ // 1-25 = 1; 26-50 = 2; 51-75 = 3; 76-100 = 4...
+ // Importante: esta regra vale somente para o material de saquinhos de chaveiros.
+ if(name.includes("saquinho") && name.includes("chaveiro")) return q>0 ? Math.ceil(q/25) : 0;
+ // Argola para chaveiros: 1 argola para cada unidade de chaveiro.
+ if(name.includes("argola") && name.includes("chaveiro")) return q;
+ return (Number(r?.qty)||Number(r?.grams)||0)*q;
+}
+function saleProductionCost(p, orderQty=1){
+ try{
+  if(!p)return 0;
+  const q=Math.max(0,Number(orderQty)||0);
+  const mats=Array.isArray(p.materials)?p.materials.reduce((sum,r)=>{
+    const use=materialConsumptionForSale(p,r,q);
+    return sum+use*(Number(r.unitCost||r.costPerGram)||0);
+  },0):Number(p.filamentCost||p.material)||0;
+  const comps=Array.isArray(p.components)?p.components.reduce((sum,c)=>sum+(Number(c.qty)||0)*(Number(c.unitCost)||0)*q,0):0;
+  return (mats+(Number(p.labor)||0)*q+(Number(p.other)||0)*q)||0;
+ }catch(e){console.error("Erro ao calcular custo do produto",e);return 0;}
+}
+function adjustStockForSale(s, direction, note){
+ const p=saleProduct(s); if(!p)return;
+ db.movements=db.movements||[];
+ const qty=Math.max(0,Number(s.qty)||0);
+ if(p.stockManaged) p.stock=Math.max(0,(Number(p.stock)||0)+direction*qty);
+ (p.materials||[]).forEach(r=>{
+   const m=db.materials.find(x=>String(x.id)===String(r.materialId)); if(!m)return;
+   const use=materialConsumptionForSale(p,r,qty); const before=Number(m.stock)||0;
+   m.stock=Math.max(0,before+direction*use);
+   db.movements.unshift({id:Date.now()+Math.random(),date:new Date().toLocaleString("pt-BR"),materialId:m.id,material:m.name,type:direction<0?"saída":"entrada",qty:Math.abs(use),note, before, after:m.stock});
+ });
+}
+function saleStatusKey(status){ return ({"Recebido":"recebido","Em produção":"producao","Pronto":"pronto","Enviado":"enviado","Entregue":"entregue","Cancelado":"cancelado"}[status]||"recebido"); }
+function applySaleStatusColor(el){ if(!el)return; el.className="status-select status-"+saleStatusKey(el.value); }
+function updateSaleStatus(id,value){ const s=db.sales.find(x=>String(x.id)===String(id)); if(!s)return; s.status=value; if(value==="Entregue" && !s.completedDate)s.completedDate=todayISO(); save(); const el=document.querySelector(`select[data-sale-status="${id}"]`); applySaleStatusColor(el); }
+function startEditSale(id){
+ const s=db.sales.find(x=>String(x.id)===String(id)); if(!s)return;
+ editingSaleId=s.id;
+ document.getElementById("saleFormTitle").textContent="Editar venda / pedido";
+ document.getElementById("saleSubmitBtn").textContent="Salvar alterações";
+ document.getElementById("saleCancelEditBtn").classList.remove("hidden");
+ document.getElementById("sDate").value=s.dateISO||todayISO();
+ document.getElementById("sTime").value=s.time||"00:00";
+ document.getElementById("sCustomerName").value=s.customerName||"";
+ document.getElementById("sState").value=s.state||"";
+ document.getElementById("sPostDays").value=String(s.postDays||1);
+ document.getElementById("sProduct").value=String(s.productId||"");
+ document.getElementById("sStore").value=s.store||"F4R Studio 3D";
+ document.getElementById("sQty").value=s.qty||1;
+ document.getElementById("sGross").value=Number(s.grossValue??s.value??0).toFixed(2);
+ document.getElementById("sNet").value=Number(s.netValue??0).toFixed(2);
+ document.getElementById("sStatus").value=s.status||"Recebido";
+ document.getElementById("sNotes").value=s.notes||"";
+ updatePostDate();
+ document.getElementById("saleFormTitle").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function cancelEditSale(){
+ editingSaleId=null;
+ document.getElementById("saleFormTitle").textContent="Registrar venda / pedido";
+ document.getElementById("saleSubmitBtn").textContent="Registrar pedido";
+ document.getElementById("saleCancelEditBtn").classList.add("hidden");
+ document.getElementById("sQty").value="1"; document.getElementById("sGross").value=""; document.getElementById("sNet").value=""; document.getElementById("sNotes").value="";
+ document.getElementById("sDate").value=todayISO(); document.getElementById("sTime").value=new Date().toTimeString().slice(0,5); document.getElementById("sCustomerName").value=""; document.getElementById("sState").value=""; document.getElementById("sPostDays").value="1";
+ document.getElementById("sStatus").value="Recebido"; updatePostDate();
+}
+function deleteSale(id){
+ const s=db.sales.find(x=>String(x.id)===String(id)); if(!s)return;
+ if(!confirm(`Excluir o pedido de ${s.product||"produto"}?\n\nO estoque consumido por este pedido será devolvido.`))return;
+ if(s.status!=="Cancelado") adjustStockForSale(s,1,`Estorno da exclusão: ${s.product||"Venda"}`);
+ db.sales=db.sales.filter(x=>String(x.id)!==String(id));
+ if(String(editingSaleId)===String(id)) cancelEditSale();
+ save();
+}
+function renderSalesTable(){
+ const table=document.getElementById("salesTable"); if(!table)return;
+ const filter=document.getElementById("salesFilter")?.value||"todos";
+ let rows=(db.sales||[]).filter(s=>filter==="todos" ? true : filter==="atrasados" ? isLate(s) : s.status===filter);
+ rows.sort((a,b)=>{const ad=a.dueDate||"9999-12-31",bd=b.dueDate||"9999-12-31"; if(ad!==bd)return ad.localeCompare(bd); const at=`${a.dateISO||""}T${a.time||"00:00"}`,bt=`${b.dateISO||""}T${b.time||"00:00"}`; return at.localeCompare(bt);});
+ table.innerHTML=rows.map(s=>{const late=isLate(s); return `<tr><td>${formatDateISO(s.dateISO||"")}<small class="sub" style="display:block">${s.time||"—"}</small></td><td>${s.customerName||"—"}</td><td>${s.state||"—"}</td><td>${s.product}</td><td>${s.store||"—"}</td><td>${s.qty}</td><td><span class="${late?'tag warn':'tag'}">${formatDateISO(s.dueDate)}</span>${late?'<small style="display:block;color:#a33;font-weight:700">Atrasado</small>':''}</td><td>${money(Number(s.grossValue??s.value)||0)}<small class="sub" style="display:block">Líquido: ${money(Number(s.netValue??0)||0)}</small></td><td><select data-sale-status="${s.id}" class="status-select status-${saleStatusKey(s.status||"Recebido")}" onchange="updateSaleStatus('${s.id}',this.value)">${["Recebido","Em produção","Pronto","Enviado","Entregue","Cancelado"].map(st=>`<option value="${st}" ${s.status===st?'selected':''}>${st}</option>`).join("")}</select></td><td>${s.notes||"—"}</td><td style="white-space:nowrap"><button class="btn xs outline" onclick="startEditSale('${s.id}')">Editar</button> <button class="btn xs danger" onclick="deleteSale('${s.id}')">Excluir</button></td></tr>`}).join("")||'<tr><td colspan="11">Nenhum pedido encontrado.</td></tr>';
+}
+function saveSaleForm(){
+ try{
+  const productEl=document.getElementById("sProduct"), storeEl=document.getElementById("sStore"), dateEl=document.getElementById("sDate"), timeEl=document.getElementById("sTime"), customerNameEl=document.getElementById("sCustomerName"), stateEl=document.getElementById("sState"), daysEl=document.getElementById("sPostDays"), grossEl=document.getElementById("sGross"), netEl=document.getElementById("sNet"), qtyEl=document.getElementById("sQty"), statusEl=document.getElementById("sStatus"), notesEl=document.getElementById("sNotes");
+  const p=db.products.find(x=>String(x.id)===String(productEl?.value)); if(!p){alert("Selecione um produto antes de registrar o pedido.");return;}
+  const q=Math.max(1,Number(qtyEl.value)||1), dateISO=dateEl.value||todayISO(), time=timeEl?.value||new Date().toTimeString().slice(0,5), postDays=Math.min(5,Math.max(1,Number(daysEl?.value)||1)), dueDate=addBusinessDays(dateISO,postDays);
+  const packaging=Number(p.pack)||0, suggestedUnit=Number(suggested(p))||0, defaultGross=suggestedUnit*q+packaging;
+  const grossRaw=String(grossEl.value||"").trim(), netRaw=String(netEl.value||"").trim();
+  const gross=grossRaw!==""?Number(grossRaw):defaultGross; if(!Number.isFinite(gross)||gross<0){alert("Informe um valor total da venda válido.");return;}
+  const feeRate=(Number(p.fee)||0)/100, defaultNet=Math.max(0,gross-(gross*feeRate)), net=netRaw!==""?Number(netRaw):defaultNet; if(!Number.isFinite(net)||net<0){alert("Informe um valor líquido recebido válido.");return;}
+  const fee=Math.max(0,gross-net);
+  const old=editingSaleId!=null ? db.sales.find(x=>String(x.id)===String(editingSaleId)) : null;
+  if(old && old.status!=="Cancelado") adjustStockForSale(old,1,`Estorno para edição: ${old.product||"Venda"}`);
+  const sale={id:old?old.id:Date.now(),manualKey:old?.manualKey,dateISO,time,customerName:customerNameEl?.value.trim()||"",state:stateEl?.value||"",dueDate,postDays,date:formatDateISO(dateISO),product:p.name,productId:p.id,store:storeEl.value,value:gross,grossValue:gross,netValue:net,qty:q,status:statusEl.value,cost:saleProductionCost(p,q)+packaging,fee,packaging,notes:notesEl?.value.trim()||""};
+  if(old){ Object.assign(old,sale); } else { db.sales=db.sales||[]; db.sales.unshift(sale); }
+  if(sale.status!=="Cancelado") adjustStockForSale(sale,-1,`${old?"Edição":"Venda"}: ${p.name}`);
+  const wasEditing=!!old;
+  editingSaleId=null;
+  save(); cancelEditSale();
+  alert(wasEditing?"Pedido atualizado com sucesso!":"Pedido registrado com sucesso!");
+ }catch(err){console.error(err);alert("Não foi possível registrar o pedido: "+(err.message||err));}
+}
+function addSale(){ saveSaleForm(); }
+
+function updateSalePreview(){
+ const pEl=document.getElementById("sProduct"), qEl=document.getElementById("sQty"), grossEl=document.getElementById("sGross"), netEl=document.getElementById("sNet");
+ if(!pEl||!qEl||!grossEl||!netEl)return;
+ const p=db.products.find(x=>String(x.id)===String(pEl.value));
+ if(!p){ if(!grossEl.dataset.manual) grossEl.value=""; if(!netEl.dataset.manual) netEl.value=""; return; }
+ const q=Math.max(1,Number(qEl.value)||1);
+ const gross=(Number(suggested(p))||0)*q+(Number(p.pack)||0);
+ const feeRate=(Number(p.fee)||0)/100;
+ const net=Math.max(0,gross-(gross*feeRate));
+ if(!grossEl.dataset.manual || grossEl.value==="") grossEl.value=gross.toFixed(2);
+ if(!netEl.dataset.manual || netEl.value==="") netEl.value=net.toFixed(2);
+}
+function calcMode(mode,btn){
+ document.getElementById("quoteMode").classList.toggle("hidden",mode!=="quote");
+ document.getElementById("productionMode").classList.toggle("hidden",mode!=="production");
+ document.querySelectorAll(".calc-tab").forEach(x=>x.classList.remove("active")); if(btn)btn.classList.add("active");
+}
+function addCalcMaterial(id="",qty=""){
+ const wrap=document.getElementById("calcMaterials"), row=document.createElement("div");
+ row.className="material-row";
+ const opts=(db.materials||[]).map(m=>`<option value="${m.id}" ${String(m.id)===String(id)?"selected":""}>${m.name}${m.color?" — "+m.color:""} (${money(m.unitCost)}/${m.unit})</option>`).join("");
+ row.innerHTML=`<div><label class="sub">Material / insumo</label><select class="calc-mat" onchange="runCalc()"><option value="">Selecione</option>${opts}</select></div>
+ <div><label class="sub calc-qty-label">Quantidade por unidade</label><input class="calc-g" type="number" min="0" step=".0001" value="${qty}" oninput="runCalc()"></div>
+ <button type="button" class="remove-material" onclick="this.parentElement.remove();runCalc()">Remover</button>`;
+ wrap.appendChild(row);
+ updateCalcBasisUI();
+}
+
+function updateCalcBasisUI(){
+ const basis=document.getElementById("calcBasis")?.value||"unit";
+ const qty=Math.max(1,+document.getElementById("calcQty")?.value||1);
+ const notice=document.getElementById("calcBasisNotice");
+ const batch=basis==="batch";
+ if(notice) notice.textContent=batch
+   ? `Total do lote: informe o consumo total usado para produzir ${qty} unidade${qty===1?"":"s"} e o tempo total da impressão. O sistema divide tudo pela quantidade e calcula o custo de 1 unidade.`
+   : "Por unidade: informe o consumo e o tempo de impressão de uma peça.";
+ document.querySelectorAll("#calcMaterials .calc-qty-label").forEach(el=>el.textContent=batch?"Quantidade total no lote":"Quantidade por unidade");
+ const hoursLabel=document.querySelector('#calcHours')?.closest('.field')?.querySelector('label');
+ if(hoursLabel) hoursLabel.textContent=batch?"Tempo total de impressão do lote (horas)":"Tempo de impressão por unidade (horas)";
+ const labLabel=document.querySelector("#calcLabor")?.closest(".field")?.querySelector("label"); const packLabel=document.querySelector("#calcPack")?.closest(".field")?.querySelector("label"); const otherLabel=document.querySelector("#calcOther")?.closest(".field")?.querySelector("label"); if(labLabel)labLabel.textContent=batch?"Mão de obra total do lote (R$)":"Mão de obra por unidade (R$)"; if(packLabel)packLabel.textContent="Embalagem do pedido (R$)"; if(otherLabel)otherLabel.textContent=batch?"Outros / risco total do lote (R$)":"Outros / risco por unidade (R$)";
+}
+
+function populateCalcProductSelect(){
+ const sel=document.getElementById("calcProductSelect");
+ if(!sel)return;
+ const current=sel.value;
+ sel.innerHTML='<option value="">Selecione um produto para carregar a ficha técnica</option>'+
+   (db.products||[]).map(p=>`<option value="${p.id}">${p.name}${p.sku?" — "+p.sku:""}</option>`).join("");
+ if(current)sel.value=current;
+}
+
+function loadProductToCalc(){
+ const id=document.getElementById("calcProductSelect")?.value;
+ if(!id)return;
+ const p=(db.products||[]).find(x=>String(x.id)===String(id));
+ if(!p)return;
+ document.getElementById("calcProjectName").value=p.name||"";
+ document.getElementById("calcHours").value=p.printHours||0;
+ document.getElementById("calcLabor").value=p.labor||0;
+ document.getElementById("calcPack").value=p.pack||0;
+ document.getElementById("calcOther").value=p.other||0;
+ document.getElementById("calcFee").value=p.fee??20;
+ document.getElementById("calcMargin").value=p.margin??30;
+ const basis=document.getElementById("calcBasis");
+ if(basis) basis.value="unit";
+ updateCalcBasisUI();
+ const wrap=document.getElementById("calcMaterials");
+ wrap.innerHTML="";
+ (p.materials||[]).forEach(r=>addCalcMaterial(r.materialId,r.qty));
+ if(!(p.materials||[]).length)addCalcMaterial();
+ runCalc();
+}
+
+function openTechModal(id){
+ const p=(db.products||[]).find(x=>String(x.id)===String(id));
+ if(!p)return;
+ document.getElementById("techTitle").textContent=p.name;
+ document.getElementById("techSub").textContent=[p.sku,p.shopeeSku].filter(Boolean).join(" • ")||"Sem SKU";
+ const matRows=(p.materials||[]).map(r=>`<div class="tech-row"><span>${r.name||"Material"} <small class="sub">${r.grams||0} g</small></span><b>${money((+r.grams||0)*(+r.costPerGram||0))}</b></div>`).join("");
+ const compRows=(p.components||[]).map(r=>`<div class="tech-row"><span>${r.name||"Componente"} <small class="sub">${r.qty||0} un.</small></span><b>${money((+r.qty||0)*(+r.unitCost||0))}</b></div>`).join("");
+ const total=totalCost(p), price=suggested(p);
+ document.getElementById("techBody").innerHTML=`
+   <div class="tech-grid">
+     <div class="tech-box"><span>Loja</span><b>${p.store||"—"}</b></div>
+     <div class="tech-box"><span>Tempo de impressão</span><b>${p.printHours||0} h</b></div>
+     <div class="tech-box"><span>Estoque</span><b>${p.stock||0} un.</b></div>
+     <div class="tech-box"><span>Custo total</span><b>${money(total)}</b></div>
+     <div class="tech-box"><span>Preço sugerido</span><b>${money(price)}</b></div>
+     <div class="tech-box"><span>Margem / taxa</span><b>${p.margin||0}% / ${p.fee||0}%</b></div>
+   </div>
+   <h3>Filamentos</h3>
+   <div class="tech-list">${matRows||'<div class="sub" style="padding:10px 0">Nenhum filamento cadastrado.</div>'}</div>
+   <h3 style="margin-top:18px">Componentes / insumos</h3>
+   <div class="tech-list">${compRows||'<div class="sub" style="padding:10px 0">Nenhum componente cadastrado.</div>'}</div>
+   <h3 style="margin-top:18px">Custos adicionais</h3>
+   <div class="tech-list">
+     <div class="tech-row"><span>Embalagem do pedido</span><b>${money(p.pack||0)}</b></div>
+     <div class="tech-row"><span>Mão de obra</span><b>${money(p.labor||0)}</b></div>
+     <div class="tech-row"><span>Outros custos</span><b>${money(p.other||0)}</b></div>
+     <div class="tech-row"><span><b>Custo final</b></span><b>${money(total)}</b></div>
+   </div>
+   <div class="quote-actions" style="margin-top:18px">
+     <button class="btn" onclick="closeTechModal();document.getElementById('calcProductSelect').value='${p.id}';loadProductToCalc();show('pricing')">Usar na calculadora</button>
+   </div>`;
+ document.getElementById("techModal").classList.add("show");
+}
+
+function closeTechModal(){document.getElementById("techModal").classList.remove("show")}
+
+function runCalc(){
+ const qty=Math.max(1,+document.getElementById("calcQty")?.value||1);
+ const basis=document.getElementById("calcBasis")?.value||"unit";
+ const batch=basis==="batch";
+ let materialsUnit=0;
+ document.querySelectorAll("#calcMaterials .material-row").forEach(r=>{
+   const m=(db.materials||[]).find(x=>String(x.id)===String(r.querySelector(".calc-mat").value));
+   if(m){
+     const entered=+r.querySelector(".calc-g").value||0;
+     const qtyUnit=batch?entered/qty:entered;
+     materialsUnit+=qtyUnit*(+m.unitCost||0);
+   }
+ });
+ const enteredHours=+calcHours.value||0;
+ const hoursUnit=batch?enteredHours/qty:enteredHours;
+ const watts=+calcWatts.value||0, kwh=+calcKwh.value||0;
+ const energyUnit=hoursUnit*(watts/1000)*kwh;
+ const printer=+calcPrinterValue.value||0, life=Math.max(1,+calcPrinterLife.value||1);
+ const depreciationUnit=hoursUnit*(printer/life);
+ const wearUnit=hoursUnit*(+calcWear.value||0);
+ const laborEntered=+calcLabor.value||0,packEntered=+calcPack.value||0,otherEntered=+calcOther.value||0;
+ const laborUnit=batch?laborEntered/qty:laborEntered, packUnit=0, otherUnit=batch?otherEntered/qty:otherEntered;
+ const unitBase=materialsUnit+energyUnit+depreciationUnit+wearUnit+laborUnit+otherUnit;
+ const orderPackaging=packEntered;
+ const totalBase=unitBase*qty+orderPackaging;
+ const markup=(+calcMarkup.value||0)/100, margin=(+calcMargin.value||0)/100, fee=(+calcFee.value||0)/100;
+ let unitPriceByMarkup=(unitBase*(1+markup)) + (qty>0?orderPackaging/qty:0);
+ let unitPriceByMargin=(1-margin-fee)>0?((unitBase*qty+orderPackaging)/(qty*(1-margin-fee))):0;
+ const unitPrice=Math.max(unitPriceByMarkup,unitPriceByMargin);
+ const totalPrice=unitPrice*qty;
+ const marketplace=totalPrice*fee, profit=totalPrice-totalBase-marketplace, actualMargin=totalPrice>0?profit/totalPrice:0;
+ calcPrice.textContent=money(unitPrice);
+ calcTopPrice.textContent=money(unitPrice);
+ resMarkup.textContent=unitBase>0?Math.round((unitPrice/unitBase-1)*100)+"%":"0%";
+ resProfit.textContent=money(profit);
+ resMargin.textContent=Math.round(actualMargin*100)+"%";
+ calcSummary.textContent=`${qty} unidade${qty===1?"":"s"} • custo total ${money(totalBase)} • venda total ${money(totalPrice)} • lucro ${money(profit)}`;
+ const parts=[["Material (insumos)",materialsUnit], ["Energia elétrica",energyUnit],["Depreciação",depreciationUnit],["Desgaste",wearUnit],["Mão de obra",laborUnit],["Outros / risco",otherUnit]];
+ const total=parts.reduce((a,x)=>a+x[1],0)||1;
+ costLegend.innerHTML=parts.filter(x=>x[1]>0).map((x,i)=>`<div class="legend-item"><span class="legend-dot" style="background:hsl(${190+i*38},55%,55%)"></span>${x[0]} <b>${money(x[1])}</b> por unidade (${Math.round(x[1]/total*100)}%)</div>`).join("");
+ let acc=0, colors=["#4b9fc2","#e5a33e","#8b6d9c","#d46e54","#75a67c","#b98a58","#aaa"];
+ costDonut.style.background=`conic-gradient(${parts.map((x,i)=>{let a=acc/total*100,b=(acc+x[1])/total*100;acc+=x[1];return `${colors[i]} ${a}% ${b}%`}).join(",")})`;
+ costAnalysis.innerHTML=parts.filter(x=>x[1]>0).map(x=>`<div class="analysis-row"><span>${x[0]} / unidade</span><b>${money(x[1])}</b></div>`).join("")+`<div class="analysis-row"><span>Embalagem do pedido</span><b>${money(orderPackaging)}</b></div><div class="analysis-row"><span>Custo por unidade (produção)</span><b>${money(unitBase)}</b></div><div class="analysis-row"><span>Custo total (${qty} un.) + embalagem</span><b>${money(totalBase)}</b></div><div class="analysis-row"><span>Preço por unidade</span><b>${money(unitPrice)}</b></div><div class="analysis-row"><span>Venda total</span><b>${money(totalPrice)}</b></div><div class="analysis-row"><span>Taxa marketplace</span><b>${money(marketplace)}</b></div><div class="analysis-row"><span>Lucro total</span><b class="good">${money(profit)}</b></div>`;
+ window.lastCalc={qty,unitPrice,totalPrice,profit,unitBase,totalBase,marketplace};
+}
+
+
+function saveCompanyLogo(input){
+ const file=input?.files?.[0];
+ if(!file)return;
+ const reader=new FileReader();
+ reader.onload=()=>{ db.settings=db.settings||{}; db.settings.logo=reader.result; save(); renderCompanyLogo(); alert("Logo salva. Ela aparecerá nos próximos orçamentos impressos."); };
+ reader.readAsDataURL(file);
+}
+function removeCompanyLogo(){
+ db.settings=db.settings||{}; delete db.settings.logo; save(); renderCompanyLogo();
+}
+function renderCompanyLogo(){
+ const box=document.getElementById("companyLogoPreview"); if(!box)return;
+ const logo=db.settings?.logo;
+ box.innerHTML=logo?`<img src="${logo}" alt="Logo" style="max-height:65px;max-width:220px;object-fit:contain">`:'Nenhuma logo cadastrada.';
+}
+function saveCalculatorAsProduct(){
+ const name=(document.getElementById("calcProjectName")?.value||"").trim();
+ if(!name){alert("Informe o nome do produto / projeto antes de salvar como produto.");return;}
+ const basis=document.getElementById("calcBasis")?.value||"unit";
+ const batch=basis==="batch";
+ const batchQty=Math.max(1,+document.getElementById("calcQty")?.value||1);
+ const materials=[...document.querySelectorAll("#calcMaterials .material-row")].map(r=>{
+   const select=r.querySelector(".calc-mat"); const m=(db.materials||[]).find(x=>String(x.id)===String(select?.value));
+   const entered=+r.querySelector(".calc-g")?.value||0;
+   return m&&entered>0?{materialId:m.id,name:m.name,qty:batch?entered/batchQty:entered,unit:m.unit,unitCost:m.unitCost||0,sourceQty:entered}:null;
+ }).filter(Boolean);
+ if(!materials.length){alert("Adicione pelo menos um material / insumo antes de salvar o produto.");return;}
+ const enteredHours=+document.getElementById("calcHours")?.value||0;
+ const p={id:Date.now(),name,sku:"",store:"",shopeeSku:"",shopeeName:"",materials,
+   filamentCost:materials.reduce((sum,m)=>sum+(+m.qty||0)*(+m.unitCost||0),0),
+   pack:+document.getElementById("calcPack")?.value||0,
+   labor:batch?((+document.getElementById("calcLabor")?.value||0)/batchQty):(+document.getElementById("calcLabor")?.value||0),
+   other:batch?((+document.getElementById("calcOther")?.value||0)/batchQty):(+document.getElementById("calcOther")?.value||0),
+   fee:+document.getElementById("calcFee")?.value||0,margin:+document.getElementById("calcMargin")?.value||0,stock:0,
+   printHours:batch?enteredHours/batchQty:enteredHours,productionBatchQty:batch?batchQty:1,productionBasis:batch?"batch":"unit",
+   productionSourceHours:enteredHours,productionSourcePack:+document.getElementById("calcPack")?.value||0,
+   productionSourceLabor:+document.getElementById("calcLabor")?.value||0,productionSourceOther:+document.getElementById("calcOther")?.value||0,
+   productionSourceMaterials:batch?materials.map(m=>({materialId:m.materialId,sourceQty:m.sourceQty})):null,stockManaged:false};
+ db.products=db.products||[]; db.products.push(p); save(); populateCalcProductSelect(); document.getElementById("calcProductSelect").value=p.id; alert("Produto salvo com sucesso. A ficha atual da calculadora foi cadastrada em Produtos."); render();
+}
+function printQuote(id){
+ const q=(db.quotes||[]).find(x=>String(x.id)===String(id)); if(!q)return;
+ const logo=db.settings?.logo||"";
+ const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const html=`<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#8b5e4a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default"><title>Orçamento - ${esc(q.name)}</title><style>body{font-family:Arial,sans-serif;color:#2d2926;margin:0;padding:35px} .sheet{max-width:800px;margin:auto;border:1px solid #ddd;padding:35px;border-radius:12px} .head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #8b5e4a;padding-bottom:18px}.logo{max-width:220px;max-height:80px}.brand{font-size:24px;font-weight:800}.meta{color:#777;font-size:12px;margin-top:5px}h1{font-size:22px;margin:25px 0 8px}.box{background:#f8f5f3;padding:15px;border-radius:8px;margin:14px 0}.row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eee}.row:last-child{border:0}.total{font-size:22px;font-weight:800;color:#8b5e4a}.foot{margin-top:35px;color:#777;font-size:11px;text-align:center}@media print{body{padding:0}.sheet{border:0}}
+.state-map-panel{margin-top:18px}.state-map-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.state-map-head h2{margin:0}.state-map-filter{display:flex;align-items:center;gap:8px}.state-map-filter label{font-size:12px;font-weight:800;color:#6f625c}.state-map-filter select{padding:9px 12px;border:1px solid #ddd1ca;border-radius:9px;background:#fff;font-weight:700}.brazil-map{position:relative;width:100%;max-width:1120px;margin:8px auto 0;aspect-ratio:1400/788;overflow:hidden;border-radius:12px;background:#f7f3ee}.brazil-map img{width:100%;height:100%;display:block;object-fit:cover}.map-count{position:absolute;transform:translate(-50%,-50%);min-width:30px;height:30px;padding:0 7px;border-radius:999px;background:#fff;color:#2d2926;border:2px solid #8b5e4a;box-shadow:0 3px 10px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;line-height:1;z-index:2}.map-count.zero{opacity:.42}.map-legend{font-size:11px;color:#8a7d75;margin-top:8px}.map-total{font-size:12px;font-weight:800;color:#6b5d55}.map-state-tooltip{position:absolute;pointer-events:none;z-index:3;background:#2f2926;color:#fff;padding:5px 8px;border-radius:7px;font-size:11px;font-weight:800;display:none}.map-count:hover+.map-state-tooltip{display:block}
+@media(max-width:700px){.map-count{min-width:24px;height:24px;font-size:10px;padding:0 5px;border-width:1.5px}}
+</style></head><body><div class="sheet"><div class="head">${logo?`<img class="logo" src="${logo}" alt="Logo">`:`<div class="brand">Gestor 3D</div>`}<div style="text-align:right"><b>ORÇAMENTO</b><div class="meta">${esc(q.date)}</div></div></div><h1>${esc(q.name)}</h1><div class="meta">Validade/identificação do orçamento</div><div class="box"><div class="row"><span>Quantidade</span><b>${esc(q.qty)}</b></div>${q.colors?`<div class="row"><span>Cores / acabamento</span><b>${esc(q.colors)}</b></div>`:""}<div class="row"><span>Preço por unidade</span><b>${money(q.price)}</b></div><div class="row"><span>Valor total</span><b class="total">${money(q.totalPrice??(q.price*q.qty))}</b></div></div>${q.details?`<div class="box"><b>Observações</b><div style="margin-top:8px">${esc(q.details)}</div></div>`:""}<div class="foot">Orçamento gerado pelo Gestor 3D.</div></div><script>window.onload=()=>window.print();<\/script></body></html>`;
+ const w=window.open("","_blank","width=900,height=800"); if(!w){alert("Permita pop-ups para imprimir o orçamento.");return;} w.document.write(html); w.document.close();
+}
+
+function saveQuote(status){
+ const name=(document.getElementById("calcProjectName").value||"Projeto sem nome").trim();
+ const qty=+document.getElementById("calcQty").value||1;
+ const price=parseFloat((document.getElementById("calcPrice").textContent||"0").replace(/[^\d,-]/g,"").replace(/\./g,"").replace(",", "."))||0;
+ const c=window.lastCalc||{};
+ const quote={id:Date.now(),date:new Date().toLocaleDateString("pt-BR"),name,qty,price,totalPrice:Number(c.totalPrice)||price*qty,profit:Number(c.profit)||0,colors:document.getElementById("calcColors").value.trim(),details:document.getElementById("calcDetails").value.trim(),status};
+ db.quotes.unshift(quote);
+ if(status==="produção") alert("Orçamento salvo e marcado para produção.");
+ else alert("Orçamento salvo com sucesso.");
+ save();
+}
+
+function channelTab(id,btn){
+ ["shopeeConnect","shopeeOrders","shopeeProducts","shopeeStock"].forEach(x=>document.getElementById(x)?.classList.add("hidden"));
+ document.getElementById(id)?.classList.remove("hidden");
+ document.querySelectorAll(".channel-tab").forEach(x=>x.classList.remove("active"));
+ if(btn)btn.classList.add("active");
+}
+function simulateShopeeConnect(){
+ const name=document.getElementById("shopName").value.trim();
+ if(!name){alert("Informe o nome da loja.");return}
+ alert("A preparação está pronta. A conexão real precisa de um aplicativo aprovado/configurado na Shopee Open Platform e de um backend seguro para OAuth/API.");
+}
+function showShopeeHelp(){
+ alert("A autorização acontece na Shopee. Depois da autorização, o sistema recebe o código e troca por tokens de acesso. A senha da Shopee não deve ser armazenada no Gestor 3D.");
+}
+
+
+let shopeeCache={orders:{},products:{},status:{}};
+
+async function api(url,opts={}){
+ const r=await fetch(url,{headers:{"Content-Type":"application/json"},...opts});
+ const d=await r.json().catch(()=>({error:"Resposta inválida"}));
+ if(!r.ok||d.ok===false) throw new Error(d.error||"Erro na API");
+ return d;
+}
+async function connectShopee(store){
+ try{
+   const d=await api(`/api/shopee/authorize/${store}`);
+   window.location.href=d.url;
+ }catch(e){alert("Não foi possível iniciar a autorização: "+e.message+"\n\nConfira o backend e as credenciais Shopee.");}
+}
+async function refreshShopee(store){
+ try{await api(`/api/shopee/refresh/${store}`);alert("Token da Loja "+store+" renovado.");refreshShopeeStatus();}
+ catch(e){alert("Não foi possível renovar: "+e.message);}
+}
+async function refreshShopeeStatus(){
+ try{
+  const d=await api("/api/shopee/status"); shopeeCache.status=d.stores||{};
+  [1,2].forEach(n=>{
+    const s=shopeeCache.status[n]||shopeeCache.status[String(n)]||{};
+    const el=document.getElementById("shopStatus"+n), id=document.getElementById("shopId"+n);
+    if(s.connected){el.innerHTML='<span class="status-ok">● Conectada</span>';id.value=s.shop_id||"";}
+    else {el.innerHTML='<span class="status-off">● Não conectada</span>';id.value="";}
+  });
+ }catch(e){[1,2].forEach(n=>{const el=document.getElementById("shopStatus"+n);if(el)el.innerHTML='<span class="status-off">● Backend não disponível</span>';});}
+}
+function showShopeeMessage(msg){
+ const el=document.getElementById("shopeeOrderMsg"); if(el){el.textContent=msg;el.classList.remove("hidden");}
+}
+function flattenOrderDetails(details){
+ const out=[];
+ (details||[]).forEach(d=>{
+  const x=d.response||d; const order=x.order_list?.[0]||x;
+  const items=x.item_list||order.item_list||[];
+  items.forEach(i=>out.push({...i,order_sn:order.order_sn,status:order.order_status,total_amount:order.total_amount}));
+ });
+ return out;
+}
+async function syncShopeeOrders(){
+ const store=+document.getElementById("orderStore").value;
+ try{
+  showShopeeMessage("Sincronizando pedidos...");
+  const d=await api(`/api/shopee/sync/${store}`,{method:"POST"});
+  shopeeCache.orders[store]=d;
+  const items=flattenOrderDetails(d.details);
+  document.getElementById("shopeeOrdersTable").innerHTML=items.length?items.map(i=>`<tr>
+   <td><b>${i.order_sn||"—"}</b></td><td>Loja ${store}</td><td>${i.item_name||i.model_name||i.item_id||"—"}<div class="sub">${i.item_sku||""}</div></td>
+   <td>${i.model_quantity_purchased||i.quantity||1}</td><td>${i.status||"—"}</td><td>${money(i.total_amount||0)}</td>
+   <td><button class="btn secondary" onclick="importShopeeOrder('${String(i.order_sn||"").replace(/'/g,"")}','${store}')">Registrar</button></td></tr>`).join(""):'<tr><td colspan="7" class="sub">Nenhum pedido encontrado.</td></tr>';
+  showShopeeMessage(`${d.orders?.length||0} pedido(s) encontrados. Os pedidos só devem ser registrados uma vez.`);
+ }catch(e){showShopeeMessage("Erro: "+e.message);}
+}
+function findProductForShopee(item){
+ const iid=String(item.item_id||"");
+ const sku=String(item.item_sku||"").trim();
+ return (db.products||[]).find(p=>
+   (p.shopeeItemId&&String(p.shopeeItemId)===iid) ||
+   (sku && p.shopeeSku && String(p.shopeeSku).trim()===sku)
+ );
+}
+function registerSaleFromShopee(item,store){
+ const qty=+(item.model_quantity_purchased||item.quantity||1);
+ const p=findProductForShopee(item);
+ if(!p){alert(`Não encontrei produto vinculado ao Item ID ${item.item_id||"—"} / SKU ${item.item_sku||"—"}.\n\nVá em Produtos, preencha o Item ID Shopee e tente novamente.`);return;}
+ if(db.sales?.some(s=>s.orderSn===item.order_sn)){alert("Este pedido já foi registrado.");return;}
+ const unit=+suggested(p)||0, revenue=unit*qty;
+ p.stock=Math.max(0,(+p.stock||0)-qty);
+ (p.materials||[]).forEach(r=>{
+   const m=db.materials.find(x=>String(x.id)===String(r.materialId));
+   if(m){m.stock=Math.max(0,(+m.stock||0)-((+r.grams||0)*qty));}
+ });
+ (p.components||[]).forEach(r=>{
+   const m=db.materials.find(x=>String(x.id)===String(r.materialId));
+   if(m){m.stock=Math.max(0,(+m.stock||0)-((+r.qty||0)*qty));}
+ });
+ db.sales=db.sales||[];
+ db.sales.push({id:Date.now(),date:new Date().toISOString(),productId:p.id,product:p.name,qty,unitPrice:unit,total:revenue,fee:+p.fee||0,store:`Shopee Loja ${store}`,orderSn:item.order_sn,source:"Shopee"});
+ save();
+ alert(`Pedido ${item.order_sn} registrado.\nEstoque do produto e materiais da ficha técnica foram baixados.`);
+}
+function importShopeeOrder(orderSn,store){
+ const data=shopeeCache.orders[store]; if(!data)return;
+ const items=flattenOrderDetails(data.details).filter(x=>x.order_sn===orderSn);
+ if(!items.length){alert("Detalhes do pedido não encontrados.");return;}
+ if(items.length>1){
+   items.forEach(i=>registerSaleFromShopee(i,store));
+ }else registerSaleFromShopee(items[0],store);
+}
+async function syncShopeeProducts(){
+ const store=+document.getElementById("productStore").value;
+ try{
+  const d=await api(`/api/shopee/products/${store}`); shopeeCache.products[store]=d;
+  const raw=d.data?.response?.item||d.data?.item||d.data?.response?.item_list||d.data?.item_list||[];
+  const rows=Array.isArray(raw)?raw:[];
+  document.getElementById("shopeeProductsTable").innerHTML=rows.map(x=>{
+    const iid=x.item_id||x.itemid||"";
+    const p=(db.products||[]).find(z=>String(z.shopeeItemId||"")===String(iid));
+    return `<tr><td><b>${iid}</b></td><td>${x.item_sku||x.item_sku_list?.[0]||"—"}</td><td>${x.item_name||"—"}</td><td>${x.stock_info_v2?.[0]?.current_stock??x.stock??"—"}</td><td>${p?`✓ ${p.name}`:`<button class="btn secondary" onclick="linkShopeeItem('${iid}','${String(x.item_name||"").replace(/'/g,"")}','${String(x.item_sku||"").replace(/'/g,"")}')">Vincular</button>`}</td></tr>`;
+  }).join("")||'<tr><td colspan="5" class="sub">Nenhum anúncio retornado.</td></tr>';
+ }catch(e){alert("Erro ao importar produtos: "+e.message);}
+}
+function linkShopeeItem(itemId,name,sku){
+ const choices=(db.products||[]).map(p=>`${p.id} — ${p.name}`).join("\n");
+ const selected=prompt(`Digite o ID do produto interno para vincular ao Item ID ${itemId}.\n\n${choices}`);
+ const p=(db.products||[]).find(x=>String(x.id)===String(selected).split(" ")[0]);
+ if(!p)return;
+ p.shopeeItemId=String(itemId); if(!p.shopeeName)p.shopeeName=name||""; if(!p.shopeeSku)p.shopeeSku=sku||"";
+ save(); alert("Vínculo salvo.");
+ syncShopeeProducts();
+}
+function renderShopeeStock(){
+ const t=document.getElementById("shopeeStockTable"); if(!t)return;
+ t.innerHTML=(db.products||[]).map(p=>`<tr><td>${p.name}</td><td>${p.sku||p.shopeeSku||"—"}</td><td>${p.shopeeItemId||"—"}</td><td>${p.stock||0}</td><td>${p.shopeeItemId?'<span class="status-ok">Vinculado</span>':'<span class="sub">Sem vínculo</span>'}</td></tr>`).join("")||'<tr><td colspan="5">Nenhum produto.</td></tr>';
+}
+async function pushAllShopeeStock(){
+ const store=+document.getElementById("stockStore").value;
+ const linked=(db.products||[]).filter(p=>p.shopeeItemId);
+ if(!linked.length){alert("Nenhum produto possui Item ID Shopee vinculado.");return;}
+ let ok=0,fail=0;
+ for(const p of linked){
+  try{
+   await api(`/api/shopee/stock/${store}`,{method:"POST",body:JSON.stringify({item_id:Number(p.shopeeItemId),stock_list:[{model_id:Number(p.shopeeModelId||0),seller_stock:[Math.max(0,Math.floor(+p.stock||0))]}]})});
+   ok++;
+  }catch(e){fail++;console.warn(p.name,e.message);}
+ }
+ alert(`Estoque enviado.\nSucesso: ${ok}\nFalhas: ${fail}`);
+ renderShopeeStock();
+}
+
+function migrateStoreNames(){
+  (db.products||[]).forEach(p=>{ if(p.store==="Loja 1"||p.store==="Loja 2") p.store=""; });
+  (db.sales||[]).forEach(s=>{ if(s.store==="Loja 1") s.store="F4R Studio 3D"; else if(s.store==="Loja 2") s.store="F4RM 3D"; });
+}
+migrateStoreNames();
+function populateSaleProducts(){
+ const el=document.getElementById("sProduct");
+ if(!el) return;
+ const current=String(el.value||"");
+ const products=Array.isArray(db.products)?db.products:[];
+ el.innerHTML="<option value=\"\">Selecione um produto</option>"+products.map(p=>`<option value="${String(p.id)}">${String(p.name||"Produto sem nome")}${p.sku?" — "+String(p.sku):""}</option>`).join("");
+ if(products.some(p=>String(p.id)===current)) el.value=current;
+}
+
+function repairKnownBatchData(){
+ const p=(db.products||[]).find(x=>String(x.name||"").toLowerCase().includes("kit chaveiros outubro rosa"));
+ if(!p || p.productionBasis!=="batch") return;
+ const mats=p.materials||[];
+ const pink=mats.find(r=>String(r.name||"").toLowerCase().includes("rosa"));
+ const white=mats.find(r=>String(r.name||"").toLowerCase().includes("branco"));
+ const ring=mats.find(r=>String(r.name||"").toLowerCase().includes("argola"));
+ const bag=mats.find(r=>String(r.name||"").toLowerCase().includes("saquinho"));
+ let changed=false;
+ if(pink && Math.abs((+pink.sourceQty||0)-59.66)>0.001){pink.sourceQty=59.66; pink.qty=59.66/35; changed=true;}
+ if(white && Math.abs((+white.sourceQty||0)-7.74)>0.001){white.sourceQty=7.74; white.qty=7.74/35; changed=true;}
+ if(ring && Math.abs((+ring.sourceQty||0)-1)>0.001){ring.sourceQty=1; ring.qty=1/35; changed=true;}
+ if(bag && Math.abs((+bag.sourceQty||0)-1)>0.00001){bag.sourceQty=1; bag.qty=1/35; changed=true;}
+ if(p.productionBatchQty!==35){p.productionBatchQty=35; changed=true;}
+ if(Math.abs((+p.productionSourceHours||0)-4.55)>0.001){p.productionSourceHours=4.55; p.printHours=4.55/35; changed=true;}
+ if(Math.abs((+p.productionSourcePack||0)-1.5)>0.001){p.productionSourcePack=1.5; p.pack=1.5; changed=true;}
+ if(changed) save();
+}
+repairKnownBatchData();
+
+// Corrige históricos antigos que foram registrados com consumo fracionado para
+// saquinhos/argolas de chaveiros. A correção é feita uma única vez e somente
+// nas movimentações geradas por vendas/edições.
+function repairKeychainConsumptionHistory(){
+ const versionKey="gestor3d_keychain_consumption_v3";
+ if(localStorage.getItem(versionKey)==="1") return;
+ const materials=db.materials||[], sales=db.sales||[], movements=db.movements||[];
+ let changed=false;
+ const normalizeName=v=>String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+ const movementTimestamp=m=>{
+   const raw=String(m?.date||"");
+   const match=raw.match(/(\d{2})\/(\d{2})\/(\d{4})[, ]+([0-9]{2}):([0-9]{2})(?::([0-9]{2}))?/);
+   if(match) return new Date(`${match[3]}-${match[2]}-${match[1]}T${match[4]}:${match[5]}:${match[6]||"00"}`).getTime();
+   return 0;
+ };
+ const saleTimestamp=s=>{
+   if(!s?.dateISO)return 0;
+   return new Date(`${s.dateISO}T${s.time||"00:00"}:00`).getTime();
+ };
+ const rules=[
+   {test:n=>n.includes("saquinho")&&n.includes("chaveiro"),calc:q=>q>0?Math.ceil(q/25):0},
+   {test:n=>n.includes("argola")&&n.includes("chaveiro"),calc:q=>q}
+ ];
+ rules.forEach(rule=>{
+   materials.filter(mat=>rule.test(normalizeName(mat.name))).forEach(mat=>{
+     const related=movements.filter(m=>String(m.materialId)===String(mat.id)
+       && String(m.type||"").toLowerCase().includes("saída")
+       && /^(Venda|Edição):\s*/i.test(String(m.note||"")));
+     const available=sales.filter(s=>s.status!=="Cancelado" && s.product && related.some(m=>{
+       const note=String(m.note||"").replace(/^(Venda|Edição):\s*/i,"");
+       return note===String(s.product);
+     }));
+     const usedSales=new Set();
+     related.sort((a,b)=>movementTimestamp(a)-movementTimestamp(b));
+     related.forEach(mv=>{
+       const note=String(mv.note||"").replace(/^(Venda|Edição):\s*/i,"");
+       const candidates=available.filter(s=>!usedSales.has(String(s.id)) && String(s.product)===note);
+       if(!candidates.length)return;
+       candidates.sort((a,b)=>Math.abs(saleTimestamp(a)-movementTimestamp(mv))-Math.abs(saleTimestamp(b)-movementTimestamp(mv)));
+       const sale=candidates[0];
+       usedSales.add(String(sale.id));
+       const expected=rule.calc(Math.max(0,Number(sale.qty)||0));
+       const oldQty=Number(mv.qty)||0;
+       if(Math.abs(oldQty-expected)>0.000001){
+         mat.stock=Number(mat.stock||0)+(oldQty-expected);
+         mv.qty=expected;
+         changed=true;
+       }
+     });
+     // Rebuild before/after for this material so the history reflects the corrected quantities.
+     const all=movements.filter(m=>String(m.materialId)===String(mat.id));
+     const totalDelta=all.reduce((sum,m)=>{
+       const q=Math.abs(Number(m.qty)||0);
+       return sum + (String(m.type||"").toLowerCase().includes("entrada") ? q : -q);
+     },0);
+     let running=Number(mat.stock||0)-totalDelta;
+     all.sort((a,b)=>movementTimestamp(a)-movementTimestamp(b));
+     all.forEach(m=>{
+       const before=running;
+       const q=Math.abs(Number(m.qty)||0);
+       const isEntry=String(m.type||"").toLowerCase().includes("entrada");
+       running=isEntry?running+q:running-q;
+       if(Math.abs(Number(m.before)-before)>0.000001 || Math.abs(Number(m.after)-running)>0.000001){
+         m.before=before; m.after=running; changed=true;
+       }
+     });
+   });
+ });
+ if(changed) save();
+ localStorage.setItem(versionKey,"1");
+}
+repairKeychainConsumptionHistory();
+
+const STATE_ORDER=["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+const STATE_NAMES={AC:"Acre",AL:"Alagoas",AP:"Amapá",AM:"Amazonas",BA:"Bahia",CE:"Ceará",DF:"Distrito Federal",ES:"Espírito Santo",GO:"Goiás",MA:"Maranhão",MT:"Mato Grosso",MS:"Mato Grosso do Sul",MG:"Minas Gerais",PA:"Pará",PB:"Paraíba",PR:"Paraná",PE:"Pernambuco",PI:"Piauí",RJ:"Rio de Janeiro",RN:"Rio Grande do Norte",RS:"Rio Grande do Sul",RO:"Rondônia",RR:"Roraima",SC:"Santa Catarina",SP:"São Paulo",SE:"Sergipe",TO:"Tocantins"};
+const STATE_POS={AC:[8.6,34.8],AL:[87.4,38.0],AP:[53.2,11.4],AM:[24.7,23.0],BA:[76.2,44.1],CE:[82.0,26.5],DF:[60.1,48.7],ES:[80.1,61.9],GO:[54.8,51.9],MA:[68.0,25.7],MT:[43.2,42.3],MS:[43.8,60.0],MG:[68.6,57.4],PA:[49.6,24.4],PB:[87.8,31.0],PR:[49.9,73.8],PE:[87.6,34.8],PI:[74.6,31.7],RJ:[81.1,71.2],RN:[94.0,26.4],RS:[47.0,87.6],RO:[24.5,37.8],RR:[30.7,9.4],SC:[56.3,80.6],SP:[56.9,67.8],SE:[88.0,39.8],TO:[60.6,37.3]};
+function saleStateCode(s){const raw=String(s?.state||s?.uf||"").trim();if(!raw)return"";const m=raw.match(/\(([A-Z]{2})\)/i);if(m)return m[1].toUpperCase();const upper=raw.toUpperCase();for(const uf of STATE_ORDER){if(upper===uf||upper.includes(STATE_NAMES[uf].toUpperCase()))return uf;}return"";}
+function mapMonthKey(s){if(s?.dateISO&&/^\d{4}-\d{2}/.test(s.dateISO))return s.dateISO.slice(0,7);const d=String(s?.date||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return d?`${d[3]}-${d[2]}`:"";}
+function mapMonthLabel(k){if(!k)return"Total geral";const[y,m]=k.split("-");return new Date(Number(y),Number(m)-1,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"}).replace(/^./,c=>c.toUpperCase());}
+function dashboardPeriods(){return[...new Set((db.sales||[]).map(mapMonthKey).filter(Boolean))].sort().reverse();}
+function populateDashboardPeriods(selected){const months=dashboardPeriods();const current=selected||document.getElementById("dashboardPeriod")?.value||"total";["dashboardPeriod","stateMapPeriod"].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.innerHTML='<option value="total">Total geral</option>'+months.map(k=>`<option value="${k}">${mapMonthLabel(k)}</option>`).join("");el.value=current==="total"||months.includes(current)?current:"total";});return document.getElementById("dashboardPeriod")?.value||"total";}
+function dashboardSales(period){return(db.sales||[]).filter(s=>s.status!=="Cancelado"&&(period==="total"||mapMonthKey(s)===period));}
+function renderDashboardSummary(period){const p=period||document.getElementById("dashboardPeriod")?.value||"total";const sales=dashboardSales(p);const revenue=sales.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0);const net=sales.reduce((a,s)=>{const gross=Number(s.grossValue??s.value)||0;const fee=Number(s.fee)||0;const nv=Number(s.netValue);return a+(Number.isFinite(nv)&&nv>0?nv:Math.max(0,gross-fee));},0);const costs=sales.reduce((a,s)=>a+(Number(s.cost)||0),0);const fees=sales.reduce((a,s)=>a+(Number(s.fee)||0),0);const label=p==="total"?"Todos os períodos":mapMonthLabel(p);const dr=document.getElementById("dashRevenue"),dn=document.getElementById("dashNetRevenue"),dp=document.getElementById("dashProfit"),do_=document.getElementById("dashOrders");if(dr)dr.textContent=money(revenue);if(dn)dn.textContent=money(net);if(dp)dp.textContent=money(revenue-costs-fees);if(do_)do_.textContent=sales.length;const a=document.getElementById("dashRevenueFoot"),b=document.getElementById("dashNetFoot"),c=document.getElementById("dashProfitFoot"),d=document.getElementById("dashOrdersFoot");if(a)a.textContent=label;if(b)b.textContent="Após descontos e taxas";if(c)c.textContent="Após custos e taxas";if(d)d.textContent=label;}
+function renderStateMap(period){const box=document.getElementById("stateMapCounts");if(!box)return;const p=period||document.getElementById("stateMapPeriod")?.value||"total";const sales=dashboardSales(p);const counts=Object.fromEntries(STATE_ORDER.map(uf=>[uf,0]));sales.forEach(s=>{const uf=saleStateCode(s);if(uf)counts[uf]++;});box.innerHTML=STATE_ORDER.map(uf=>{const pos=STATE_POS[uf]||[50,50],count=counts[uf];return `<div class="map-label ${count===0?'zero':''} ${uf==='SP'?'dark-state':''}" title="${STATE_NAMES[uf]}: ${count} ${count===1?'venda':'vendas'}" style="left:${pos[0]}%;top:${pos[1]}%"><span>${count}</span></div>`;}).join("");const total=sales.length,withSales=STATE_ORDER.filter(uf=>counts[uf]>0).length;const totalEl=document.getElementById("stateMapTotal");if(totalEl)totalEl.textContent=`${total} ${total===1?'pedido':'pedidos'} no período • ${withSales} estado${withSales===1?'':'s'} com vendas`;const totalOrders=document.getElementById("stateMapTotalOrders"),stateCount=document.getElementById("stateMapStatesWithSales");if(totalOrders)totalOrders.textContent=total;if(stateCount)stateCount.textContent=withSales;const ranking=document.getElementById("stateRanking");if(ranking){const ranked=STATE_ORDER.map(uf=>({uf,count:counts[uf]})).filter(x=>x.count>0).sort((a,b)=>b.count-a.count||a.uf.localeCompare(b.uf));if(!ranked.length)ranking.innerHTML='<div class="ranking-empty">Nenhuma venda encontrada neste período.</div>';else{const max=ranked[0].count;ranking.innerHTML=ranked.slice(0,10).map((x,i)=>`<div class="ranking-row"><span class="ranking-rank">${i+1}</span><span class="ranking-uf">${x.uf}</span><div class="ranking-bar"><i style="width:${Math.max(6,Math.round(x.count/max*100))}%"></i></div><span class="ranking-value">${x.count}</span></div>`).join("");}}}
+function setDashboardPeriod(value){const p=populateDashboardPeriods(value||"total");const a=document.getElementById("dashboardPeriod"),b=document.getElementById("stateMapPeriod");if(a)a.value=p;if(b)b.value=p;renderDashboardSummary(p);renderStateMap(p);}
+
+function reportMonthFromSale(s){
+ const iso=String(s?.dateISO||"");
+ if(/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso.slice(0,7);
+ const br=String(s?.date||"").match(/(\d{2})\/(\d{2})\/(\d{4})/);
+ return br?`${br[3]}-${br[2]}`:"";
+}
+function currentReportMonth(){ return todayISO().slice(0,7); }
+function getReportMonth(){ return localStorage.getItem("gestor3d_report_month") || currentReportMonth(); }
+function setReportMonth(value){
+ const v=/^\d{4}-\d{2}$/.test(String(value||""))?String(value):currentReportMonth();
+ localStorage.setItem("gestor3d_report_month",v);
+ render();
+}
+function reportSales(){
+ const month=getReportMonth();
+ return (db.sales||[]).filter(s=>reportMonthFromSale(s)===month);
+}
+function reportMonthLabel(month){
+ const [y,m]=String(month||currentReportMonth()).split("-");
+ if(!y||!m)return "Período";
+ const d=new Date(Number(y),Number(m)-1,1);
+ return d.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+}
+
+function render(){
+ db.materials=db.materials||[]; db.movements=db.movements||[]; db.quotes=db.quotes||[]; db.purchases=db.purchases||[]; db.sales=db.sales||[]; db.products=db.products||[];
+ const dashboardPeriod=populateDashboardPeriods();
+ renderDashboardSummary(dashboardPeriod);
+ renderStateMap(dashboardPeriod);
+ const reportMonth=getReportMonth();
+ const reportMonthInput=document.getElementById("reportMonth"); if(reportMonthInput)reportMonthInput.value=reportMonth;
+ const financeMonthInput=document.getElementById("financeMonth"); if(financeMonthInput)financeMonthInput.value=reportMonth;
+ db.materials.forEach(m=>{if(m.minStock===undefined)m.minStock=0;});
+db.products.forEach(p=>{
+ if(p.printHours===undefined)p.printHours=0;
+ if(p.productionBasis==="batch"){
+   const bq=Math.max(1,+p.productionBatchQty||1);
+   (p.materials||[]).forEach(r=>{ if(r.sourceQty===undefined) r.sourceQty=(+r.qty||0)*bq; });
+   if(p.productionSourceMaterials===undefined) p.productionSourceMaterials=(p.materials||[]).map(r=>({materialId:r.materialId,sourceQty:r.sourceQty}));
+ }
+});
+
+ const materialsTable=document.getElementById("materialsTable");
+ if(materialsTable) materialsTable.innerHTML=db.materials.map(m=>`<tr><td><b>${m.name}</b>${m.color?`<div class="sub">${m.color}</div>`:""}</td><td>${categoryBadge(m.category)}</td><td>${[m.brand,m.type].filter(Boolean).join(" • ")||"—"}</td><td>${m.unit}</td><td>${money(m.unitCost)}</td><td>${m.stock}</td><td>${m.stock<=0?'<span class="tag warn">Sem estoque</span>':m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td><td><div class="row-actions"><button class="btn xs outline" onclick="editMaterial('${m.id}')">Editar</button><button class="btn xs danger" onclick="deleteMaterial('${m.id}')">Excluir</button></div></td></tr>`).join('')||'<tr><td colspan="8">Nenhum material cadastrado.</td></tr>';
+ const smt=document.getElementById("stockMaterialsTable"); if(smt) smt.innerHTML=db.materials.map(m=>`<tr><td><b>${m.name}</b><div class="sub">${m.color||""}</div></td><td>${categoryBadge(m.category)}</td><td>${[m.brand,m.type].filter(Boolean).join(" • ")||"—"}</td><td>${money(m.unitCost)}</td><td>${m.stock} ${m.unit}</td><td>${m.minStock||0}</td><td>${m.stock<=0?'<span class="tag warn">Sem estoque</span>':m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td><td><div class="row-actions"><button class="btn xs outline" onclick="editMaterial('${m.id}')">Editar</button><button class="btn xs danger" onclick="deleteMaterial('${m.id}')">Excluir</button></div></td></tr>`).join('')||'<tr><td colspan="8">Nenhum material cadastrado.</td></tr>';
+ const ft=document.getElementById("finishedTable"); if(ft) ft.innerHTML=db.products.map(p=>`<tr><td><b>${p.name}</b></td><td>${p.sku||"—"}</td><td>${p.store||"—"}</td><td>${p.stock}</td><td>${money(suggested(p))}</td><td>${money(totalCost(p))}</td></tr>`).join('')||'<tr><td colspan="6">Nenhum produto cadastrado.</td></tr>';
+ const pt=document.getElementById("projectsTable"); if(pt) pt.innerHTML=(db.quotes||[]).map(q=>`<tr><td>${q.date}</td><td>${q.name}</td><td>${q.qty}</td><td>${money(q.price)}</td><td><span class="tag">${q.status}</span></td><td><button class="btn xs outline" onclick="printQuote('${q.id}')">🖨 Imprimir</button></td></tr>`).join('')||'<tr><td colspan="6">Nenhum orçamento salvo.</td></tr>';
+ renderCompanyLogo();
+ const pct=document.getElementById("purchasesTable"); if(pct) pct.innerHTML=(db.purchases||[]).map(p=>`<tr><td>${p.date}</td><td>${p.material}</td><td>${p.qty} ${p.unit}</td><td>${money(p.value)}</td><td>${p.supplier||"—"}</td></tr>`).join('')||'<tr><td colspan="5">Nenhuma compra registrada.</td></tr>';
+ const spt=document.getElementById("shopeeProductsTable"); if(spt) spt.innerHTML=db.products.map(p=>`<tr><td>${p.name}</td><td>${p.sku||"—"}</td><td>${p.shopeeName||"Ainda não importado"}</td><td>${p.sku?'<span class="tag good">Pronto</span>':'<span class="tag warn">Sem SKU</span>'}</td></tr>`).join('')||'<tr><td colspan="4">Nenhum produto interno.</td></tr>';
+ const sst=document.getElementById("shopeeStockTable"); if(sst) sst.innerHTML=db.products.map(p=>`<tr><td>${p.name}</td><td>${p.sku||"—"}</td><td>${p.stock||0}</td><td>—</td><td><span class="tag">Aguardando conexão</span></td></tr>`).join('')||'<tr><td colspan="5">Nenhum produto.</td></tr>';
+
+ refreshMovementSelect();
+ const movementsTable=document.getElementById("movementsTable"); if(movementsTable) movementsTable.innerHTML=(db.movements||[]).slice(0,100).map(m=>`<tr><td>${m.date}</td><td>${m.material}</td><td><span class="tag">${m.type}</span></td><td>${m.qty}</td><td>${m.note||"—"}</td></tr>`).join('')||'<tr><td colspan="5">Nenhuma movimentação.</td></tr>';
+ // Consumo de materiais: soma somente saídas e mostra o estoque atual do cadastro.
+ const consumptionRows=(db.materials||[]).map(mat=>{
+   const outs=(db.movements||[]).filter(m=>String(m.materialId)===String(mat.id) && String(m.type).toLowerCase().includes("saída"));
+   const used=outs.reduce((sum,m)=>sum+(Number(m.qty)||0),0);
+   return {mat,used};
+ }).sort((a,b)=>b.used-a.used || String(a.mat.name||"").localeCompare(String(b.mat.name||""),"pt-BR"));
+ const consumptionTable=document.getElementById("consumptionTable");
+ if(consumptionTable) consumptionTable.innerHTML=consumptionRows.map(({mat,used})=>`<tr><td><b>${mat.name}</b>${mat.color?`<div class="sub">${mat.color}</div>`:""}</td><td>${categoryBadge(mat.category)}</td><td><b>${Number(used).toLocaleString("pt-BR",{maximumFractionDigits:4})}</b></td><td><b>${Number(mat.stock||0).toLocaleString("pt-BR",{maximumFractionDigits:4})}</b></td><td>${mat.unit||"—"}</td><td>${(+mat.stock||0)<=0?'<span class="tag warn">Sem estoque</span>':(+mat.stock||0)<=(+mat.minStock||0)?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td></tr>`).join("")||'<tr><td colspan="6">Nenhum material cadastrado.</td></tr>';
+ const consumptionHistory=(db.movements||[]).filter(m=>String(m.type).toLowerCase().includes("saída")).slice(0,100);
+ const consumptionHistoryTable=document.getElementById("consumptionHistoryTable");
+ if(consumptionHistoryTable) consumptionHistoryTable.innerHTML=consumptionHistory.map(m=>{const mat=(db.materials||[]).find(x=>String(x.id)===String(m.materialId));const unit=mat?.unit||"";return `<tr><td>${m.date||"—"}</td><td>${m.material||mat?.name||"—"}</td><td><b>${Number(m.qty||0).toLocaleString("pt-BR",{maximumFractionDigits:4})} ${unit}</b></td><td>${m.before===undefined?"—":Number(m.before).toLocaleString("pt-BR",{maximumFractionDigits:4})+" "+unit}</td><td>${m.after===undefined?"—":Number(m.after).toLocaleString("pt-BR",{maximumFractionDigits:4})+" "+unit}</td><td>${m.note||"—"}</td></tr>`}).join("")||'<tr><td colspan="6">Nenhum consumo registrado.</td></tr>';
+ const cmc=document.getElementById("consumptionMaterialsCount"), cuc=document.getElementById("consumptionUsedCount"), clc=document.getElementById("consumptionLowCount");
+ if(cmc)cmc.textContent=consumptionRows.length; if(cuc)cuc.textContent=consumptionRows.filter(x=>x.used>0).length; if(clc)clc.textContent=consumptionRows.filter(x=>(+x.mat.stock||0)<=(+x.mat.minStock||0)).length;
+ const sf=document.getElementById("storefrontGrid"); if(sf) sf.innerHTML=db.products.slice(0,12).map(p=>`<div class="store-item"><b>${p.name}</b><small>${p.sku||"Sem SKU"} • ${p.store||"Sem loja"}</small><div style="margin-top:10px;font-weight:800">${money(suggested(p))}</div></div>`).join('')||'<div class="sub">Cadastre produtos para montar sua vitrine.</div>';
+ const selectedReportMonth=getReportMonth();
+ const reportMonthName=reportMonthLabel(selectedReportMonth);
+ const activeSales=reportSales().filter(s=>s.status!=="Cancelado");
+ let revenue=activeSales.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0), netRevenue=activeSales.reduce((a,s)=>{const gross=Number(s.grossValue??s.value)||0; const fee=Number(s.fee); const net=Number(s.netValue); return a+(Number.isFinite(net)&&net>0?net:Math.max(0,gross-(Number.isFinite(fee)?fee:0)));},0), totalProductCosts=activeSales.reduce((a,s)=>a+(Number(s.cost)||0),0), fees=activeSales.reduce((a,s)=>a+(Number(s.fee)||0),0);
+ const ds=document.getElementById("dashStock"); if(ds)ds.textContent=db.products.reduce((a,p)=>a+(+p.stock||0),0)+(db.materials||[]).length; renderDashboardSummary(dashboardPeriod); renderStateMap(dashboardPeriod);
+ const productsTable=document.getElementById("productsTable"); if(productsTable) productsTable.innerHTML=db.products.map(p=>`<tr><td><b>${p.name}</b></td><td>${p.sku||"-"}</td><td>${p.store||"—"}</td><td>${(p.materials||[]).map(m=>`${m.name} (${Number(m.qty||m.grams||0).toLocaleString("pt-BR",{maximumFractionDigits:4})} ${m.unit||"un."})`).join(", ")||"—"}</td><td>${money(totalCost(p))}</td><td>${money(suggested(p))}</td><td>${p.stock||0}</td><td><button class="btn secondary" onclick="openTechModal('${p.id}')">Ver ficha</button></td><td><button class="btn secondary" onclick="editProduct('${p.id}')">✏️ Editar</button></td></tr>`).join('')||'<tr><td colspan="9">Nenhum produto cadastrado.</td></tr>';
+ const stockTable=document.getElementById("stockTable"); if(stockTable) stockTable.innerHTML=[...(db.materials||[]).map(m=>`<tr><td>${m.name}</td><td>${m.category}</td><td>${m.stock} ${m.unit}</td><td>${m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td></tr>`),...db.products.map(p=>`<tr><td>${p.name}</td><td>Produto acabado</td><td>${p.stock||0} un.</td><td>${(p.stock||0)<=2?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td></tr>`)].join('')||'<tr><td colspan="4">Nenhum item.</td></tr>';
+ const lowStock=document.getElementById("lowStock"); if(lowStock){const lp=db.products.filter(p=>(+p.stock||0)<=2).map(p=>`<div style="padding:9px 0;border-bottom:1px solid #eee">${p.name} <span class="tag warn">${p.stock||0} un.</span></div>`);const lm=db.materials.filter(m=>(+m.stock||0)<=m.minStock).map(m=>`<div style="padding:9px 0;border-bottom:1px solid #eee">${m.name} <span class="tag warn">${m.stock} ${m.unit}</span></div>`);lowStock.innerHTML=[...lp,...lm].join('')||'<div class="sub">Nenhum estoque crítico.</div>'; }
+ const dashSales=document.getElementById("dashSales"); if(dashSales){ const recentReportSales=[...reportSales()].sort((a,b)=>`${b.dateISO||""}T${b.time||"00:00"}`.localeCompare(`${a.dateISO||""}T${a.time||"00:00"}`)).slice(0,6); dashSales.innerHTML=recentReportSales.map(s=>`<div style="padding:9px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between"><span>${s.customerName?s.customerName+" • ":""}${s.product}<small class="sub">${s.date||formatDateISO(s.dateISO)} ${s.time||""} • ${s.store||"—"}</small></span><b>${money(Number(s.grossValue??s.value)||0)}</b></div>`).join('')||'<div class="sub">Nenhuma venda registrada neste período.</div>'; }
+ renderSalesTable(); populateSaleProducts();
+ const sd=document.getElementById("sDate"), st=document.getElementById("sTime"), days=document.getElementById("sPostDays"), due=document.getElementById("sDueDate"); if(sd&&!sd.value)sd.value=todayISO(); if(st&&!st.value)st.value=new Date().toTimeString().slice(0,5); if(days&&!days.value)days.value="1"; updatePostDate();
+ const allSales=db.sales||[]; const totalOrders=allSales.length, prodCount=allSales.filter(s=>s.status==="Em produção").length, readyCount=allSales.filter(s=>s.status==="Pronto").length, lateCount=allSales.filter(isLate).length, deliveredCount=allSales.filter(s=>s.status==="Entregue").length; ["salesTotal","salesInProduction","salesReady","salesLate","salesDelivered"].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=[totalOrders,prodCount,readyCount,lateCount,deliveredCount][i];});
+ const saleDateEl=document.getElementById("sDate"); if(saleDateEl)saleDateEl.onchange=updatePostDate; const saleDaysEl=document.getElementById("sPostDays"); if(saleDaysEl)saleDaysEl.onchange=updatePostDate; const saleProductEl=document.getElementById("sProduct"); if(saleProductEl)saleProductEl.onchange=updateSalePreview; const saleQtyEl=document.getElementById("sQty"); if(saleQtyEl)saleQtyEl.oninput=updateSalePreview;
+ const saleGrossEl=document.getElementById("sGross"); if(saleGrossEl)saleGrossEl.oninput=()=>{saleGrossEl.dataset.manual="1";}; const saleNetEl=document.getElementById("sNet"); if(saleNetEl)saleNetEl.oninput=()=>{saleNetEl.dataset.manual="1";};
+ populateCalcProductSelect(); updateSalePreview();
+ const finRevenue=document.getElementById("finRevenue"),finCost=document.getElementById("finCost"),finFees=document.getElementById("finFees"),finProfit=document.getElementById("finProfit"); if(finRevenue)finRevenue.textContent=money(revenue);if(finCost)finCost.textContent=money(totalProductCosts);if(finFees)finFees.textContent=money(fees);if(finProfit)finProfit.textContent=money(revenue-totalProductCosts-fees); calc();
+}function calc(){let c=+cCost.value||0,f=(+cFee.value||0)/100,m=(+cMargin.value||0)/100;let min=f<1?c/(1-f):0, sug=(1-f-m)>0?c/(1-f-m):0;minPrice.textContent=money(min);suggested.textContent=money(sug);calcProfit.textContent=money(sug-c-sug*f)}
+addMaterialRow();
+addCalcMaterial();
+renderCategorySelect();
+["mPurchaseQty","mPurchasePrice","mUnit"].forEach(id=>document.getElementById(id).addEventListener("input",updateMaterialPreview));
+runCalc();
+render();
+
+try{const q=new URLSearchParams(location.search);if(q.get("shopee_connected")){history.replaceState({},document.title,"/");setTimeout(()=>{show("shopee");refreshShopeeStatus();alert("Loja Shopee autorizada com sucesso!");},200);}}catch(e){}
+updateCalcBasisUI();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(console.error));
+}
+</script>
+
+<div id="techModal" class="tech-modal" onclick="if(event.target===this)closeTechModal()">
+  <div class="tech-card">
+    <div class="tech-head">
+      <div><div class="sub">FICHA TÉCNICA</div><h2 id="techTitle" style="margin:4px 0 0">Produto</h2><div id="techSub" class="sub"></div></div>
+      <button class="close-tech" onclick="closeTechModal()">✕ Fechar</button>
+    </div>
+    <div id="techBody"></div>
+  </div>
+</div>
+</body>
+</html>

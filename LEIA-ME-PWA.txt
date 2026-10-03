@@ -1,0 +1,13 @@
+GESTOR 3D — V57 PWA
+
+Esta versão está preparada para ser publicada como aplicativo web instalável (PWA).
+
+Depois de publicada em HTTPS, no Chrome/Edge é possível usar a opção "Instalar Gestor 3D".
+O aplicativo abre em janela própria e as futuras versões podem ser atualizadas no mesmo endereço,
+sem baixar ZIP e sem executar .bat novamente.
+
+IMPORTANTE SOBRE OS DADOS:
+A versão atual continua usando o armazenamento local do navegador (localStorage).
+Os dados ficam no navegador/dispositivo onde o Gestor foi usado. A publicação não migra os dados
+que estavam no localhost automaticamente. Antes de trocar de ambiente, faça backup pelo recurso
+existente no sistema, se disponível.
