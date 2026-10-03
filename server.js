@@ -116,11 +116,55 @@ async function withRefresh(storeId, fn){
 }
 
 function serveStatic(req,res){
-  let file=path.join(__dirname,"public",req.url==="/"?"index.html":req.url.split("?")[0]);
-  if(!file.startsWith(path.join(__dirname,"public"))) return json(res,403,{error:"forbidden"});
-  if(!fs.existsSync(file)) return json(res,404,{error:"not found"});
-  const ext=path.extname(file); const types={".html":"text/html; charset=utf-8",".js":"text/javascript; charset=utf-8",".css":"text/css; charset=utf-8",".webmanifest":"application/manifest+json; charset=utf-8",".json":"application/json; charset=utf-8",".png":"image/png",".svg":"image/svg+xml"};
-  res.writeHead(200,{"Content-Type":types[ext]||"application/octet-stream"}); fs.createReadStream(file).pipe(res);
+  let requestPath = (req.url || "/").split("?")[0];
+
+  if (requestPath === "/" || requestPath === "") {
+    requestPath = "/index.html";
+  }
+
+  const relativePath = decodeURIComponent(requestPath).replace(/^\/+/, "");
+  const publicDir = path.resolve(__dirname, "public");
+  const file = path.resolve(publicDir, relativePath);
+
+  if (file !== publicDir && !file.startsWith(publicDir + path.sep)) {
+    return json(res,403,{error:"forbidden"});
+  }
+
+  if (!fs.existsSync(file)) {
+    console.log("Arquivo não encontrado:", file);
+    console.log("Diretório atual:", __dirname);
+    console.log("public existe:", fs.existsSync(publicDir));
+
+    return json(res,404,{
+      ok:false,
+      error:"not found",
+      requested:requestPath,
+      file:file
+    });
+  }
+
+  const ext=path.extname(file).toLowerCase();
+
+  const types={
+    ".html":"text/html; charset=utf-8",
+    ".js":"text/javascript; charset=utf-8",
+    ".css":"text/css; charset=utf-8",
+    ".webmanifest":"application/manifest+json; charset=utf-8",
+    ".json":"application/json; charset=utf-8",
+    ".png":"image/png",
+    ".jpg":"image/jpeg",
+    ".jpeg":"image/jpeg",
+    ".webp":"image/webp",
+    ".svg":"image/svg+xml",
+    ".ico":"image/x-icon"
+  };
+
+  res.writeHead(200,{
+    "Content-Type":types[ext]||"application/octet-stream",
+    "Cache-Control":"no-cache"
+  });
+
+  fs.createReadStream(file).pipe(res);
 }
 
 const server=http.createServer(async(req,res)=>{
