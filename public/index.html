@@ -1532,7 +1532,7 @@ db.products.forEach(p=>{
  const saleGrossEl=document.getElementById("sGross"); if(saleGrossEl)saleGrossEl.oninput=()=>{saleGrossEl.dataset.manual="1";}; const saleNetEl=document.getElementById("sNet"); if(saleNetEl)saleNetEl.oninput=()=>{saleNetEl.dataset.manual="1";};
  populateCalcProductSelect(); updateSalePreview();
  const finRevenue=document.getElementById("finRevenue"),finCost=document.getElementById("finCost"),finFees=document.getElementById("finFees"),finProfit=document.getElementById("finProfit"); if(finRevenue)finRevenue.textContent=money(revenue);if(finCost)finCost.textContent=money(totalProductCosts);if(finFees)finFees.textContent=money(fees);if(finProfit)finProfit.textContent=money(revenue-totalProductCosts-fees); calc();
-}function calc(){let c=+cCost.value||0,f=(+cFee.value||0)/100,m=(+cMargin.value||0)/100;let min=f<1?c/(1-f):0, sug=(1-f-m)>0?c/(1-f-m):0;minPrice.textContent=money(min);suggested.textContent=money(sug);calcProfit.textContent=money(sug-c-sug*f)}
+}function calc(){runCalc();}
 addMaterialRow();
 addCalcMaterial();
 renderCategorySelect();
