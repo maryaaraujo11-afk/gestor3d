@@ -690,7 +690,11 @@ function machineUnitCost(p){
  const desgaste=h*wear;
  return {energy,depreciation,wear:desgaste,total:energy+depreciation+desgaste};
 }
-function productionUnitCost(p){return materialCost(p)+componentCost(p)+machineUnitCost(p).total+(+p.labor||0)+(+p.other||0)}
+function laborAmount(p){
+ const base=materialCost(p)+componentCost(p)+machineUnitCost(p).total+(+p.other||0);
+ return base*((+p.laborPercent||20)/100);
+}
+function productionUnitCost(p){return materialCost(p)+componentCost(p)+machineUnitCost(p).total+laborAmount(p)+(+p.other||0)}
 function totalCost(p){return productionUnitCost(p)}
 function suggested(p){let cost=productionUnitCost(p), f=(+p.fee||0)/100,m=(+p.margin||0)/100;return (1-f-m)>0?cost/(1-f-m):0}
 function addMaterialRow(materialId="",qty=""){
@@ -866,7 +870,7 @@ function addProduct(){
  const printHours=batch?enteredHours/batchQty:enteredHours;
  const packEntered=+pPack.value||0, laborPercent=+pLabor.value||20, otherEntered=+pOther.value||0; const machineWatts=+document.getElementById("pMachineWatts")?.value||200, machineKwh=+document.getElementById("pMachineKwh")?.value||0.90, machineValue=+document.getElementById("pMachineValue")?.value||3000, machineLife=Math.max(1,+document.getElementById("pMachineLife")?.value||5000), machineWear=+document.getElementById("pMachineWear")?.value||0.20;
  const pack=packEntered;
- const laborBaseBeforeLabor=materials.reduce((sum,m)=>sum+(+m.qty||0)*(+m.unitCost||0),0)+componentCost({materials}); const labor=laborBaseBeforeLabor*(laborPercent/100);
+ const tempProduct={materials,printHours,machineWatts,machineKwh,machineValue,machineLife,machineWear,other}; const laborBaseBeforeLabor=materialCost(tempProduct)+componentCost(tempProduct)+machineUnitCost(tempProduct).total+other; const labor=laborBaseBeforeLabor*(laborPercent/100);
  const other=batch?otherEntered/batchQty:otherEntered;
  const old=editingId?(db.products||[]).find(x=>String(x.id)===String(editingId)):null;
  const variants=collectProductVariants();
@@ -1168,7 +1172,7 @@ function updateCalcBasisUI(){
  document.querySelectorAll("#calcMaterials .calc-qty-label").forEach(el=>el.textContent=batch?"Quantidade total no lote":"Quantidade por unidade");
  const hoursLabel=document.querySelector('#calcHours')?.closest('.field')?.querySelector('label');
  if(hoursLabel) hoursLabel.textContent=batch?"Tempo total de impressão do lote (H:MM)":"Tempo de impressão por unidade (H:MM)";
- const labLabel=document.querySelector("#calcLabor")?.closest(".field")?.querySelector("label"); const packLabel=document.querySelector("#calcPack")?.closest(".field")?.querySelector("label"); const otherLabel=document.querySelector("#calcOther")?.closest(".field")?.querySelector("label"); if(labLabel)labLabel.textContent=batch?"Mão de obra total do lote (R$)":"Mão de obra por unidade (R$)"; if(packLabel)packLabel.textContent="Embalagem do pedido (R$)"; if(otherLabel)otherLabel.textContent=batch?"Outros / risco total do lote (R$)":"Outros / risco por unidade (R$)";
+ const labLabel=document.querySelector("#calcLabor")?.closest(".field")?.querySelector("label"); const packLabel=document.querySelector("#calcPack")?.closest(".field")?.querySelector("label"); const otherLabel=document.querySelector("#calcOther")?.closest(".field")?.querySelector("label"); if(labLabel)labLabel.textContent="Mão de obra (%)"; if(packLabel)packLabel.textContent="Embalagem do pedido (R$)"; if(otherLabel)otherLabel.textContent=batch?"Outros / risco total do lote (R$)":"Outros / risco por unidade (R$)";
 }
 
 function populateCalcProductSelect(){
@@ -1187,7 +1191,7 @@ function loadProductToCalc(){
  if(!p)return;
  document.getElementById("calcProjectName").value=p.name||"";
  document.getElementById("calcHours").value=formatHoursInput(p.printHours||0);
- document.getElementById("calcLabor").value=p.labor||0;
+ document.getElementById("calcLabor").value=p.laborPercent??20;
  document.getElementById("calcPack").value=p.pack||0;
  document.getElementById("calcOther").value=p.other||0;
  document.getElementById("calcFee").value=p.fee??20;
@@ -1209,7 +1213,7 @@ function openTechModal(id){
  document.getElementById("techSub").textContent=[p.sku,p.shopeeSku].filter(Boolean).join(" • ")||"Sem SKU";
  const matRows=(p.materials||[]).map(r=>`<div class="tech-row"><span>${r.name||"Material"} <small class="sub">${r.grams||0} g</small></span><b>${money((+r.grams||0)*(+r.costPerGram||0))}</b></div>`).join("");
  const compRows=(p.components||[]).map(r=>`<div class="tech-row"><span>${r.name||"Componente"} <small class="sub">${r.qty||0} un.</small></span><b>${money((+r.qty||0)*(+r.unitCost||0))}</b></div>`).join("");
- const total=totalCost(p), price=suggested(p);
+ const total=totalCost(p), price=suggested(p), laborValue=laborAmount(p);
  document.getElementById("techBody").innerHTML=`
    <div class="tech-grid">
      <div class="tech-box"><span>Loja</span><b>${p.store||"—"}</b></div>
@@ -1227,7 +1231,7 @@ function openTechModal(id){
    <h3 style="margin-top:18px">Custos adicionais</h3>
    <div class="tech-list">
      <div class="tech-row"><span>Embalagem do pedido</span><b>${money(p.pack||0)}</b></div>
-     <div class="tech-row"><span>Mão de obra</span><b>${money(p.labor||0)}</b></div>
+     <div class="tech-row"><span>Mão de obra (${p.laborPercent??20}%)</span><b>${money(laborValue)}</b></div>
      <div class="tech-row"><span>Outros custos</span><b>${money(p.other||0)}</b></div>
      <div class="tech-row"><span><b>Custo final</b></span><b>${money(total)}</b></div>
    </div>
@@ -1260,7 +1264,7 @@ function runCalc(){
  const depreciationUnit=hoursUnit*(printer/life);
  const wearUnit=hoursUnit*(+calcWear.value||0);
  const laborEntered=+calcLabor.value||0,packEntered=+calcPack.value||0,otherEntered=+calcOther.value||0;
- const laborPercent=(+document.getElementById("calcLabor").value||0); const laborBaseForPercent=materialsUnit; const laborUnit=laborBaseForPercent*(laborPercent/100); const packUnit=0, otherUnit=batch?otherEntered/qty:otherEntered;
+ const laborPercent=(+document.getElementById("calcLabor").value||20); const machineBaseUnit=hoursUnit*(watts/1000)*kwh + hoursUnit*(printer/life) + hoursUnit*(+calcWear.value||0); const laborBaseForPercent=materialsUnit+machineBaseUnit+(batch?otherEntered/qty:otherEntered); const laborUnit=laborBaseForPercent*(laborPercent/100); const packUnit=0, otherUnit=batch?otherEntered/qty:otherEntered;
  const unitBase=materialsUnit+energyUnit+depreciationUnit+wearUnit+laborUnit+otherUnit;
  const orderPackaging=packEntered;
  const totalBase=unitBase*qty+orderPackaging;
