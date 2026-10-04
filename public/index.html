@@ -181,7 +181,12 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <div class="field"><label>Quantidade produzida no lote</label><input id="pBatchQty" type="number" min="1" step="1" value="1" oninput="updateProductBasisUI()"></div>
 <div class="field"><label id="pPrintHoursLabel">Tempo de impressão por unidade</label><input id="pPrintHours" type="text" inputmode="text" autocomplete="off" placeholder="Ex.: 1:43 (1h43min)" oninput="runProductTimePreview()" onblur="normalizeHoursField(this)"></div>
 <div class="sub" id="pBasisHint" style="grid-column:1/-1;margin-top:-8px">Para dados do fatiador do lote, escolha “lote inteiro”, informe a quantidade e coloque o consumo total de cada filamento/insumo.</div>
-<div class="field"><label>Embalagem do pedido (R$) <span class="sub" id="pPackHint">por pedido</span></label><input id="pPack" type="number" step=".01"></div><div class="field"><label>Mão de obra (R$) <span class="sub" id="pLaborHint">total do lote</span></label><input id="pLabor" type="number" step=".01" placeholder="Ex.: 5,00"></div><div class="field"><label>Outros custos (R$) <span class="sub" id="pOtherHint">por unidade</span></label><input id="pOther" type="number" step=".01"></div>
+<div class="field"><label>Embalagem do pedido (R$) <span class="sub" id="pPackHint">por pedido</span></label><input id="pPack" type="number" step=".01"></div><div class="field"><label>Mão de obra (R$) <span class="sub" id="pLaborHint">total do lote</span></label><input id="pLabor" type="number" step=".01" placeholder="Ex.: 5,00"></div><div class="field"><label>Outros custos (R$) <span class="sub" id="pOtherHint">por unidade</span></label><input id="pOther" type="number" step=".01"></div><div class="field" style="grid-column:1/-1"><label><b>Custos da máquina</b> <span class="sub">incluídos automaticamente no custo e preço do produto</span></label></div>
+<div class="field"><label>Potência da impressora (W)</label><input id="pMachineWatts" type="number" min="0" step="1" value="200"></div>
+<div class="field"><label>Energia (R$/kWh)</label><input id="pMachineKwh" type="number" min="0" step=".01" value="0.90"></div>
+<div class="field"><label>Valor da impressora (R$)</label><input id="pMachineValue" type="number" min="0" step=".01" value="3000"></div>
+<div class="field"><label>Vida útil da impressora (horas)</label><input id="pMachineLife" type="number" min="1" step="1" value="5000"></div>
+<div class="field"><label>Desgaste por hora (R$)</label><input id="pMachineWear" type="number" min="0" step=".01" value="0.20"></div>
 <div class="field"><label>Taxa marketplace (%)</label><input id="pFee" type="number" step=".1" value="20"></div><div class="field"><label>Margem desejada (%)</label><input id="pMargin" type="number" step=".1" value="30"></div><div class="field"><label>Estoque inicial</label><input id="pStock" type="number" value="0"></div>
 </div><br><button class="btn" id="productSaveBtn" onclick="addProduct()">Salvar produto</button> <button type="button" class="btn secondary" onclick="cancelProductEdit()">Cancelar</button></div>
 <div class="panel"><table><thead><tr><th>Produto</th><th>SKU</th><th>Loja</th><th>Materiais da receita</th><th>Custo / un.</th><th>Preço sugerido / un.</th><th>Estoque</th><th>Ficha técnica</th><th>Ações</th></tr></thead><tbody id="productsTable"></tbody></table></div>
@@ -673,7 +678,19 @@ function materialCost(p){
  return +p.filamentCost||+p.material||0;
 }
 function componentCost(p){return (p.components||[]).reduce((sum,c)=>sum+(+c.qty||0)*(+c.unitCost||0),0)}
-function productionUnitCost(p){return materialCost(p)+componentCost(p)+(+p.labor||0)+(+p.other||0)}
+function machineUnitCost(p){
+ const h=+p.printHours||0;
+ const watts=+p.machineWatts||0;
+ const kwh=+p.machineKwh||0;
+ const printerValue=+p.machineValue||0;
+ const life=Math.max(1,+p.machineLife||1);
+ const wear=+p.machineWear||0;
+ const energy=h*(watts/1000)*kwh;
+ const depreciation=h*(printerValue/life);
+ const desgaste=h*wear;
+ return {energy,depreciation,wear:desgaste,total:energy+depreciation+desgaste};
+}
+function productionUnitCost(p){return materialCost(p)+componentCost(p)+machineUnitCost(p).total+(+p.labor||0)+(+p.other||0)}
 function totalCost(p){return productionUnitCost(p)}
 function suggested(p){let cost=productionUnitCost(p), f=(+p.fee||0)/100,m=(+p.margin||0)/100;return (1-f-m)>0?cost/(1-f-m):0}
 function addMaterialRow(materialId="",qty=""){
@@ -847,14 +864,14 @@ function addProduct(){
  }).filter(m=>m.name && m.qty>0);
  const enteredHours=parseHoursInput(document.getElementById("pPrintHours")?.value);
  const printHours=batch?enteredHours/batchQty:enteredHours;
- const packEntered=+pPack.value||0, laborEntered=+pLabor.value||0, otherEntered=+pOther.value||0;
+ const packEntered=+pPack.value||0, laborEntered=+pLabor.value||0, otherEntered=+pOther.value||0; const machineWatts=+document.getElementById("pMachineWatts")?.value||200, machineKwh=+document.getElementById("pMachineKwh")?.value||0.90, machineValue=+document.getElementById("pMachineValue")?.value||3000, machineLife=Math.max(1,+document.getElementById("pMachineLife")?.value||5000), machineWear=+document.getElementById("pMachineWear")?.value||0.20;
  const pack=packEntered;
  const labor=batch?laborEntered/batchQty:laborEntered;
  const other=batch?otherEntered/batchQty:otherEntered;
  const old=editingId?(db.products||[]).find(x=>String(x.id)===String(editingId)):null;
  const variants=collectProductVariants();
  let p={...(old||{}),id:editingId||Date.now(),name:pName.value.trim(),sku:pSku.value.trim(),store:pStore.value,shopeeSku:pShopeeSku.value.trim(),shopeeName:pShopeeName.value.trim(),materials,variants,
- filamentCost:materials.reduce((sum,m)=>sum+(+m.qty||0)*(+m.unitCost||0),0),pack,labor,other,
+ filamentCost:materials.reduce((sum,m)=>sum+(+m.qty||0)*(+m.unitCost||0),0),pack,labor,other,machineWatts,machineKwh,machineValue,machineLife,machineWear,
  fee:+pFee.value||0,margin:+pMargin.value||0,stock:+pStock.value||0,printHours,productionBatchQty:batch?batchQty:1,productionBasis:batch?"batch":"unit",productionSourceHours:enteredHours,productionSourcePack:packEntered,productionSourceLabor:laborEntered,productionSourceOther:otherEntered,productionSourceMaterials:batch?materials.map(m=>({materialId:m.materialId,sourceQty:m.sourceQty})):null,stockManaged:old?.stockManaged||false};
  if(!p.name){alert("Informe o nome do produto.");return}
  if(!materials.length){alert("Adicione pelo menos um material ou insumo.");return}
@@ -867,7 +884,7 @@ function addProduct(){
  document.getElementById("productForm").classList.add("hidden");
  document.getElementById("productFormTitle").textContent="Novo produto";
  document.getElementById("productSaveBtn").textContent="Salvar produto";
- ["pName","pSku","pFilamentCost","pPrintHours","pPack","pLabor","pOther","pStock","pShopeeSku","pShopeeName","pShopeeItemId","pShopeeModelId"].forEach(x=>{const e=document.getElementById(x);if(e)e.value="";});
+ ["pName","pSku","pFilamentCost","pPrintHours","pPack","pLabor","pOther","pStock","pMachineWatts","pMachineKwh","pMachineValue","pMachineLife","pMachineWear","pShopeeSku","pShopeeName","pShopeeItemId","pShopeeModelId"].forEach(x=>{const e=document.getElementById(x);if(e)e.value="";});
  const basis=document.getElementById("pBasis"); if(basis)basis.value="unit"; const bq=document.getElementById("pBatchQty"); if(bq)bq.value=1; updateProductBasisUI();
  document.getElementById("materialsList").innerHTML=""; addMaterialRow();
  const variantsList=document.getElementById("productVariantsList"); if(variantsList)variantsList.innerHTML="";
@@ -883,7 +900,7 @@ function editProduct(id){
  document.getElementById("productFormTitle").textContent="Editar produto";
  document.getElementById("productSaveBtn").textContent="Salvar alterações";
  pName.value=p.name||""; pSku.value=p.sku||""; pStore.value=p.store||""; pShopeeSku.value=p.shopeeSku||""; pShopeeName.value=p.shopeeName||"";
- pFee.value=p.fee??20; pMargin.value=p.margin??30; pStock.value=p.stock??0;
+ pFee.value=p.fee??20; pMargin.value=p.margin??30; pStock.value=p.stock??0; document.getElementById("pMachineWatts").value=p.machineWatts??200; document.getElementById("pMachineKwh").value=p.machineKwh??0.90; document.getElementById("pMachineValue").value=p.machineValue??3000; document.getElementById("pMachineLife").value=p.machineLife??5000; document.getElementById("pMachineWear").value=p.machineWear??0.20;
  const basis=document.getElementById("pBasis"); basis.value=p.productionBasis==="batch"?"batch":"unit";
  const bq=document.getElementById("pBatchQty"); bq.value=p.productionBatchQty||1;
  document.getElementById("pPrintHours").value=formatHoursInput(p.productionBasis==="batch"?(p.productionSourceHours||0):(p.printHours||0));
