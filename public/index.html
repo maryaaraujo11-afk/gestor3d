@@ -1746,7 +1746,16 @@ function showShopeeHelp(){
 let shopeeCache={orders:{},products:{},status:{}};
 
 async function api(url,opts={}){
- const r=await fetch(url,{headers:{"Content-Type":"application/json"},...opts});
+ const headers={"Content-Type":"application/json",...(opts.headers||{})};
+ try{
+   const client=window.gestorSupabase;
+   if(client){
+     const {data}=await client.auth.getSession();
+     const token=data?.session?.access_token;
+     if(token)headers.Authorization="Bearer "+token;
+   }
+ }catch(e){console.warn("Não foi possível obter a sessão para a API:",e);}
+ const r=await fetch(url,{...opts,headers});
  const d=await r.json().catch(()=>({error:"Resposta inválida"}));
  if(!r.ok||d.ok===false) throw new Error(d.error||"Erro na API");
  return d;
