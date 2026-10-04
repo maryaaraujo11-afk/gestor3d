@@ -1491,7 +1491,22 @@ function editQuote(id){
  const wrap=document.getElementById("calcMaterials");
  if(wrap){
    wrap.innerHTML="";
-   const mats=Array.isArray(q.calcMaterials)?q.calcMaterials:[];
+   let mats=Array.isArray(q.calcMaterials)?q.calcMaterials:[];
+   // Orçamentos antigos não guardavam os materiais. Quando possível,
+   // recupera a receita do produto cadastrado pelo ID ou pelo nome.
+   if(!mats.length){
+     const productId=q.productId||q.calcProductId;
+     const product=(db.products||[]).find(p=>
+       (productId && String(p.id)===String(productId)) ||
+       String(p.name||"").trim().toLocaleLowerCase("pt-BR")===String(q.name||"").trim().toLocaleLowerCase("pt-BR")
+     );
+     if(product){
+       mats=(product.materials||[]).map(m=>({
+         materialId:m.materialId,
+         qty:m.qty??m.grams??0
+       }));
+     }
+   }
    mats.forEach(m=>addCalcMaterial(m.materialId,m.qty));
    if(!mats.length)addCalcMaterial();
  }
@@ -1506,10 +1521,19 @@ function saveQuote(status){
  const qty=Math.max(1,+document.getElementById("calcQty").value||1);
  const a=getQuoteAdjustments();
  const c=window.lastCalc||{};
- const calcMaterials=[...document.querySelectorAll("#calcMaterials .material-row")].map(row=>({
-   materialId:row.querySelector(".calc-mat")?.value||"",
-   qty:+row.querySelector(".calc-g")?.value||0
- })).filter(x=>x.materialId);
+ const calcMaterials=[...document.querySelectorAll("#calcMaterials .material-row")].map(row=>{
+   const materialId=row.querySelector(".calc-mat")?.value||"";
+   const m=(db.materials||[]).find(x=>String(x.id)===String(materialId));
+   return {
+     materialId,
+     qty:+row.querySelector(".calc-g")?.value||0,
+     name:m?.name||"",
+     unit:m?.unit||"",
+     unitCost:Number(m?.unitCost)||0
+   };
+ }).filter(x=>x.materialId);
+ const selectedProductId=document.getElementById("calcProductSelect")?.value||"";
+ const matchedProduct=(db.products||[]).find(p=>String(p.name||"").trim().toLocaleLowerCase("pt-BR")===name.toLocaleLowerCase("pt-BR"));
  const quoteData={
    date:new Date().toLocaleDateString("pt-BR"),
    name,qty,price:a.unitPrice,grossPrice:a.gross,discount:a.discount,freight:a.freight,finalTotal:a.finalTotal,
@@ -1519,6 +1543,7 @@ function saveQuote(status){
    buyerName:document.getElementById("calcBuyerName").value.trim(),
    thankYou:document.getElementById("calcThankYou").value.trim(),
    status,
+   productId:selectedProductId||matchedProduct?.id||null,
    calcMaterials,
    calcBasis:document.getElementById("calcBasis")?.value||"unit",
    calcHours:document.getElementById("calcHours")?.value||"1:00",
