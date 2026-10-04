@@ -413,6 +413,17 @@ select option{background:#24211f;color:#f1ece8}
       <div class="quote-box" style="margin-top:15px">
           <div class="calc-title">DETALHES DO PROJETO</div>
           <div class="field"><label>Observações</label><input id="calcDetails" placeholder="Ex.: personalizado, acabamento, prazo..."></div>
+          <div class="calc-block" style="grid-column:1/-1">
+            <div class="calc-title">▣ AJUSTES DO ORÇAMENTO</div>
+            <div class="formgrid">
+              <div class="field"><label>Nome do comprador</label><input id="calcBuyerName" placeholder="Ex.: Maria José"></div>
+              <div class="field"><label>Preço por unidade no orçamento (R$)</label><input id="calcQuoteUnitPrice" type="number" min="0" step=".01" placeholder="Usar preço calculado"></div>
+              <div class="field"><label>Desconto (R$)</label><input id="calcDiscount" type="number" min="0" step=".01" value="0" oninput="updateQuoteAdjustments()"></div>
+              <div class="field"><label>Frete (R$)</label><input id="calcFreight" type="number" min="0" step=".01" value="0" oninput="updateQuoteAdjustments()"></div>
+              <div class="field" style="grid-column:1/-1"><label>Mensagem de agradecimento</label><input id="calcThankYou" placeholder="Ex.: Muito obrigada pela sua compra! Será um prazer atender você."></div>
+            </div>
+            <div class="notice" id="quoteAdjustmentPreview" style="margin-top:12px">Total final do orçamento: R$ 0,00</div>
+          </div>
           <div class="quote-actions">
             <button class="btn secondary" onclick="saveQuote('salvo')">💾 Salvar orçamento</button>
             <button class="btn" onclick="saveQuote('produção')">✓ Salvar + Produzir</button>
@@ -1351,7 +1362,7 @@ function runCalc(){
  let acc=0, colors=["#4b9fc2","#e5a33e","#8b6d9c","#d46e54","#75a67c","#b98a58","#aaa"];
  costDonut.style.background=`conic-gradient(${parts.map((x,i)=>{let a=acc/total*100,b=(acc+x[1])/total*100;acc+=x[1];return `${colors[i]} ${a}% ${b}%`}).join(",")})`;
  costAnalysis.innerHTML=parts.filter(x=>x[1]>0).map(x=>`<div class="analysis-row"><span>${x[0]} / unidade</span><b>${money(x[1])}</b></div>`).join("")+`<div class="analysis-row"><span>Embalagem do pedido</span><b>${money(orderPackaging)}</b></div><div class="analysis-row"><span>Custo por unidade (produção)</span><b>${money(unitBase)}</b></div><div class="analysis-row"><span>Custo total (${qty} un.) + embalagem</span><b>${money(totalBase)}</b></div><div class="analysis-row"><span>Preço por unidade</span><b>${money(unitPrice)}</b></div><div class="analysis-row"><span>Venda total</span><b>${money(totalPrice)}</b></div><div class="analysis-row"><span>Taxa marketplace</span><b>${money(marketplace)}</b></div><div class="analysis-row"><span>Lucro total</span><b class="good">${money(profit)}</b></div>`;
- window.lastCalc={qty,unitPrice,totalPrice,profit,unitBase,totalBase,marketplace};
+ window.lastCalc={qty,unitPrice,totalPrice,profit,unitBase,totalBase,marketplace}; updateQuoteAdjustments();
 }
 
 
@@ -1399,28 +1410,77 @@ function printQuote(id){
  const q=(db.quotes||[]).find(x=>String(x.id)===String(id)); if(!q)return;
  const logo=db.settings?.logo||"";
  const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const html=`<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8">
-<link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#8b5e4a">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default"><title>Orçamento - ${esc(q.name)}</title><style>body{font-family:Arial,sans-serif;color:#2d2926;margin:0;padding:35px} .sheet{max-width:800px;margin:auto;border:1px solid #ddd;padding:35px;border-radius:12px} .head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #8b5e4a;padding-bottom:18px}.logo{max-width:220px;max-height:80px}.brand{font-size:24px;font-weight:800}.meta{color:#777;font-size:12px;margin-top:5px}h1{font-size:22px;margin:25px 0 8px}.box{background:#f8f5f3;padding:15px;border-radius:8px;margin:14px 0}.row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eee}.row:last-child{border:0}.total{font-size:22px;font-weight:800;color:#8b5e4a}.foot{margin-top:35px;color:#777;font-size:11px;text-align:center}@media print{body{padding:0}.sheet{border:0}}
-.state-map-panel{margin-top:18px}.state-map-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.state-map-head h2{margin:0}.state-map-filter{display:flex;align-items:center;gap:8px}.state-map-filter label{font-size:12px;font-weight:800;color:#6f625c}.state-map-filter select{padding:9px 12px;border:1px solid #ddd1ca;border-radius:9px;background:#fff;font-weight:700}.brazil-map{position:relative;width:100%;max-width:1120px;margin:8px auto 0;aspect-ratio:1400/788;overflow:hidden;border-radius:12px;background:#f7f3ee}.brazil-map img{width:100%;height:100%;display:block;object-fit:cover}.map-count{position:absolute;transform:translate(-50%,-50%);min-width:30px;height:30px;padding:0 7px;border-radius:999px;background:#fff;color:#2d2926;border:2px solid #8b5e4a;box-shadow:0 3px 10px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;line-height:1;z-index:2}.map-count.zero{opacity:.42}.map-legend{font-size:11px;color:#8a7d75;margin-top:8px}.map-total{font-size:12px;font-weight:800;color:#6b5d55}.map-state-tooltip{position:absolute;pointer-events:none;z-index:3;background:#2f2926;color:#fff;padding:5px 8px;border-radius:7px;font-size:11px;font-weight:800;display:none}.map-count:hover+.map-state-tooltip{display:block}
-@media(max-width:700px){.map-count{min-width:24px;height:24px;font-size:10px;padding:0 5px;border-width:1.5px}}
-</style></head><body><div class="sheet"><div class="head">${logo?`<img class="logo" src="${logo}" alt="Logo">`:`<div class="brand">Gestor 3D</div>`}<div style="text-align:right"><b>ORÇAMENTO</b><div class="meta">${esc(q.date)}</div></div></div><h1>${esc(q.name)}</h1><div class="meta">Validade/identificação do orçamento</div><div class="box"><div class="row"><span>Quantidade</span><b>${esc(q.qty)}</b></div>${q.colors?`<div class="row"><span>Cores / acabamento</span><b>${esc(q.colors)}</b></div>`:""}<div class="row"><span>Preço por unidade</span><b>${money(q.price)}</b></div><div class="row"><span>Valor total</span><b class="total">${money(q.totalPrice??(q.price*q.qty))}</b></div></div>${q.details?`<div class="box"><b>Observações</b><div style="margin-top:8px">${esc(q.details)}</div></div>`:""}<div class="foot">Orçamento gerado pelo Gestor 3D.</div></div><script>window.onload=()=>window.print();<\/script></body></html>`;
+ const gross=Number(q.grossPrice??((+q.price||0)*(+q.qty||1)));
+ const discount=Number(q.discount)||0, freight=Number(q.freight)||0;
+ const finalTotal=Number(q.finalTotal??Math.max(0,gross-discount+freight));
+ const html=`<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Orçamento - ${esc(q.name)}</title><style>
+ body{font-family:Arial,sans-serif;color:#2d2926;margin:0;padding:35px}.sheet{max-width:800px;margin:auto;border:1px solid #ddd;padding:35px;border-radius:12px}.head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #8b5e4a;padding-bottom:18px}.logo{max-width:220px;max-height:80px}.brand{font-size:24px;font-weight:800}.meta{color:#777;font-size:12px;margin-top:5px}h1{font-size:22px;margin:25px 0 8px}.box{background:#f8f5f3;padding:15px;border-radius:8px;margin:14px 0}.row{display:flex;justify-content:space-between;gap:20px;padding:8px 0;border-bottom:1px solid #eee}.row:last-child{border:0}.discount{color:#b54b4b}.freight{color:#4d7d65}.total{font-size:22px;font-weight:800;color:#8b5e4a}.thanks{font-size:14px;line-height:1.5}.foot{margin-top:35px;color:#777;font-size:11px;text-align:center}@media print{body{padding:0}.sheet{border:0}}
+ </style></head><body><div class="sheet"><div class="head">${logo?`<img class="logo" src="${logo}" alt="Logo">`:`<div class="brand">Gestor 3D</div>`}<div style="text-align:right"><b>ORÇAMENTO</b><div class="meta">${esc(q.date)}</div></div></div>
+ ${q.buyerName?`<div class="meta" style="margin-top:18px">Cliente: <b style="color:#2d2926">${esc(q.buyerName)}</b></div>`:""}
+ <h1>${esc(q.name)}</h1><div class="box"><div class="row"><span>Quantidade</span><b>${esc(q.qty)}</b></div>${q.colors?`<div class="row"><span>Cores / acabamento</span><b>${esc(q.colors)}</b></div>`:""}<div class="row"><span>Preço por unidade</span><b>${money(q.price)}</b></div><div class="row"><span>Subtotal</span><b>${money(gross)}</b></div>${discount>0?`<div class="row discount"><span>Desconto</span><b>- ${money(discount)}</b></div>`:""}${freight>0?`<div class="row freight"><span>Frete</span><b>+ ${money(freight)}</b></div>`:""}<div class="row"><span><b>Total final</b></span><b class="total">${money(finalTotal)}</b></div></div>
+ ${q.details?`<div class="box"><b>Observações</b><div style="margin-top:8px">${esc(q.details)}</div></div>`:""}${q.thankYou?`<div class="box thanks"><b>${esc(q.thankYou)}</b></div>`:""}<div class="foot">Orçamento gerado pelo Gestor 3D.</div></div><script>window.onload=()=>window.print();<\/script></body></html>`;
  const w=window.open("","_blank","width=900,height=800"); if(!w){alert("Permita pop-ups para imprimir o orçamento.");return;} w.document.write(html); w.document.close();
 }
 
+let editingQuoteId=null;
+function getQuoteAdjustments(){
+ const qty=Math.max(1,+document.getElementById("calcQty")?.value||1);
+ const calculated=Number(window.lastCalc?.unitPrice)||parseMoneyText(document.getElementById("calcPrice")?.textContent);
+ const override=document.getElementById("calcQuoteUnitPrice")?.value;
+ const unitPrice=override!==""&&override!=null?Math.max(0,+override||0):calculated;
+ const gross=unitPrice*qty;
+ const discount=Math.max(0,+document.getElementById("calcDiscount")?.value||0);
+ const freight=Math.max(0,+document.getElementById("calcFreight")?.value||0);
+ const finalTotal=Math.max(0,gross-discount+freight);
+ return {qty,unitPrice,gross,discount,freight,finalTotal};
+}
+function updateQuoteAdjustments(){
+ const a=getQuoteAdjustments();
+ const el=document.getElementById("quoteAdjustmentPreview");
+ if(el)el.innerHTML=`Subtotal: <b>${money(a.gross)}</b> • Desconto: <b>${money(a.discount)}</b> • Frete: <b>${money(a.freight)}</b> • <strong>Total final: ${money(a.finalTotal)}</strong>`;
+}
+function clearQuoteAdjustments(){
+ editingQuoteId=null;
+ ["calcBuyerName","calcQuoteUnitPrice","calcDiscount","calcFreight","calcThankYou"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+ const d=document.getElementById("calcDiscount"); if(d)d.value=0;
+ const f=document.getElementById("calcFreight"); if(f)f.value=0;
+ updateQuoteAdjustments();
+}
+function editQuote(id){
+ const q=(db.quotes||[]).find(x=>String(x.id)===String(id)); if(!q)return;
+ editingQuoteId=q.id;
+ show("pricing");
+ calcMode("quote",document.querySelector(".calc-tab"));
+ document.getElementById("calcProjectName").value=q.name||"";
+ document.getElementById("calcQty").value=q.qty||1;
+ document.getElementById("calcColors").value=q.colors||"";
+ document.getElementById("calcDetails").value=q.details||"";
+ document.getElementById("calcBuyerName").value=q.buyerName||"";
+ document.getElementById("calcQuoteUnitPrice").value=q.price??"";
+ document.getElementById("calcDiscount").value=q.discount||0;
+ document.getElementById("calcFreight").value=q.freight||0;
+ document.getElementById("calcThankYou").value=q.thankYou||"";
+ updateQuoteAdjustments();
+ alert("Orçamento carregado para edição. Ajuste os valores e salve novamente.");
+}
 function saveQuote(status){
  const name=(document.getElementById("calcProjectName").value||"Projeto sem nome").trim();
- const qty=+document.getElementById("calcQty").value||1;
- const price=parseFloat((document.getElementById("calcPrice").textContent||"0").replace(/[^\d,-]/g,"").replace(/\./g,"").replace(",", "."))||0;
+ const qty=Math.max(1,+document.getElementById("calcQty").value||1);
+ const a=getQuoteAdjustments();
  const c=window.lastCalc||{};
- const quote={id:Date.now(),date:new Date().toLocaleDateString("pt-BR"),name,qty,price,totalPrice:Number(c.totalPrice)||price*qty,profit:Number(c.profit)||0,colors:document.getElementById("calcColors").value.trim(),details:document.getElementById("calcDetails").value.trim(),status};
- db.quotes.unshift(quote);
- if(status==="produção") alert("Orçamento salvo e marcado para produção.");
- else alert("Orçamento salvo com sucesso.");
+ const quoteData={date:new Date().toLocaleDateString("pt-BR"),name,qty,price:a.unitPrice,grossPrice:a.gross,discount:a.discount,freight:a.freight,finalTotal:a.finalTotal,profit:Number(c.profit)||0,colors:document.getElementById("calcColors").value.trim(),details:document.getElementById("calcDetails").value.trim(),buyerName:document.getElementById("calcBuyerName").value.trim(),thankYou:document.getElementById("calcThankYou").value.trim(),status};
+ if(editingQuoteId){
+   const idx=(db.quotes||[]).findIndex(x=>String(x.id)===String(editingQuoteId));
+   if(idx>=0) db.quotes[idx]={...db.quotes[idx],...quoteData};
+   editingQuoteId=null;
+   alert("Orçamento atualizado com sucesso.");
+ }else{
+   db.quotes.unshift({id:Date.now(),...quoteData});
+   if(status==="produção") alert("Orçamento salvo e marcado para produção.");
+   else alert("Orçamento salvo com sucesso.");
+ }
  save();
+ render();
 }
 
 function channelTab(id,btn){
@@ -1764,7 +1824,7 @@ db.products.forEach(p=>{
  if(materialsTable) materialsTable.innerHTML=db.materials.map(m=>`<tr><td><b>${m.name}</b>${m.color?`<div class="sub">${m.color}</div>`:""}</td><td>${categoryBadge(m.category)}</td><td>${[m.brand,m.type].filter(Boolean).join(" • ")||"—"}</td><td>${m.unit}</td><td>${money(m.unitCost)}</td><td>${m.stock}</td><td>${m.stock<=0?'<span class="tag warn">Sem estoque</span>':m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td><td><div class="row-actions"><button class="btn xs outline" onclick="editMaterial('${m.id}')">Editar</button><button class="btn xs danger" onclick="deleteMaterial('${m.id}')">Excluir</button></div></td></tr>`).join('')||'<tr><td colspan="8">Nenhum material cadastrado.</td></tr>';
  const smt=document.getElementById("stockMaterialsTable"); if(smt) smt.innerHTML=db.materials.map(m=>`<tr><td><b>${m.name}</b><div class="sub">${m.color||""}</div></td><td>${categoryBadge(m.category)}</td><td>${[m.brand,m.type].filter(Boolean).join(" • ")||"—"}</td><td>${money(m.unitCost)}</td><td>${m.stock} ${m.unit}</td><td>${m.minStock||0}</td><td>${m.stock<=0?'<span class="tag warn">Sem estoque</span>':m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td><td><div class="row-actions"><button class="btn xs outline" onclick="editMaterial('${m.id}')">Editar</button><button class="btn xs danger" onclick="deleteMaterial('${m.id}')">Excluir</button></div></td></tr>`).join('')||'<tr><td colspan="8">Nenhum material cadastrado.</td></tr>';
  const ft=document.getElementById("finishedTable"); if(ft) ft.innerHTML=db.products.map(p=>`<tr><td><b>${p.name}</b></td><td>${p.sku||"—"}</td><td>${p.store||"—"}</td><td>${p.stock}</td><td>${money(suggested(p))}</td><td>${money(totalCost(p))}</td></tr>`).join('')||'<tr><td colspan="6">Nenhum produto cadastrado.</td></tr>';
- const pt=document.getElementById("projectsTable"); if(pt) pt.innerHTML=(db.quotes||[]).map(q=>`<tr><td>${q.date}</td><td>${q.name}</td><td>${q.qty}</td><td>${money(q.price)}</td><td><span class="tag">${q.status}</span></td><td><button class="btn xs outline" onclick="printQuote('${q.id}')">🖨 Imprimir</button></td></tr>`).join('')||'<tr><td colspan="6">Nenhum orçamento salvo.</td></tr>';
+ const pt=document.getElementById("projectsTable"); if(pt) pt.innerHTML=(db.quotes||[]).map(q=>`<tr><td>${q.date}</td><td>${q.name}</td><td>${q.qty}</td><td>${money(q.finalTotal??q.totalPrice??(q.price*q.qty))}</td><td><span class="tag">${q.status}</span></td><td><button class="btn xs outline" onclick="editQuote('${q.id}')">✎ Editar</button><button class="btn xs outline" onclick="printQuote('${q.id}')">🖨 Imprimir</button></td></tr>`).join('')||'<tr><td colspan="6">Nenhum orçamento salvo.</td></tr>';
  renderCompanyLogo();
  const pct=document.getElementById("purchasesTable"); if(pct) pct.innerHTML=(db.purchases||[]).map(p=>`<tr><td>${p.date}</td><td>${p.material}</td><td>${p.qty} ${p.unit}</td><td>${money(p.value)}</td><td>${p.supplier||"—"}</td></tr>`).join('')||'<tr><td colspan="5">Nenhuma compra registrada.</td></tr>';
  const spt=document.getElementById("shopeeProductsTable"); if(spt) spt.innerHTML=db.products.map(p=>`<tr><td>${p.name}</td><td>${p.sku||"—"}</td><td>${p.shopeeName||"Ainda não importado"}</td><td>${p.sku?'<span class="tag good">Pronto</span>':'<span class="tag warn">Sem SKU</span>'}</td></tr>`).join('')||'<tr><td colspan="4">Nenhum produto interno.</td></tr>';
