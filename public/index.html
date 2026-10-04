@@ -140,6 +140,10 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
     <div class="ranking-title">▥ <span>Ranking de estados</span></div>
     <div id="stateRanking"></div>
     <div class="ranking-summary"><div><span>Total de vendas</span><b id="stateMapTotalOrders">0</b></div><div><span>Estados com vendas</span><b id="stateMapStatesWithSales">0</b></div></div>
+<div class="products-ranking" style="margin-top:24px;padding-top:18px;border-top:1px solid #eee0d9">
+  <div class="ranking-title">▥ <span>Produtos mais vendidos</span></div>
+  <div id="productsRanking"></div>
+</div>
   </div>
 </div>
 </div>
@@ -1642,7 +1646,24 @@ function populateDashboardPeriods(selected){const months=dashboardPeriods();cons
 function dashboardSales(period){return(db.sales||[]).filter(s=>s.status!=="Cancelado"&&(period==="total"||mapMonthKey(s)===period));}
 function renderDashboardSummary(period){const p=period||document.getElementById("dashboardPeriod")?.value||"total";const sales=dashboardSales(p);const revenue=sales.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0);const net=sales.reduce((a,s)=>{const gross=Number(s.grossValue??s.value)||0;const fee=Number(s.fee)||0;const nv=Number(s.netValue);return a+(Number.isFinite(nv)&&nv>0?nv:Math.max(0,gross-fee));},0);const costs=sales.reduce((a,s)=>a+(Number(s.cost)||0),0);const fees=sales.reduce((a,s)=>a+(Number(s.fee)||0),0);const label=p==="total"?"Todos os períodos":mapMonthLabel(p);const dr=document.getElementById("dashRevenue"),dn=document.getElementById("dashNetRevenue"),dp=document.getElementById("dashProfit"),do_=document.getElementById("dashOrders");if(dr)dr.textContent=money(revenue);if(dn)dn.textContent=money(net);if(dp)dp.textContent=money(revenue-costs-fees);if(do_)do_.textContent=sales.length;const a=document.getElementById("dashRevenueFoot"),b=document.getElementById("dashNetFoot"),c=document.getElementById("dashProfitFoot"),d=document.getElementById("dashOrdersFoot");if(a)a.textContent=label;if(b)b.textContent="Após descontos e taxas";if(c)c.textContent="Após custos e taxas";if(d)d.textContent=label;}
 function renderStateMap(period){const box=document.getElementById("stateMapCounts");if(!box)return;const p=period||document.getElementById("stateMapPeriod")?.value||"total";const sales=dashboardSales(p);const counts=Object.fromEntries(STATE_ORDER.map(uf=>[uf,0]));sales.forEach(s=>{const uf=saleStateCode(s);if(uf)counts[uf]++;});box.innerHTML=STATE_ORDER.map(uf=>{const pos=STATE_POS[uf]||[50,50],count=counts[uf];return `<div class="map-label ${count===0?'zero':''} ${uf==='SP'?'dark-state':''}" title="${STATE_NAMES[uf]}: ${count} ${count===1?'venda':'vendas'}" style="left:${pos[0]}%;top:${pos[1]}%"><span>${count}</span></div>`;}).join("");const total=sales.length,withSales=STATE_ORDER.filter(uf=>counts[uf]>0).length;const totalEl=document.getElementById("stateMapTotal");if(totalEl)totalEl.textContent=`${total} ${total===1?'pedido':'pedidos'} no período • ${withSales} estado${withSales===1?'':'s'} com vendas`;const totalOrders=document.getElementById("stateMapTotalOrders"),stateCount=document.getElementById("stateMapStatesWithSales");if(totalOrders)totalOrders.textContent=total;if(stateCount)stateCount.textContent=withSales;const ranking=document.getElementById("stateRanking");if(ranking){const ranked=STATE_ORDER.map(uf=>({uf,count:counts[uf]})).filter(x=>x.count>0).sort((a,b)=>b.count-a.count||a.uf.localeCompare(b.uf));if(!ranked.length)ranking.innerHTML='<div class="ranking-empty">Nenhuma venda encontrada neste período.</div>';else{const max=ranked[0].count;ranking.innerHTML=ranked.slice(0,10).map((x,i)=>`<div class="ranking-row"><span class="ranking-rank">${i+1}</span><span class="ranking-uf">${x.uf}</span><div class="ranking-bar"><i style="width:${Math.max(6,Math.round(x.count/max*100))}%"></i></div><span class="ranking-value">${x.count}</span></div>`).join("");}}}
-function setDashboardPeriod(value){const p=populateDashboardPeriods(value||"total");const a=document.getElementById("dashboardPeriod"),b=document.getElementById("stateMapPeriod");if(a)a.value=p;if(b)b.value=p;renderDashboardSummary(p);renderStateMap(p);}
+function renderProductsRanking(period){
+ const box=document.getElementById("productsRanking"); if(!box)return;
+ const sales=dashboardSales(period||"total");
+ const counts={};
+ sales.forEach(s=>{
+   const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,qty:s.qty}];
+   items.forEach(item=>{
+     const name=item.product||((db.products||[]).find(p=>String(p.id)===String(item.productId))?.name)||"Produto";
+     const qty=Math.max(0,Number(item.qty)||0);
+     if(qty)counts[name]=(counts[name]||0)+qty;
+   });
+ });
+ const ranked=Object.entries(counts).map(([name,qty])=>({name,qty})).sort((a,b)=>b.qty-a.qty||a.name.localeCompare(b.name));
+ if(!ranked.length){box.innerHTML='<div class="ranking-empty">Nenhuma venda encontrada neste período.</div>';return;}
+ const max=ranked[0].qty;
+ box.innerHTML=ranked.slice(0,8).map((x,i)=>`<div class="ranking-row"><span class="ranking-rank">${i+1}</span><span class="ranking-uf" style="min-width:0;max-width:145px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${x.name}">${x.name}</span><div class="ranking-bar"><i style="width:${Math.max(6,Math.round(x.qty/max*100))}%"></i></div><span class="ranking-value">${x.qty}</span></div>`).join("");
+}
+function setDashboardPeriod(value){const p=populateDashboardPeriods(value||"total");const a=document.getElementById("dashboardPeriod"),b=document.getElementById("stateMapPeriod");if(a)a.value=p;if(b)b.value=p;renderDashboardSummary(p);renderStateMap(p);renderProductsRanking(p);}
 
 function reportMonthFromSale(s){
  const iso=String(s?.dateISO||"");
