@@ -85,7 +85,7 @@ async function supabaseAdmin(pathname,method="GET",body=null,query=""){
       apikey:SUPABASE_SERVICE_ROLE_KEY,
       Authorization:"Bearer "+SUPABASE_SERVICE_ROLE_KEY,
       "Content-Type":"application/json",
-      Prefer:"return=representation"
+      Prefer:"resolution=merge-duplicates,return=representation"
     },
     body:body===null?undefined:JSON.stringify(body)
   });
@@ -275,7 +275,7 @@ const server=http.createServer(async(req,res)=>{
       setOAuthCookie(res,storeId,token);
       return json(res,200,{ok:true,store:storeId,url:authUrl(storeId)});
     }
-    const cb=u.pathname.match(/^\\/api\\/shopee\\/callback\\/([12])$/);
+    const cb=u.pathname.match(/^\/api\/shopee\/callback\/([12])$/);
     if(cb){
       const storeId=cb[1], code=u.searchParams.get("code"), shopId=u.searchParams.get("shop_id");
       const sessionToken=getCookie(req,`gestor3d_shopee_oauth_${storeId}`);
