@@ -513,7 +513,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <button type="button" class="btn secondary" onclick="addSaleItemRow()">+ Adicionar produto ao pedido</button>
 <div class="sub" style="margin-top:6px">Um mesmo pedido pode ter vários produtos e quantidades. Cada item pode usar uma cor / variação diferente.</div>
 </div>
-<div class="field"><label>Loja</label><select id="sStore"><option value="F4R Studio 3D">F4R Studio 3D</option><option value="F4RM 3D">F4RM 3D</option></select></div><div class="field"><label>Canal da venda</label><select id="sChannel"><option value="Shopee">Shopee</option><option value="Direta">Venda direta</option></select><div class="sub">Venda direta não aplica taxa da Shopee.</div></div>
+<div class="field"><label>Loja</label><select id="sStore"><option value="F4R Studio 3D">F4R Studio 3D</option><option value="F4RM 3D">F4RM 3D</option></select></div><div class="field"><label>Canal da venda</label><select id="sChannel" onchange="updateSalePreview()"><option value="Shopee">Shopee</option><option value="Direta">Venda direta</option></select><div class="sub">Venda direta não aplica taxa da Shopee.</div></div>
 <div class="field"><label>Valor total da venda (R$)</label><input id="sGross" type="number" step=".01" placeholder="Valor pago pelo cliente"></div>
 <div class="field"><label>Valor líquido recebido (R$)</label><input id="sNet" type="number" step=".01" placeholder="Após taxas/descontos"></div>
 <div class="field"><label>Status do pedido</label><select id="sStatus"><option>Recebido</option><option>Em produção</option><option>Pronto</option><option>Enviado</option><option>Entregue</option><option>Cancelado</option></select></div>
