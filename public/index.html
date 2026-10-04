@@ -91,7 +91,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <body>
 <div class="app">
 <aside class="side">
-  <div class="brand">Gestor 3D<small>V57 • Vendas • Estoque • Lucro</small></div>
+  <div class="brand">Gestor 3D<small>V58 • Vendas • Estoque • Lucro</small></div>
   <div class="nav">
     <div class="nav-title">GERAL</div>
     <button class="active" onclick="show('dashboard',this)">⌂ <span>Dashboard</span></button>
@@ -165,6 +165,13 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <div id="materialsList"></div>
 <button type="button" class="btn secondary" onclick="addMaterialRow()">+ Adicionar material / insumo</button>
 <div class="sub" style="margin-top:6px">Selecione qualquer material cadastrado e informe quanto é consumido para fabricar 1 unidade. O sistema aceita frações: por exemplo, 1/15 de uma folha.</div>
+</div>
+
+<div class="field" style="grid-column:1/-1">
+<label><b>Variações de cor / material</b></label>
+<div id="productVariantsList"></div>
+<button type="button" class="btn secondary" onclick="addProductVariantRow()">+ Adicionar cor / variação</button>
+<div class="sub" style="margin-top:6px">Use esta opção quando o mesmo produto pode ser fabricado com filamentos diferentes. Cada cor fica ligada ao material correspondente e pode ter seu próprio consumo por unidade.</div>
 </div>
 
 <div class="field"><label id="pMaterialCostLabel">Custo dos materiais / unidade (R$)</label><input id="pFilamentCost" type="number" min="0" step=".0001" placeholder="Calculado automaticamente" disabled><div class="sub" id="pMaterialCostHint">Calculado automaticamente a partir da receita.</div></div>
@@ -489,7 +496,8 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <div class="field"><label>Estado da compra</label><select id="sState"><option value="">Selecione o estado</option><option value="AC">Acre (AC)</option><option value="AL">Alagoas (AL)</option><option value="AP">Amapá (AP)</option><option value="AM">Amazonas (AM)</option><option value="BA">Bahia (BA)</option><option value="CE">Ceará (CE)</option><option value="DF">Distrito Federal (DF)</option><option value="ES">Espírito Santo (ES)</option><option value="GO">Goiás (GO)</option><option value="MA">Maranhão (MA)</option><option value="MT">Mato Grosso (MT)</option><option value="MS">Mato Grosso do Sul (MS)</option><option value="MG">Minas Gerais (MG)</option><option value="PA">Pará (PA)</option><option value="PB">Paraíba (PB)</option><option value="PR">Paraná (PR)</option><option value="PE">Pernambuco (PE)</option><option value="PI">Piauí (PI)</option><option value="RJ">Rio de Janeiro (RJ)</option><option value="RN">Rio Grande do Norte (RN)</option><option value="RS">Rio Grande do Sul (RS)</option><option value="RO">Rondônia (RO)</option><option value="RR">Roraima (RR)</option><option value="SC">Santa Catarina (SC)</option><option value="SP">São Paulo (SP)</option><option value="SE">Sergipe (SE)</option><option value="TO">Tocantins (TO)</option></select></div>
 <div class="field"><label>Prazo para postagem</label><select id="sPostDays"><option value="1">1 dia útil</option><option value="2">2 dias úteis</option><option value="3">3 dias úteis</option><option value="4">4 dias úteis</option><option value="5">5 dias úteis</option></select></div>
 <div class="field"><label>Data limite para postagem</label><input id="sDueDate" type="date" readonly></div>
-<div class="field"><label>Produto</label><select id="sProduct"></select></div>
+<div class="field"><label>Produto</label><select id="sProduct" onchange="populateSaleVariants();updateSalePreview()"></select></div>
+<div class="field" id="saleVariantField"><label>Cor / variação</label><select id="sVariant" onchange="updateSalePreview()"><option value="">Produto sem variação</option></select></div>
 <div class="field"><label>Loja</label><select id="sStore"><option value="F4R Studio 3D">F4R Studio 3D</option><option value="F4RM 3D">F4RM 3D</option></select></div>
 <div class="field"><label>Quantidade</label><input id="sQty" type="number" value="1" min="1"></div>
 <div class="field"><label>Valor total da venda (R$)</label><input id="sGross" type="number" step=".01" placeholder="Valor pago pelo cliente"></div>
@@ -734,6 +742,56 @@ function updateProductBasisUI(){
  updateProductMaterialTotal();
 }
 
+function addProductVariantRow(variant={}){
+ const wrap=document.getElementById("productVariantsList");
+ if(!wrap)return;
+ const row=document.createElement("div"); row.className="component-row product-variant-row";
+ const options=(db.materials||[]).map(m=>`<option value="${m.id}" ${String(m.id)===String(variant.materialId||"")?"selected":""}>${m.name}${m.color?" — "+m.color:""} (${money(m.unitCost)}/${m.unit})</option>`).join("");
+ row.innerHTML=`<div><label class="sub">Nome da cor / variação</label><input class="variant-name" type="text" placeholder="Ex.: Rosa" value="${String(variant.name||"").replace(/"/g,'&quot;')}"></div>
+ <div><label class="sub">Filamento / material</label><select class="variant-material"><option value="">Selecione</option>${options}</select></div>
+ <div><label class="sub">Consumo / unidade</label><input class="variant-qty" type="number" min="0" step="0.0001" placeholder="Ex.: 1,70" value="${variant.qty??""}"></div>
+ <button type="button" class="remove-material" onclick="this.parentElement.remove()">Remover</button>`;
+ wrap.appendChild(row);
+}
+function collectProductVariants(){
+ return [...document.querySelectorAll("#productVariantsList .product-variant-row")].map(row=>{
+   const name=row.querySelector(".variant-name")?.value.trim()||"";
+   const materialId=row.querySelector(".variant-material")?.value||"";
+   const qty=+row.querySelector(".variant-qty")?.value||0;
+   const m=(db.materials||[]).find(x=>String(x.id)===String(materialId));
+   return {id:row.dataset.variantId||String(Date.now()+Math.random()),name,materialId:m?.id||"",materialName:m?.name||"",unit:m?.unit||"",unitCost:+m?.unitCost||0,qty};
+ }).filter(v=>v.name&&v.materialId&&v.qty>0);
+}
+function variantForSale(p,variantId){
+ const variants=Array.isArray(p?.variants)?p.variants:[];
+ return variants.find(v=>String(v.id)===String(variantId))||null;
+}
+function saleRecipeMaterials(p,s){
+ const base=Array.isArray(p?.materials)?p.materials:[];
+ const v=variantForSale(p,s?.variantId);
+ if(!v)return base;
+ const m=(db.materials||[]).find(x=>String(x.id)===String(v.materialId));
+ const variantMat={materialId:v.materialId,name:v.materialName||m?.name||v.name,qty:+v.qty||0,unit:m?.unit||v.unit||"",unitCost:+(m?.unitCost??v.unitCost)||0};
+ const shared=base.filter(r=>String(r.materialId)!==String(v.materialId));
+ return [variantMat,...shared];
+}
+function variantLabel(v){ return v?.name ? ` — ${v.name}` : ""; }
+function suggestedForSale(p,saleLike=null){
+ if(!p)return 0;
+ const cost=saleProductionCost(p,1,saleLike);
+ const f=(+p.fee||0)/100,m=(+p.margin||0)/100;
+ return (1-f-m)>0?cost/(1-f-m):0;
+}
+function populateSaleVariants(selectedId=""){
+ const productEl=document.getElementById("sProduct"), variantEl=document.getElementById("sVariant"), field=document.getElementById("saleVariantField");
+ if(!productEl||!variantEl)return;
+ const p=(db.products||[]).find(x=>String(x.id)===String(productEl.value));
+ const variants=Array.isArray(p?.variants)?p.variants:[];
+ variantEl.innerHTML=variants.length?'<option value="">Selecione a cor</option>'+variants.map(v=>`<option value="${v.id}">${v.name}</option>`).join(""): '<option value="">Produto sem variação</option>';
+ if(selectedId)variantEl.value=String(selectedId);
+ if(field)field.style.display=variants.length?"block":"none";
+}
+
 function addProduct(){
  const batch=document.getElementById("pBasis")?.value==="batch";
  const batchQty=Math.max(1,+document.getElementById("pBatchQty")?.value||1);
@@ -752,7 +810,8 @@ function addProduct(){
  const labor=batch?laborEntered/batchQty:laborEntered;
  const other=batch?otherEntered/batchQty:otherEntered;
  const old=editingId?(db.products||[]).find(x=>String(x.id)===String(editingId)):null;
- let p={...(old||{}),id:editingId||Date.now(),name:pName.value.trim(),sku:pSku.value.trim(),store:pStore.value,shopeeSku:pShopeeSku.value.trim(),shopeeName:pShopeeName.value.trim(),materials,
+ const variants=collectProductVariants();
+ let p={...(old||{}),id:editingId||Date.now(),name:pName.value.trim(),sku:pSku.value.trim(),store:pStore.value,shopeeSku:pShopeeSku.value.trim(),shopeeName:pShopeeName.value.trim(),materials,variants,
  filamentCost:materials.reduce((sum,m)=>sum+(+m.qty||0)*(+m.unitCost||0),0),pack,labor,other,
  fee:+pFee.value||0,margin:+pMargin.value||0,stock:+pStock.value||0,printHours,productionBatchQty:batch?batchQty:1,productionBasis:batch?"batch":"unit",productionSourceHours:enteredHours,productionSourcePack:packEntered,productionSourceLabor:laborEntered,productionSourceOther:otherEntered,productionSourceMaterials:batch?materials.map(m=>({materialId:m.materialId,sourceQty:m.sourceQty})):null,stockManaged:old?.stockManaged||false};
  if(!p.name){alert("Informe o nome do produto.");return}
@@ -769,6 +828,7 @@ function addProduct(){
  ["pName","pSku","pFilamentCost","pPrintHours","pPack","pLabor","pOther","pStock","pShopeeSku","pShopeeName","pShopeeItemId","pShopeeModelId"].forEach(x=>{const e=document.getElementById(x);if(e)e.value="";});
  const basis=document.getElementById("pBasis"); if(basis)basis.value="unit"; const bq=document.getElementById("pBatchQty"); if(bq)bq.value=1; updateProductBasisUI();
  document.getElementById("materialsList").innerHTML=""; addMaterialRow();
+ const variantsList=document.getElementById("productVariantsList"); if(variantsList)variantsList.innerHTML="";
  render();
  alert(editingId?"Produto atualizado com sucesso.":(batch?`Produto salvo. Os dados do lote de ${batchQty} unidades foram convertidos para consumo e custos por unidade.`:"Produto salvo com sucesso."));
 }
@@ -795,6 +855,7 @@ function editProduct(id){
    addMaterialRow(r.materialId,displayQty);
  });
  if(!(p.materials||[]).length)addMaterialRow();
+ const variantsList=document.getElementById("productVariantsList"); if(variantsList){variantsList.innerHTML="";(p.variants||[]).forEach(v=>addProductVariantRow(v));}
  updateProductBasisUI(); updateProductMaterialTotal();
  document.getElementById("products").scrollIntoView({behavior:"smooth",block:"start"});
 }
@@ -803,6 +864,7 @@ function cancelProductEdit(){
  document.getElementById("productForm").classList.add("hidden");
  document.getElementById("productFormTitle").textContent="Novo produto";
  document.getElementById("productSaveBtn").textContent="Salvar produto";
+ const variantsList=document.getElementById("productVariantsList"); if(variantsList)variantsList.innerHTML="";
 }
 
 function inventoryTab(tab,btn){
@@ -861,14 +923,14 @@ function materialConsumptionForSale(p,r,orderQty){
  if(name.includes("argola") && name.includes("chaveiro")) return q;
  return (Number(r?.qty)||Number(r?.grams)||0)*q;
 }
-function saleProductionCost(p, orderQty=1){
+function saleProductionCost(p, orderQty=1, sale=null){
  try{
   if(!p)return 0;
   const q=Math.max(0,Number(orderQty)||0);
-  const mats=Array.isArray(p.materials)?p.materials.reduce((sum,r)=>{
+  const mats=saleRecipeMaterials(p,sale).reduce((sum,r)=>{
     const use=materialConsumptionForSale(p,r,q);
     return sum+use*(Number(r.unitCost||r.costPerGram)||0);
-  },0):Number(p.filamentCost||p.material)||0;
+  },0);
   const comps=Array.isArray(p.components)?p.components.reduce((sum,c)=>sum+(Number(c.qty)||0)*(Number(c.unitCost)||0)*q,0):0;
   return (mats+(Number(p.labor)||0)*q+(Number(p.other)||0)*q)||0;
  }catch(e){console.error("Erro ao calcular custo do produto",e);return 0;}
@@ -878,7 +940,7 @@ function adjustStockForSale(s, direction, note){
  db.movements=db.movements||[];
  const qty=Math.max(0,Number(s.qty)||0);
  if(p.stockManaged) p.stock=Math.max(0,(Number(p.stock)||0)+direction*qty);
- (p.materials||[]).forEach(r=>{
+ saleRecipeMaterials(p,s).forEach(r=>{
    const m=db.materials.find(x=>String(x.id)===String(r.materialId)); if(!m)return;
    const use=materialConsumptionForSale(p,r,qty); const before=Number(m.stock)||0;
    m.stock=Math.max(0,before+direction*use);
@@ -900,6 +962,7 @@ function startEditSale(id){
  document.getElementById("sState").value=s.state||"";
  document.getElementById("sPostDays").value=String(s.postDays||1);
  document.getElementById("sProduct").value=String(s.productId||"");
+ populateSaleVariants(s.variantId||"");
  document.getElementById("sStore").value=s.store||"F4R Studio 3D";
  document.getElementById("sQty").value=s.qty||1;
  document.getElementById("sGross").value=Number(s.grossValue??s.value??0).toFixed(2);
@@ -915,7 +978,7 @@ function cancelEditSale(){
  document.getElementById("saleSubmitBtn").textContent="Registrar pedido";
  document.getElementById("saleCancelEditBtn").classList.add("hidden");
  document.getElementById("sQty").value="1"; document.getElementById("sGross").value=""; document.getElementById("sNet").value=""; document.getElementById("sNotes").value="";
- document.getElementById("sDate").value=todayISO(); document.getElementById("sTime").value=new Date().toTimeString().slice(0,5); document.getElementById("sCustomerName").value=""; document.getElementById("sState").value=""; document.getElementById("sPostDays").value="1";
+ populateSaleVariants(""); document.getElementById("sDate").value=todayISO(); document.getElementById("sTime").value=new Date().toTimeString().slice(0,5); document.getElementById("sCustomerName").value=""; document.getElementById("sState").value=""; document.getElementById("sPostDays").value="1";
  document.getElementById("sStatus").value="Recebido"; updatePostDate();
 }
 function deleteSale(id){
@@ -931,12 +994,13 @@ function renderSalesTable(){
  const filter=document.getElementById("salesFilter")?.value||"todos";
  let rows=(db.sales||[]).filter(s=>filter==="todos" ? true : filter==="atrasados" ? isLate(s) : s.status===filter);
  rows.sort((a,b)=>{const ad=a.dueDate||"9999-12-31",bd=b.dueDate||"9999-12-31"; if(ad!==bd)return ad.localeCompare(bd); const at=`${a.dateISO||""}T${a.time||"00:00"}`,bt=`${b.dateISO||""}T${b.time||"00:00"}`; return at.localeCompare(bt);});
- table.innerHTML=rows.map(s=>{const late=isLate(s); return `<tr><td>${formatDateISO(s.dateISO||"")}<small class="sub" style="display:block">${s.time||"—"}</small></td><td>${s.customerName||"—"}</td><td>${s.state||"—"}</td><td>${s.product}</td><td>${s.store||"—"}</td><td>${s.qty}</td><td><span class="${late?'tag warn':'tag'}">${formatDateISO(s.dueDate)}</span>${late?'<small style="display:block;color:#a33;font-weight:700">Atrasado</small>':''}</td><td>${money(Number(s.grossValue??s.value)||0)}<small class="sub" style="display:block">Líquido: ${money(Number(s.netValue??0)||0)}</small></td><td><select data-sale-status="${s.id}" class="status-select status-${saleStatusKey(s.status||"Recebido")}" onchange="updateSaleStatus('${s.id}',this.value)">${["Recebido","Em produção","Pronto","Enviado","Entregue","Cancelado"].map(st=>`<option value="${st}" ${s.status===st?'selected':''}>${st}</option>`).join("")}</select></td><td>${s.notes||"—"}</td><td style="white-space:nowrap"><button class="btn xs outline" onclick="startEditSale('${s.id}')">Editar</button> <button class="btn xs danger" onclick="deleteSale('${s.id}')">Excluir</button></td></tr>`}).join("")||'<tr><td colspan="11">Nenhum pedido encontrado.</td></tr>';
+ table.innerHTML=rows.map(s=>{const late=isLate(s); return `<tr><td>${formatDateISO(s.dateISO||"")}<small class="sub" style="display:block">${s.time||"—"}</small></td><td>${s.customerName||"—"}</td><td>${s.state||"—"}</td><td>${s.product}${s.variantName?`<small class="sub" style="display:block">Cor: ${s.variantName}</small>`:""}</td><td>${s.store||"—"}</td><td>${s.qty}</td><td><span class="${late?'tag warn':'tag'}">${formatDateISO(s.dueDate)}</span>${late?'<small style="display:block;color:#a33;font-weight:700">Atrasado</small>':''}</td><td>${money(Number(s.grossValue??s.value)||0)}<small class="sub" style="display:block">Líquido: ${money(Number(s.netValue??0)||0)}</small></td><td><select data-sale-status="${s.id}" class="status-select status-${saleStatusKey(s.status||"Recebido")}" onchange="updateSaleStatus('${s.id}',this.value)">${["Recebido","Em produção","Pronto","Enviado","Entregue","Cancelado"].map(st=>`<option value="${st}" ${s.status===st?'selected':''}>${st}</option>`).join("")}</select></td><td>${s.notes||"—"}</td><td style="white-space:nowrap"><button class="btn xs outline" onclick="startEditSale('${s.id}')">Editar</button> <button class="btn xs danger" onclick="deleteSale('${s.id}')">Excluir</button></td></tr>`}).join("")||'<tr><td colspan="11">Nenhum pedido encontrado.</td></tr>';
 }
 function saveSaleForm(){
  try{
-  const productEl=document.getElementById("sProduct"), storeEl=document.getElementById("sStore"), dateEl=document.getElementById("sDate"), timeEl=document.getElementById("sTime"), customerNameEl=document.getElementById("sCustomerName"), stateEl=document.getElementById("sState"), daysEl=document.getElementById("sPostDays"), grossEl=document.getElementById("sGross"), netEl=document.getElementById("sNet"), qtyEl=document.getElementById("sQty"), statusEl=document.getElementById("sStatus"), notesEl=document.getElementById("sNotes");
+  const productEl=document.getElementById("sProduct"), variantEl=document.getElementById("sVariant"), storeEl=document.getElementById("sStore"), dateEl=document.getElementById("sDate"), timeEl=document.getElementById("sTime"), customerNameEl=document.getElementById("sCustomerName"), stateEl=document.getElementById("sState"), daysEl=document.getElementById("sPostDays"), grossEl=document.getElementById("sGross"), netEl=document.getElementById("sNet"), qtyEl=document.getElementById("sQty"), statusEl=document.getElementById("sStatus"), notesEl=document.getElementById("sNotes");
   const p=db.products.find(x=>String(x.id)===String(productEl?.value)); if(!p){alert("Selecione um produto antes de registrar o pedido.");return;}
+  const variants=Array.isArray(p.variants)?p.variants:[]; const variantId=variantEl?.value||""; if(variants.length&&!variantId){alert("Selecione a cor / variação do produto.");return;} const selectedVariant=variantForSale(p,variantId);
   const q=Math.max(1,Number(qtyEl.value)||1), dateISO=dateEl.value||todayISO(), time=timeEl?.value||new Date().toTimeString().slice(0,5), postDays=Math.min(5,Math.max(1,Number(daysEl?.value)||1)), dueDate=addBusinessDays(dateISO,postDays);
   const packaging=Number(p.pack)||0, suggestedUnit=Number(suggested(p))||0, defaultGross=suggestedUnit*q+packaging;
   const grossRaw=String(grossEl.value||"").trim(), netRaw=String(netEl.value||"").trim();
@@ -945,7 +1009,7 @@ function saveSaleForm(){
   const fee=Math.max(0,gross-net);
   const old=editingSaleId!=null ? db.sales.find(x=>String(x.id)===String(editingSaleId)) : null;
   if(old && old.status!=="Cancelado") adjustStockForSale(old,1,`Estorno para edição: ${old.product||"Venda"}`);
-  const sale={id:old?old.id:Date.now(),manualKey:old?.manualKey,dateISO,time,customerName:customerNameEl?.value.trim()||"",state:stateEl?.value||"",dueDate,postDays,date:formatDateISO(dateISO),product:p.name,productId:p.id,store:storeEl.value,value:gross,grossValue:gross,netValue:net,qty:q,status:statusEl.value,cost:saleProductionCost(p,q)+packaging,fee,packaging,notes:notesEl?.value.trim()||""};
+  const sale={id:old?old.id:Date.now(),manualKey:old?.manualKey,dateISO,time,customerName:customerNameEl?.value.trim()||"",state:stateEl?.value||"",dueDate,postDays,date:formatDateISO(dateISO),product:p.name,productId:p.id,variantId:selectedVariant?.id||"",variantName:selectedVariant?.name||"",store:storeEl.value,value:gross,grossValue:gross,netValue:net,qty:q,status:statusEl.value,cost:saleProductionCost(p,q,{variantId:selectedVariant?.id||""})+packaging,fee,packaging,notes:notesEl?.value.trim()||""};
   if(old){ Object.assign(old,sale); } else { db.sales=db.sales||[]; db.sales.unshift(sale); }
   if(sale.status!=="Cancelado") adjustStockForSale(sale,-1,`${old?"Edição":"Venda"}: ${p.name}`);
   const wasEditing=!!old;
@@ -960,9 +1024,11 @@ function updateSalePreview(){
  const pEl=document.getElementById("sProduct"), qEl=document.getElementById("sQty"), grossEl=document.getElementById("sGross"), netEl=document.getElementById("sNet");
  if(!pEl||!qEl||!grossEl||!netEl)return;
  const p=db.products.find(x=>String(x.id)===String(pEl.value));
+ populateSaleVariants(document.getElementById("sVariant")?.value||"");
  if(!p){ if(!grossEl.dataset.manual) grossEl.value=""; if(!netEl.dataset.manual) netEl.value=""; return; }
  const q=Math.max(1,Number(qEl.value)||1);
- const gross=(Number(suggested(p))||0)*q+(Number(p.pack)||0);
+ const variantId=document.getElementById("sVariant")?.value||"";
+ const gross=(Number(suggestedForSale(p,{variantId}))||0)*q+(Number(p.pack)||0);
  const feeRate=(Number(p.fee)||0)/100;
  const net=Math.max(0,gross-(gross*feeRate));
  if(!grossEl.dataset.manual || grossEl.value==="") grossEl.value=gross.toFixed(2);
@@ -1048,6 +1114,7 @@ function openTechModal(id){
    </div>
    <h3>Filamentos</h3>
    <div class="tech-list">${matRows||'<div class="sub" style="padding:10px 0">Nenhum filamento cadastrado.</div>'}</div>
+   ${(p.variants||[]).length?`<h3 style="margin-top:18px">Variações de cor</h3><div class="tech-list">${p.variants.map(v=>`<div class="tech-row"><span>${v.name||"Variação"} <small class="sub">${v.qty||0} ${v.unit||""} — ${v.materialName||"Material"}</small></span><b>${money((+v.qty||0)*(+v.unitCost||0))}</b></div>`).join("")}</div>`:""}
    <h3 style="margin-top:18px">Componentes / insumos</h3>
    <div class="tech-list">${compRows||'<div class="sub" style="padding:10px 0">Nenhum componente cadastrado.</div>'}</div>
    <h3 style="margin-top:18px">Custos adicionais</h3>
@@ -1340,6 +1407,7 @@ function populateSaleProducts(){
  const products=Array.isArray(db.products)?db.products:[];
  el.innerHTML="<option value=\"\">Selecione um produto</option>"+products.map(p=>`<option value="${String(p.id)}">${String(p.name||"Produto sem nome")}${p.sku?" — "+String(p.sku):""}</option>`).join("");
  if(products.some(p=>String(p.id)===current)) el.value=current;
+ populateSaleVariants();
 }
 
 function repairKnownBatchData(){
