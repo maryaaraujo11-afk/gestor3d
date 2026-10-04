@@ -141,6 +141,7 @@ select option{background:#24211f;color:#f1ece8}
     <div class="nav-title">GERAL</div>
     <button class="active" onclick="show('dashboard',this)">⌂ <span>Dashboard</span></button>
     <button onclick="show('pricing',this)">◉ <span>Calculadora</span></button>
+    <button onclick="show('quotes',this);renderQuotesPage()">▤ <span>Orçamentos</span></button>
     <div class="nav-title">GESTÃO</div>
     <button onclick="show('customers',this)">👤 <span>Clientes</span></button>
     <button onclick="show('products',this)">▣ <span>Produtos</span></button>
@@ -466,6 +467,29 @@ select option{background:#24211f;color:#f1ece8}
       <div class="field"><label>Custo de energia (R$/kWh)</label><input type="number" value="0.90" step=".01" oninput="document.getElementById('calcKwh').value=this.value;runCalc()"></div>
       <div class="field"><label>Vida útil (horas)</label><input type="number" value="5000" oninput="document.getElementById('calcPrinterLife').value=this.value;runCalc()"></div>
     </div>
+  </div>
+</div>
+</section>
+
+<section id="quotes" class="hidden">
+<div class="top">
+  <div><h1>Orçamentos</h1><div class="sub">Crie, edite, acompanhe e imprima seus orçamentos em um só lugar.</div></div>
+  <div class="actions"><button class="btn" onclick="newQuote()">＋ Novo orçamento</button></div>
+</div>
+<div class="cards dashboard-cards">
+  <div class="card"><div class="label">Total de orçamentos</div><div class="value" id="quotesCount">0</div></div>
+  <div class="card"><div class="label">Salvos</div><div class="value" id="quotesSavedCount">0</div></div>
+  <div class="card"><div class="label">Em produção</div><div class="value" id="quotesProductionCount">0</div></div>
+</div>
+<div class="panel">
+  <div class="top" style="margin-bottom:12px">
+    <div><h2 style="margin:0">Orçamentos cadastrados</h2><div class="sub">Edite os valores, descontos, frete e dados do comprador quando precisar.</div></div>
+  </div>
+  <div style="overflow:auto">
+    <table>
+      <thead><tr><th>Data</th><th>Cliente</th><th>Orçamento</th><th>Qtd.</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody id="quotesPageTable"></tbody>
+    </table>
   </div>
 </div>
 </section>
@@ -1406,6 +1430,34 @@ function saveCalculatorAsProduct(){
    productionSourceMaterials:batch?materials.map(m=>({materialId:m.materialId,sourceQty:m.sourceQty})):null,stockManaged:false};
  db.products=db.products||[]; db.products.push(p); save(); populateCalcProductSelect(); document.getElementById("calcProductSelect").value=p.id; alert("Produto salvo com sucesso. A ficha atual da calculadora foi cadastrada em Produtos."); render();
 }
+function newQuote(){
+ editingQuoteId=null;
+ show("pricing");
+ calcMode("quote",document.querySelector(".calc-tab"));
+ document.getElementById("calcProjectName").value="";
+ document.getElementById("calcQty").value=1;
+ document.getElementById("calcColors").value="";
+ document.getElementById("calcDetails").value="";
+ clearQuoteAdjustments();
+ runCalc();
+}
+function renderQuotesPage(){
+ const quotes=db.quotes||[];
+ const table=document.getElementById("quotesPageTable");
+ if(table)table.innerHTML=quotes.map(q=>`<tr>
+   <td>${q.date||"—"}</td>
+   <td><b>${q.buyerName||"Sem cliente"}</b></td>
+   <td>${q.name||"Projeto sem nome"}</td>
+   <td>${q.qty||1}</td>
+   <td><b>${money(q.finalTotal??q.totalPrice??((+q.price||0)*(+q.qty||1)))}</b></td>
+   <td><span class="tag">${q.status||"salvo"}</span></td>
+   <td><div class="row-actions"><button class="btn xs outline" onclick="editQuote('${q.id}')">✎ Editar</button><button class="btn xs outline" onclick="printQuote('${q.id}')">🖨 Imprimir</button></div></td>
+ </tr>`).join("")||'<tr><td colspan="7"><div class="empty-state">Nenhum orçamento salvo ainda.</div></td></tr>';
+ const count=document.getElementById("quotesCount"), saved=document.getElementById("quotesSavedCount"), prod=document.getElementById("quotesProductionCount");
+ if(count)count.textContent=quotes.length;
+ if(saved)saved.textContent=quotes.filter(q=>q.status!=="produção").length;
+ if(prod)prod.textContent=quotes.filter(q=>q.status==="produção").length;
+}
 function printQuote(id){
  const q=(db.quotes||[]).find(x=>String(x.id)===String(id)); if(!q)return;
  const logo=db.settings?.logo||"";
@@ -1481,6 +1533,7 @@ function saveQuote(status){
  }
  save();
  render();
+ renderQuotesPage();
 }
 
 function channelTab(id,btn){
