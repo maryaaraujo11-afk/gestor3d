@@ -1702,6 +1702,7 @@ function render(){
  const dashboardPeriod=populateDashboardPeriods();
  renderDashboardSummary(dashboardPeriod);
  renderStateMap(dashboardPeriod);
+ renderProductsRanking(dashboardPeriod);
  const reportMonth=getReportMonth();
  const reportMonthInput=document.getElementById("reportMonth"); if(reportMonthInput)reportMonthInput.value=reportMonth;
  const financeMonthInput=document.getElementById("financeMonth"); if(financeMonthInput)financeMonthInput.value=reportMonth;
