@@ -45,6 +45,7 @@
       if(!session){app?.classList.add("app-locked");gate?.classList.remove("hidden");setMode("login");return;}
       gate?.classList.add("hidden");app?.classList.remove("app-locked");
       const label=document.getElementById("authUserLabel");if(label)label.textContent=session.user?.email||"Conta conectada";
+      setTimeout(()=>{try{if(typeof cloudBackup==="function"){const current=localStorage.getItem("gestor3d_v1")||"";if(current)cloudBackup(current,"backup ao entrar");}if(typeof updateCloudBackupStatus==="function")updateCloudBackupStatus();}catch(e){}},1500);
     }
 
     form?.addEventListener("submit",async e=>{
