@@ -18,6 +18,9 @@ const PORT = Number(process.env.PORT || 3000);
 const PARTNER_ID = String(process.env.SHOPEE_PARTNER_ID || "");
 const PARTNER_KEY = String(process.env.SHOPEE_PARTNER_KEY || "");
 const BASE = "https://partner.shopeemobile.com";
+const SUPABASE_URL = String(process.env.SUPABASE_URL || "https://givfacbmlhjizrmgguzi.supabase.co").replace(/\/$/, "");
+const SUPABASE_PUBLISHABLE_KEY = String(process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_-RaV-4hmFnLPyGhewGQZeg_1I_fs_wH");
+const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const DB_FILE = path.join(DATA_DIR, "shopee.json");
 
@@ -27,9 +30,9 @@ if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, JSON.stringify({shops:{},
 function db(){ return JSON.parse(fs.readFileSync(DB_FILE,"utf8")); }
 function saveDb(x){ fs.writeFileSync(DB_FILE, JSON.stringify(x,null,2)); }
 
-function json(res, code, body){
+function json(res, code, body, extraHeaders={}){
   const out=JSON.stringify(body);
-  res.writeHead(code, {"Content-Type":"application/json; charset=utf-8","Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"Content-Type","Access-Control-Allow-Methods":"GET,POST,OPTIONS"});
+  res.writeHead(code, {"Content-Type":"application/json; charset=utf-8","Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"Content-Type, Authorization","Access-Control-Allow-Methods":"GET,POST,OPTIONS",...extraHeaders});
   res.end(out);
 }
 function readBody(req){
@@ -54,6 +57,99 @@ function requireCreds(res){
 function shop(id){
   return db().shops[String(id)] || null;
 }
+function getBearer(req){
+  const h=String(req.headers.authorization||"");
+  return h.startsWith("Bearer ")?h.slice(7).trim():"";
+}
+async function getAuthUser(req){
+  const token=getBearer(req);
+  if(!token) return null;
+  const r=await fetch(SUPABASE_URL+"/auth/v1/user",{
+    headers:{apikey:SUPABASE_PUBLISHABLE_KEY,Authorization:"Bearer "+token}
+  });
+  if(!r.ok) return null;
+  return await r.json();
+}
+function requireSupabase(res){
+  if(!SUPABASE_SERVICE_ROLE_KEY){
+    json(res,500,{ok:false,error:"SUPABASE_SERVICE_ROLE_KEY ainda não foi configurada no Render."});
+    return false;
+  }
+  return true;
+}
+async function supabaseAdmin(pathname,method="GET",body=null,query=""){
+  if(!SUPABASE_SERVICE_ROLE_KEY) throw new Error("SUPABASE_SERVICE_ROLE_KEY não configurada.");
+  const r=await fetch(SUPABASE_URL+"/rest/v1/"+pathname+query,{
+    method,
+    headers:{
+      apikey:SUPABASE_SERVICE_ROLE_KEY,
+      Authorization:"Bearer "+SUPABASE_SERVICE_ROLE_KEY,
+      "Content-Type":"application/json",
+      Prefer:"return=representation"
+    },
+    body:body===null?undefined:JSON.stringify(body)
+  });
+  const t=await r.text(); let data;
+  try{data=t?JSON.parse(t):null}catch{data={raw:t}}
+  if(!r.ok) throw new Error(data?.message||data?.hint||data?.details||"Erro no Supabase.");
+  return data;
+}
+async function getStore(userId,storeId){
+  const rows=await supabaseAdmin(
+    "gestor3d_shopee_stores",
+    "GET",
+    null,
+    "?user_id=eq."+encodeURIComponent(userId)+"&store_slot=eq."+encodeURIComponent(storeId)+"&limit=1"
+  );
+  return Array.isArray(rows)&&rows[0]?rows[0]:null;
+}
+async function saveStore(userId,storeId,shopId,tok){
+  const rows=await supabaseAdmin(
+    "gestor3d_shopee_stores?on_conflict=user_id,store_slot",
+    "POST",
+    {
+      user_id:userId,
+      store_slot:Number(storeId),
+      shop_id:String(shopId),
+      access_token:tok.access_token,
+      refresh_token:tok.refresh_token,
+      access_expire_at:new Date(Date.now()+Number(tok.expire_in||14400)*1000).toISOString(),
+      connected_at:new Date().toISOString(),
+      updated_at:new Date().toISOString()
+    }
+  );
+  return Array.isArray(rows)&&rows[0]?rows[0]:null;
+}
+async function updateStoreTokens(row,tok){
+  const rows=await supabaseAdmin(
+    "gestor3d_shopee_stores",
+    "PATCH",
+    {
+      access_token:tok.access_token,
+      refresh_token:tok.refresh_token,
+      access_expire_at:new Date(Date.now()+Number(tok.expire_in||14400)*1000).toISOString(),
+      updated_at:new Date().toISOString()
+    },
+    "?user_id=eq."+encodeURIComponent(row.user_id)+"&store_slot=eq."+encodeURIComponent(row.store_slot)
+  );
+  return Array.isArray(rows)&&rows[0]?rows[0]:{...row,...tok};
+}
+function setOAuthCookie(res,store,accessToken){
+  const value=encodeURIComponent(accessToken);
+  res.setHeader("Set-Cookie",`gestor3d_shopee_oauth_${store}=${value}; HttpOnly; Secure; SameSite=Lax; Max-Age=600; Path=/api/shopee/callback/${store}`);
+}
+function getCookie(req,name){
+  const raw=String(req.headers.cookie||"");
+  for(const part of raw.split(";")){
+    const [k,...rest]=part.trim().split("=");
+    if(k===name)return decodeURIComponent(rest.join("="));
+  }
+  return "";
+}
+function clearOAuthCookie(res,store){
+  res.setHeader("Set-Cookie",`gestor3d_shopee_oauth_${store}=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/api/shopee/callback/${store}`);
+}
+
 function authUrl(store){
   const pathname="/api/v2/shop/auth_partner";
   const ts=Math.floor(Date.now()/1000);
@@ -91,25 +187,24 @@ async function exchangeCode(code, shopId){
   if(!r.ok || data.error) throw new Error(data.message||data.error||"Falha ao trocar code por token.");
   return data;
 }
-async function refresh(storeId){
-  const d=db(), s=d.shops[String(storeId)];
-  if(!s?.refresh_token) throw new Error("Loja não possui refresh_token.");
+async function refresh(userId,storeId){
+  const s=await getStore(userId,storeId);
+  if(!s?.refresh_token) throw new Error("Loja não conectada ou sem refresh_token.");
   const r=await fetch(BASE+"/api/v2/auth/access_token/get",{
     method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({refresh_token:s.refresh_token,shop_id:Number(s.shop_id),partner_id:Number(PARTNER_ID)})
   });
   const data=await r.json();
   if(!r.ok || data.error) throw new Error(data.message||data.error||"Falha ao renovar token.");
-  s.access_token=data.access_token; s.refresh_token=data.refresh_token; s.access_expire_at=Date.now()+Number(data.expire_in||14400)*1000;
-  d.shops[String(storeId)]=s; saveDb(d); return s;
+  return await updateStoreTokens(s,data);
 }
-async function withRefresh(storeId, fn){
-  let s=shop(storeId);
+async function withRefresh(userId,storeId, fn){
+  let s=await getStore(userId,storeId);
   if(!s) throw new Error("Loja não conectada.");
-  if(!s.access_token || (s.access_expire_at && Date.now()>s.access_expire_at-60000)) s=await refresh(storeId);
+  if(!s.access_token || (s.access_expire_at && Date.now()>new Date(s.access_expire_at).getTime()-60000)) s=await refresh(userId,storeId);
   try{return await fn(s)}catch(e){
     if(String(e.message).toLowerCase().includes("token") || String(e.message).toLowerCase().includes("access")){
-      s=await refresh(storeId); return await fn(s);
+      s=await refresh(userId,storeId); return await fn(s);
     }
     throw e;
   }
@@ -168,32 +263,52 @@ function serveStatic(req,res){
 }
 
 const server=http.createServer(async(req,res)=>{
-  if(req.method==="OPTIONS"){res.writeHead(204,{"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"Content-Type","Access-Control-Allow-Methods":"GET,POST,OPTIONS"});return res.end();}
+  if(req.method==="OPTIONS"){res.writeHead(204,{"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"Content-Type, Authorization","Access-Control-Allow-Methods":"GET,POST,OPTIONS"});return res.end();}
   const u=new URL(req.url,`http://${req.headers.host}`);
   try{
     if(u.pathname==="/api/shopee/authorize/1" || u.pathname==="/api/shopee/authorize/2"){
-      if(!requireCreds(res))return;
-      return json(res,200,{ok:true,store:u.pathname.endsWith("/1")?1:2,url:authUrl(u.pathname.endsWith("/1")?1:2)});
+      if(!requireCreds(res) || !requireSupabase(res))return;
+      const storeId=u.pathname.endsWith("/1")?1:2;
+      const user=await getAuthUser(req);
+      if(!user)return json(res,401,{ok:false,error:"Sessão do Gestor 3D não autenticada."});
+      const token=getBearer(req);
+      setOAuthCookie(res,storeId,token);
+      return json(res,200,{ok:true,store:storeId,url:authUrl(storeId)});
     }
-    const cb=u.pathname.match(/^\/api\/shopee\/callback\/([12])$/);
+    const cb=u.pathname.match(/^\\/api\\/shopee\\/callback\\/([12])$/);
     if(cb){
       const storeId=cb[1], code=u.searchParams.get("code"), shopId=u.searchParams.get("shop_id");
+      const sessionToken=getCookie(req,`gestor3d_shopee_oauth_${storeId}`);
+      clearOAuthCookie(res,storeId);
       if(!code||!shopId)return json(res,400,{ok:false,error:"Shopee não retornou code/shop_id."});
-      if(!requireCreds(res))return;
-      const tok=await exchangeCode(code,shopId); const d=db();
-      d.shops[storeId]={store:storeId,shop_id:String(shopId),access_token:tok.access_token,refresh_token:tok.refresh_token,access_expire_at:Date.now()+Number(tok.expire_in||14400)*1000,connected_at:new Date().toISOString()};
-      saveDb(d);
+      if(!sessionToken)return json(res,401,{ok:false,error:"A autorização expirou. Volte ao Gestor 3D e conecte a loja novamente."});
+      if(!requireCreds(res) || !requireSupabase(res))return;
+      const userReq={headers:{authorization:"Bearer "+sessionToken}};
+      const user=await getAuthUser(userReq);
+      if(!user)return json(res,401,{ok:false,error:"A sessão do Gestor 3D expirou. Faça login novamente."});
+      const tok=await exchangeCode(code,shopId);
+      await saveStore(user.id,storeId,shopId,tok);
       res.writeHead(302,{Location:`/?shopee_connected=${storeId}`}); return res.end();
     }
     if(u.pathname==="/api/shopee/status"){
-      const d=db(); const out={};
-      for(const k of ["1","2"]){const s=d.shops[k];out[k]=s?{connected:true,shop_id:s.shop_id,connected_at:s.connected_at,access_expire_at:s.access_expire_at}:{connected:false};}
+      if(!requireSupabase(res))return;
+      const user=await getAuthUser(req);
+      if(!user)return json(res,401,{ok:false,error:"Sessão do Gestor 3D não autenticada."});
+      const rows=await supabaseAdmin("gestor3d_shopee_stores","GET",null,"?user_id=eq."+encodeURIComponent(user.id)+"&order=store_slot.asc");
+      const out={};
+      for(const k of [1,2]){
+        const s=(Array.isArray(rows)?rows:[]).find(x=>Number(x.store_slot)===k);
+        out[k]=s?{connected:true,shop_id:s.shop_id,connected_at:s.connected_at,access_expire_at:s.access_expire_at}:{connected:false};
+      }
       return json(res,200,{ok:true,stores:out});
     }
     const sync=u.pathname.match(/^\/api\/shopee\/sync\/([12])$/);
     if(sync && req.method==="POST"){
       const store=sync[1];
-      const orders=await withRefresh(store,s=>shopee("/api/v2/order/get_order_list","GET",s,{
+      if(!requireSupabase(res))return;
+      const user=await getAuthUser(req);
+      if(!user)return json(res,401,{ok:false,error:"Sessão do Gestor 3D não autenticada."});
+      const orders=await withRefresh(user.id,store,s=>shopee("/api/v2/order/get_order_list","GET",s,{
         time_range_field:"update_time",time_from:Math.floor(Date.now()/1000)-7*86400,time_to:Math.floor(Date.now()/1000),
         page_size:100,response_optional_fields:"order_status","cursor":""
       }));
@@ -201,7 +316,7 @@ const server=http.createServer(async(req,res)=>{
       const details=[];
       for(const o of list.slice(0,50)){
         try{
-          const d=await withRefresh(store,s=>shopee("/api/v2/order/get_order_detail","GET",s,{
+          const d=await withRefresh(user.id,store,s=>shopee("/api/v2/order/get_order_detail","GET",s,{
             order_sn_list:o.order_sn,response_optional_fields:"order_status,total_amount,item_list"
           }));
           details.push(d);
@@ -212,17 +327,27 @@ const server=http.createServer(async(req,res)=>{
     const products=u.pathname.match(/^\/api\/shopee\/products\/([12])$/);
     if(products && req.method==="GET"){
       const store=products[1];
-      const data=await withRefresh(store,s=>shopee("/api/v2/product/get_item_list","GET",s,{offset:0,page_size:100,need_total_count:true,})); 
+      if(!requireSupabase(res))return;
+      const user=await getAuthUser(req);
+      if(!user)return json(res,401,{ok:false,error:"Sessão do Gestor 3D não autenticada."});
+      const data=await withRefresh(user.id,store,s=>shopee("/api/v2/product/get_item_list","GET",s,{offset:0,page_size:100,need_total_count:true,})); 
       return json(res,200,{ok:true,data});
     }
     const stock=u.pathname.match(/^\/api\/shopee\/stock\/([12])$/);
     if(stock && req.method==="POST"){
-      const store=stock[1], body=await readBody(req);
-      const result=await withRefresh(store,s=>shopee("/api/v2/product/update_stock","POST",s,{},body));
+      const store=stock[1];
+      if(!requireSupabase(res))return;
+      const user=await getAuthUser(req);
+      if(!user)return json(res,401,{ok:false,error:"Sessão do Gestor 3D não autenticada."});
+      const body=await readBody(req);
+      const result=await withRefresh(user.id,store,s=>shopee("/api/v2/product/update_stock","POST",s,{},body));
       return json(res,200,{ok:true,result});
     }
     if(u.pathname==="/api/shopee/refresh/1" || u.pathname==="/api/shopee/refresh/2"){
-      const store=u.pathname.endsWith("/1")?1:2; await refresh(store); return json(res,200,{ok:true});
+      if(!requireSupabase(res))return;
+      const user=await getAuthUser(req);
+      if(!user)return json(res,401,{ok:false,error:"Sessão do Gestor 3D não autenticada."});
+      const store=u.pathname.endsWith("/1")?1:2; await refresh(user.id,store); return json(res,200,{ok:true});
     }
     if(req.url.startsWith("/api/")) return json(res,404,{ok:false,error:"Endpoint não encontrado."});
     return serveStatic(req,res);
