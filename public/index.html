@@ -98,6 +98,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
     <button class="active" onclick="show('dashboard',this)">⌂ <span>Dashboard</span></button>
     <button onclick="show('pricing',this)">◉ <span>Calculadora</span></button>
     <div class="nav-title">GESTÃO</div>
+    <button onclick="show('customers',this)">👤 <span>Clientes</span></button>
     <button onclick="show('products',this)">▣ <span>Produtos</span></button>
     <button onclick="show('sales',this)">▤ <span>Vendas & Pedidos</span></button>
     <button onclick="show('finance',this)">$ <span>Financeiro</span></button>
@@ -507,6 +508,17 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <div class="field" style="grid-column:1/-1"><label>Observações</label><input id="sNotes" placeholder="Ex.: personalização, nome, cor, envio..."></div>
 </div><br><button id="saleSubmitBtn" class="btn" onclick="saveSaleForm()">Registrar pedido</button> <button id="saleCancelEditBtn" class="btn outline hidden" type="button" onclick="cancelEditSale()">Cancelar edição</button></div>
 <div class="panel"><div class="top" style="margin-bottom:12px"><h2>Pedidos</h2><select id="salesFilter" onchange="renderSalesTable()" style="max-width:220px"><option value="todos">Todos</option><option value="Recebido">Recebidos</option><option value="Em produção">Em produção</option><option value="Pronto">Prontos</option><option value="Enviado">Enviados</option><option value="Entregue">Entregues</option><option value="Cancelado">Cancelados</option><option value="atrasados">Atrasados</option></select></div><div style="overflow:auto"><table><thead><tr><th>Compra</th><th>Cliente</th><th>Estado</th><th>Produto</th><th>Loja</th><th>Qtd.</th><th>Postagem até</th><th>Venda / Líquido</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="salesTable"></tbody></table></div></div>
+</section>
+
+<section id="customers" class="hidden">
+<div class="top"><div><h1>Clientes</h1><div class="sub">Histórico de compras e pedidos por cliente.</div></div></div>
+<div class="cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+<div class="card"><div class="label">Clientes cadastrados</div><div class="value" id="customersTotal">0</div></div>
+<div class="card"><div class="label">Clientes com pedidos</div><div class="value" id="customersActive">0</div></div>
+<div class="card"><div class="label">Pedidos registrados</div><div class="value" id="customersOrders">0</div></div>
+</div>
+<div class="panel"><h2>Clientes</h2><div style="overflow:auto"><table><thead><tr><th>Cliente</th><th>Estado</th><th>Pedidos</th><th>Total comprado</th><th>Última compra</th><th>Ações</th></tr></thead><tbody id="customersTable"></tbody></table></div></div>
+<div class="panel hidden" id="customerHistoryPanel"><div class="top" style="margin-bottom:12px"><div><h2 id="customerHistoryTitle">Histórico</h2><div class="sub">Pedidos registrados para este cliente.</div></div><button class="btn secondary" onclick="closeCustomerHistory()">Fechar</button></div><div style="overflow:auto"><table><thead><tr><th>Data</th><th>Produto</th><th>Cor</th><th>Loja</th><th>Qtd.</th><th>Valor</th><th>Status</th></tr></thead><tbody id="customerHistoryTable"></tbody></table></div></div>
 </section>
 
 <section id="finance" class="hidden">
@@ -1012,6 +1024,7 @@ function saveSaleForm(){
   if(old && old.status!=="Cancelado") adjustStockForSale(old,1,`Estorno para edição: ${old.product||"Venda"}`);
   const sale={id:old?old.id:Date.now(),manualKey:old?.manualKey,dateISO,time,customerName:customerNameEl?.value.trim()||"",state:stateEl?.value||"",dueDate,postDays,date:formatDateISO(dateISO),product:p.name,productId:p.id,variantId:selectedVariant?.id||"",variantName:selectedVariant?.name||"",store:storeEl.value,value:gross,grossValue:gross,netValue:net,qty:q,status:statusEl.value,cost:saleProductionCost(p,q,{variantId:selectedVariant?.id||""})+packaging,fee,packaging,notes:notesEl?.value.trim()||""};
   if(old){ Object.assign(old,sale); } else { db.sales=db.sales||[]; db.sales.unshift(sale); }
+  syncCustomersFromSales();
   if(sale.status!=="Cancelado") adjustStockForSale(sale,-1,`${old?"Edição":"Venda"}: ${p.name}`);
   const wasEditing=!!old;
   editingSaleId=null;
@@ -1541,8 +1554,16 @@ function reportMonthLabel(month){
  return d.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
 }
 
+function normalizeCustomerName(name){return String(name||"").trim().replace(/\s+/g," ");}
+function customerKey(name){return normalizeCustomerName(name).toLocaleLowerCase("pt-BR");}
+function syncCustomersFromSales(){db.customers=Array.isArray(db.customers)?db.customers:[];(db.sales||[]).forEach(s=>{const name=normalizeCustomerName(s.customerName);if(!name)return;let c=db.customers.find(x=>customerKey(x.name)===customerKey(name));if(!c){c={id:String(Date.now()+Math.random()),name,state:s.state||"",createdAt:todayISO()};db.customers.push(c);}if(s.state)c.state=s.state;c.updatedAt=s.dateISO||todayISO();});}
+function customerSales(c){const k=customerKey(c.name);return(db.sales||[]).filter(s=>customerKey(s.customerName)===k);}
+function renderCustomers(){syncCustomersFromSales();const rows=(db.customers||[]).map(c=>{const sales=customerSales(c),active=sales.filter(s=>s.status!=="Cancelado"),total=active.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0),last=[...sales].sort((a,b)=>String(b.dateISO||"").localeCompare(String(a.dateISO||"")))[0];return `<tr><td><b>${c.name}</b></td><td>${c.state||"—"}</td><td>${sales.length}</td><td>${money(total)}</td><td>${last?formatDateISO(last.dateISO||last.date):"—"}</td><td><button class="btn xs outline" onclick="openCustomerHistory('${c.id}')">Ver histórico</button></td></tr>`;}).join("");const t=document.getElementById("customersTable");if(t)t.innerHTML=rows||'<tr><td colspan="6">Nenhum cliente cadastrado. Os clientes serão criados automaticamente ao registrar pedidos com nome.</td></tr>';const total=document.getElementById("customersTotal"),active=document.getElementById("customersActive"),orders=document.getElementById("customersOrders");if(total)total.textContent=(db.customers||[]).length;if(active)active.textContent=(db.customers||[]).filter(c=>customerSales(c).some(s=>s.status!=="Cancelado")).length;if(orders)orders.textContent=(db.sales||[]).filter(s=>s.customerName).length;}
+function openCustomerHistory(id){const c=(db.customers||[]).find(x=>String(x.id)===String(id));if(!c)return;const sales=customerSales(c).sort((a,b)=>String(b.dateISO||"").localeCompare(String(a.dateISO||"")));document.getElementById("customerHistoryTitle").textContent=`Histórico — ${c.name}`;const t=document.getElementById("customerHistoryTable");if(t)t.innerHTML=sales.map(s=>`<tr><td>${formatDateISO(s.dateISO||"")}</td><td>${s.product||"—"}</td><td>${s.variantName||"—"}</td><td>${s.store||"—"}</td><td>${s.qty||0}</td><td>${money(Number(s.grossValue??s.value)||0)}</td><td><span class="status-pill status-pill-${saleStatusKey(s.status)}">${s.status||"Recebido"}</span></td></tr>`).join("")||'<tr><td colspan="7">Nenhum pedido encontrado.</td></tr>';document.getElementById("customerHistoryPanel").classList.remove("hidden");document.getElementById("customerHistoryPanel").scrollIntoView({behavior:"smooth",block:"start"});}
+function closeCustomerHistory(){document.getElementById("customerHistoryPanel")?.classList.add("hidden");}
+
 function render(){
- db.materials=db.materials||[]; db.movements=db.movements||[]; db.quotes=db.quotes||[]; db.purchases=db.purchases||[]; db.sales=db.sales||[]; db.products=db.products||[];
+ db.materials=db.materials||[]; db.movements=db.movements||[]; db.quotes=db.quotes||[]; db.purchases=db.purchases||[]; db.sales=db.sales||[]; db.products=db.products||[]; db.customers=db.customers||[];
  const dashboardPeriod=populateDashboardPeriods();
  renderDashboardSummary(dashboardPeriod);
  renderStateMap(dashboardPeriod);
@@ -1594,7 +1615,7 @@ db.products.forEach(p=>{
  const stockTable=document.getElementById("stockTable"); if(stockTable) stockTable.innerHTML=[...(db.materials||[]).map(m=>`<tr><td>${m.name}</td><td>${m.category}</td><td>${m.stock} ${m.unit}</td><td>${m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td></tr>`),...db.products.map(p=>`<tr><td>${p.name}</td><td>Produto acabado</td><td>${p.stock||0} un.</td><td>${(p.stock||0)<=2?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td></tr>`)].join('')||'<tr><td colspan="4">Nenhum item.</td></tr>';
  const lowStock=document.getElementById("lowStock"); if(lowStock){const lp=db.products.filter(p=>(+p.stock||0)<=2).map(p=>`<div style="padding:9px 0;border-bottom:1px solid #eee">${p.name} <span class="tag warn">${p.stock||0} un.</span></div>`);const lm=db.materials.filter(m=>(+m.stock||0)<=m.minStock).map(m=>`<div style="padding:9px 0;border-bottom:1px solid #eee">${m.name} <span class="tag warn">${m.stock} ${m.unit}</span></div>`);lowStock.innerHTML=[...lp,...lm].join('')||'<div class="sub">Nenhum estoque crítico.</div>'; }
  const dashSales=document.getElementById("dashSales"); if(dashSales){ const recentReportSales=[...reportSales()].sort((a,b)=>`${b.dateISO||""}T${b.time||"00:00"}`.localeCompare(`${a.dateISO||""}T${a.time||"00:00"}`)).slice(0,6); dashSales.innerHTML=recentReportSales.map(s=>`<div style="padding:9px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between"><span>${s.customerName?s.customerName+" • ":""}${s.product}<small class="sub">${s.date||formatDateISO(s.dateISO)} ${s.time||""} • ${s.store||"—"}</small></span><b>${money(Number(s.grossValue??s.value)||0)}</b></div>`).join('')||'<div class="sub">Nenhuma venda registrada neste período.</div>'; }
- renderSalesTable(); populateSaleProducts();
+ renderCustomers(); renderSalesTable(); populateSaleProducts();
  const sd=document.getElementById("sDate"), st=document.getElementById("sTime"), days=document.getElementById("sPostDays"), due=document.getElementById("sDueDate"); if(sd&&!sd.value)sd.value=todayISO(); if(st&&!st.value)st.value=new Date().toTimeString().slice(0,5); if(days&&!days.value)days.value="1"; updatePostDate();
  const allSales=db.sales||[]; const totalOrders=allSales.length, prodCount=allSales.filter(s=>s.status==="Em produção").length, readyCount=allSales.filter(s=>s.status==="Pronto").length, lateCount=allSales.filter(isLate).length, deliveredCount=allSales.filter(s=>s.status==="Entregue").length; ["salesTotal","salesInProduction","salesReady","salesLate","salesDelivered"].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=[totalOrders,prodCount,readyCount,lateCount,deliveredCount][i];});
  const saleDateEl=document.getElementById("sDate"); if(saleDateEl)saleDateEl.onchange=updatePostDate; const saleDaysEl=document.getElementById("sPostDays"); if(saleDaysEl)saleDaysEl.onchange=updatePostDate; const saleProductEl=document.getElementById("sProduct"); if(saleProductEl)saleProductEl.onchange=updateSalePreview; const saleQtyEl=document.getElementById("sQty"); if(saleQtyEl)saleQtyEl.oninput=updateSalePreview;
