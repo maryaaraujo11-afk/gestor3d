@@ -181,7 +181,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <div class="field"><label>Quantidade produzida no lote</label><input id="pBatchQty" type="number" min="1" step="1" value="1" oninput="updateProductBasisUI()"></div>
 <div class="field"><label id="pPrintHoursLabel">Tempo de impressão por unidade</label><input id="pPrintHours" type="text" inputmode="text" autocomplete="off" placeholder="Ex.: 1:43 (1h43min)" oninput="runProductTimePreview()" onblur="normalizeHoursField(this)"></div>
 <div class="sub" id="pBasisHint" style="grid-column:1/-1;margin-top:-8px">Para dados do fatiador do lote, escolha “lote inteiro”, informe a quantidade e coloque o consumo total de cada filamento/insumo.</div>
-<div class="field"><label>Embalagem do pedido (R$) <span class="sub" id="pPackHint">por pedido</span></label><input id="pPack" type="number" step=".01"></div><div class="field"><label>Mão de obra (R$) <span class="sub" id="pLaborHint">total do lote</span></label><input id="pLabor" type="number" step=".01" placeholder="Ex.: 5,00"></div><div class="field"><label>Outros custos (R$) <span class="sub" id="pOtherHint">por unidade</span></label><input id="pOther" type="number" step=".01"></div><div class="field" style="grid-column:1/-1"><label><b>Custos da máquina</b> <span class="sub">incluídos automaticamente no custo e preço do produto</span></label></div>
+<div class="field"><label>Embalagem do pedido (R$) <span class="sub" id="pPackHint">por pedido</span></label><input id="pPack" type="number" step=".01"></div><div class="field"><label>Mão de obra (%) <span class="sub" id="pLaborHint">sobre o custo de produção</span></label><input id="pLabor" type="number" min="0" step=".1" value="20" placeholder="Ex.: 20"></div><div class="field"><label>Outros custos (R$) <span class="sub" id="pOtherHint">por unidade</span></label><input id="pOther" type="number" step=".01"></div><div class="field" style="grid-column:1/-1"><label><b>Custos da máquina</b> <span class="sub">incluídos automaticamente no custo e preço do produto</span></label></div>
 <div class="field"><label>Potência da impressora (W)</label><input id="pMachineWatts" type="number" min="0" step="1" value="200"></div>
 <div class="field"><label>Energia (R$/kWh)</label><input id="pMachineKwh" type="number" min="0" step=".01" value="0.90"></div>
 <div class="field"><label>Valor da impressora (R$)</label><input id="pMachineValue" type="number" min="0" step=".01" value="3000"></div>
@@ -348,7 +348,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
         <div class="calc-block">
           <div class="calc-title">▣ CUSTOS ADICIONAIS</div>
           <div class="formgrid">
-            <div class="field"><label>Mão de obra (R$)</label><input id="calcLabor" type="number" min="0" step=".01" value="0" oninput="runCalc()"></div>
+            <div class="field"><label>Mão de obra (%)</label><input id="calcLabor" type="number" min="0" step=".1" value="20" oninput="runCalc()"></div>
             <div class="field"><label>Embalagem (R$)</label><input id="calcPack" type="number" min="0" step=".01" value="0" oninput="runCalc()"></div>
             <div class="field"><label>Outros / risco (R$)</label><input id="calcOther" type="number" min="0" step=".01" value="0" oninput="runCalc()"></div>
           </div>
@@ -864,14 +864,14 @@ function addProduct(){
  }).filter(m=>m.name && m.qty>0);
  const enteredHours=parseHoursInput(document.getElementById("pPrintHours")?.value);
  const printHours=batch?enteredHours/batchQty:enteredHours;
- const packEntered=+pPack.value||0, laborEntered=+pLabor.value||0, otherEntered=+pOther.value||0; const machineWatts=+document.getElementById("pMachineWatts")?.value||200, machineKwh=+document.getElementById("pMachineKwh")?.value||0.90, machineValue=+document.getElementById("pMachineValue")?.value||3000, machineLife=Math.max(1,+document.getElementById("pMachineLife")?.value||5000), machineWear=+document.getElementById("pMachineWear")?.value||0.20;
+ const packEntered=+pPack.value||0, laborPercent=+pLabor.value||20, otherEntered=+pOther.value||0; const machineWatts=+document.getElementById("pMachineWatts")?.value||200, machineKwh=+document.getElementById("pMachineKwh")?.value||0.90, machineValue=+document.getElementById("pMachineValue")?.value||3000, machineLife=Math.max(1,+document.getElementById("pMachineLife")?.value||5000), machineWear=+document.getElementById("pMachineWear")?.value||0.20;
  const pack=packEntered;
- const labor=batch?laborEntered/batchQty:laborEntered;
+ const laborBaseBeforeLabor=materials.reduce((sum,m)=>sum+(+m.qty||0)*(+m.unitCost||0),0)+componentCost({materials}); const labor=laborBaseBeforeLabor*(laborPercent/100);
  const other=batch?otherEntered/batchQty:otherEntered;
  const old=editingId?(db.products||[]).find(x=>String(x.id)===String(editingId)):null;
  const variants=collectProductVariants();
  let p={...(old||{}),id:editingId||Date.now(),name:pName.value.trim(),sku:pSku.value.trim(),store:pStore.value,shopeeSku:pShopeeSku.value.trim(),shopeeName:pShopeeName.value.trim(),materials,variants,
- filamentCost:materials.reduce((sum,m)=>sum+(+m.qty||0)*(+m.unitCost||0),0),pack,labor,other,machineWatts,machineKwh,machineValue,machineLife,machineWear,
+ filamentCost:materials.reduce((sum,m)=>sum+(+m.qty||0)*(+m.unitCost||0),0),pack,labor,laborPercent,other,machineWatts,machineKwh,machineValue,machineLife,machineWear,
  fee:+pFee.value||0,margin:+pMargin.value||0,stock:+pStock.value||0,printHours,productionBatchQty:batch?batchQty:1,productionBasis:batch?"batch":"unit",productionSourceHours:enteredHours,productionSourcePack:packEntered,productionSourceLabor:laborEntered,productionSourceOther:otherEntered,productionSourceMaterials:batch?materials.map(m=>({materialId:m.materialId,sourceQty:m.sourceQty})):null,stockManaged:old?.stockManaged||false};
  if(!p.name){alert("Informe o nome do produto.");return}
  if(!materials.length){alert("Adicione pelo menos um material ou insumo.");return}
@@ -1260,7 +1260,7 @@ function runCalc(){
  const depreciationUnit=hoursUnit*(printer/life);
  const wearUnit=hoursUnit*(+calcWear.value||0);
  const laborEntered=+calcLabor.value||0,packEntered=+calcPack.value||0,otherEntered=+calcOther.value||0;
- const laborUnit=batch?laborEntered/qty:laborEntered, packUnit=0, otherUnit=batch?otherEntered/qty:otherEntered;
+ const laborPercent=(+document.getElementById("calcLabor").value||0); const laborBaseForPercent=materialsUnit; const laborUnit=laborBaseForPercent*(laborPercent/100); const packUnit=0, otherUnit=batch?otherEntered/qty:otherEntered;
  const unitBase=materialsUnit+energyUnit+depreciationUnit+wearUnit+laborUnit+otherUnit;
  const orderPackaging=packEntered;
  const totalBase=unitBase*qty+orderPackaging;
