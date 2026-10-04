@@ -221,6 +221,15 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <div class="field"><label>Moeda</label><input value="BRL — Real brasileiro" disabled></div>
 <div class="field"><label>Marketplace</label><input value="Shopee" disabled></div>
 </div></div>
+<div class="panel">
+<h2>💾 Backup automático</h2>
+<div class="sub" style="margin-bottom:14px">O Gestor 3D cria cópias automáticas dos dados antes dos salvamentos. As últimas 20 versões ficam armazenadas neste navegador.</div>
+<div class="notice" id="backupStatus">Backup automático: verificando...</div>
+<div class="actions" style="margin-top:12px">
+<button class="btn secondary" type="button" onclick="restoreLatestAutoBackup()">↶ Restaurar último backup</button>
+</div>
+<div class="sub" style="margin-top:10px">Importante: esse backup protege contra alterações acidentais e erros no sistema, mas ainda fica neste navegador. Para proteção contra perda do computador, depois podemos adicionar o backup em arquivo/nuvem.</div>
+</div>
 <div class="panel"><h2>Logo para orçamentos</h2><div class="formgrid">
 <div class="field"><label>Enviar logo</label><input id="companyLogoInput" type="file" accept="image/png,image/jpeg,image/webp" onchange="saveCompanyLogo(this)"><div class="sub">A logo fica salva neste navegador e será usada nos orçamentos impressos.</div></div>
 <div class="field"><label>Logo atual</label><div id="companyLogoPreview" class="quote-box" style="min-height:70px;display:flex;align-items:center;justify-content:center">Nenhuma logo cadastrada.</div></div>
@@ -709,7 +718,73 @@ let editingSaleId=null;
 const money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 // Compatibilidade: evita que uma referência antiga a "cost" interrompa o salvamento do pedido.
 if(typeof globalThis.cost === "undefined") globalThis.cost = 0;
-function save(){localStorage.setItem(KEY,JSON.stringify(db)); try{render();}catch(e){console.error("Pedido salvo, mas houve erro ao atualizar a tela:",e);}}
+let lastSavedSnapshot=localStorage.getItem(KEY)||"";
+
+function openBackupDB(){
+ return new Promise((resolve,reject)=>{
+   if(!window.indexedDB){resolve(null);return;}
+   const req=indexedDB.open("gestor3d_backups_v1",1);
+   req.onupgradeneeded=()=>{const dbx=req.result;if(!dbx.objectStoreNames.contains("backups"))dbx.createObjectStore("backups",{keyPath:"id",autoIncrement:true});};
+   req.onsuccess=()=>resolve(req.result);
+   req.onerror=()=>reject(req.error);
+ });
+}
+async function createAutoBackup(snapshot,reason="automático"){
+ try{
+   const dbx=await openBackupDB(); if(!dbx)return;
+   const tx=dbx.transaction("backups","readwrite"),store=tx.objectStore("backups");
+   store.add({createdAt:new Date().toISOString(),reason,data:snapshot});
+   await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});
+   const clean=dbx.transaction("backups","readwrite").objectStore("backups").openCursor(null,"prev");
+   const ids=[];
+   await new Promise((resolve,reject)=>{
+     clean.onsuccess=()=>{const cur=clean.result;if(!cur){resolve();return;}ids.push(cur.primaryKey);if(ids.length>20)cur.delete();cur.continue();};
+     clean.onerror=()=>reject(clean.error);
+   });
+   dbx.close();
+   updateBackupStatus();
+ }catch(e){console.warn("Backup automático indisponível:",e);}
+}
+async function getLatestAutoBackup(){
+ try{
+   const dbx=await openBackupDB(); if(!dbx)return null;
+   const tx=dbx.transaction("backups","readonly"),req=tx.objectStore("backups").openCursor(null,"prev");
+   const value=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result?.value||null);req.onerror=()=>reject(req.error);});
+   dbx.close(); return value;
+ }catch(e){return null;}
+}
+async function updateBackupStatus(){
+ const el=document.getElementById("backupStatus"); if(!el)return;
+ try{
+   const dbx=await openBackupDB(); if(!dbx){el.textContent="Backup automático não disponível neste navegador.";return;}
+   const tx=dbx.transaction("backups","readonly"),req=tx.objectStore("backups").openCursor(null,"prev");
+   const latest=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result?.value||null);req.onerror=()=>reject(req.error);});
+   dbx.close();
+   if(!latest){el.textContent="Backup automático: aguardando o primeiro salvamento.";return;}
+   const d=new Date(latest.createdAt);
+   el.textContent="Último backup automático: "+d.toLocaleString("pt-BR")+" • "+latest.reason;
+ }catch(e){el.textContent="Backup automático ativo."; }
+}
+async function restoreLatestAutoBackup(){
+ const latest=await getLatestAutoBackup();
+ if(!latest){alert("Ainda não existe backup automático.");return;}
+ if(!confirm("Restaurar o último backup automático? Os dados atuais serão substituídos pela versão salva no backup."))return;
+ try{
+   const parsed=JSON.parse(latest.data);
+   localStorage.setItem(KEY,JSON.stringify(parsed));
+   alert("Backup restaurado com sucesso. O Gestor 3D será recarregado.");
+   location.reload();
+ }catch(e){alert("Não foi possível restaurar o backup.");}
+}
+
+function save(){
+ const current=JSON.stringify(db);
+ // Antes de substituir os dados atuais, guarda a versão anterior.
+ if(lastSavedSnapshot && lastSavedSnapshot!==current) createAutoBackup(lastSavedSnapshot,"antes do salvamento");
+ localStorage.setItem(KEY,current);
+ lastSavedSnapshot=current;
+ try{render();}catch(e){console.error("Pedido salvo, mas houve erro ao atualizar a tela:",e);}
+}
 function show(id,btn){if(id==='sales')setTimeout(populateSaleProducts,0);document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render();if(id==='shopee'){refreshShopeeStatus();renderShopeeStock();}}
 function toggle(id){document.getElementById(id).classList.toggle('hidden')}
 function materialCost(p){
@@ -1964,6 +2039,12 @@ render();
 
 try{const q=new URLSearchParams(location.search);if(q.get("shopee_connected")){history.replaceState({},document.title,"/");setTimeout(()=>{show("shopee");refreshShopeeStatus();alert("Loja Shopee autorizada com sucesso!");},200);}}catch(e){}
 updateCalcBasisUI();
+updateBackupStatus();
+setInterval(()=>{
+ const current=localStorage.getItem(KEY)||"";
+ if(current && current!==lastSavedSnapshot) lastSavedSnapshot=current;
+ if(current) createAutoBackup(current,"backup periódico");
+},15*60*1000);
 </script>
 <script>
 if ('serviceWorker' in navigator) {
