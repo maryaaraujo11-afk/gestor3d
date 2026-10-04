@@ -1468,15 +1468,72 @@ function editQuote(id){
  document.getElementById("calcDiscount").value=q.discount||0;
  document.getElementById("calcFreight").value=q.freight||0;
  document.getElementById("calcThankYou").value=q.thankYou||"";
+
+ // Restaura todos os dados da calculadora que foram salvos no orçamento.
+ const fields={
+   calcBasis:q.calcBasis||"unit",
+   calcHours:q.calcHours??"1:00",
+   calcWatts:q.calcWatts??200,
+   calcKwh:q.calcKwh??0.90,
+   calcPrinterValue:q.calcPrinterValue??3000,
+   calcPrinterLife:q.calcPrinterLife??5000,
+   calcWear:q.calcWear??0.20,
+   calcLabor:q.calcLabor??20,
+   calcPack:q.calcPack??0,
+   calcOther:q.calcOther??0,
+   calcMarkup:q.calcMarkup??50,
+   calcMargin:q.calcMargin??33,
+   calcFee:q.calcFee??20
+ };
+ Object.entries(fields).forEach(([id,value])=>{const e=document.getElementById(id);if(e)e.value=value;});
+ updateCalcBasisUI();
+
+ const wrap=document.getElementById("calcMaterials");
+ if(wrap){
+   wrap.innerHTML="";
+   const mats=Array.isArray(q.calcMaterials)?q.calcMaterials:[];
+   mats.forEach(m=>addCalcMaterial(m.materialId,m.qty));
+   if(!mats.length)addCalcMaterial();
+ }
+ runCalc();
+ // Mantém o preço personalizado do orçamento depois de recalcular.
+ document.getElementById("calcQuoteUnitPrice").value=q.price??"";
  updateQuoteAdjustments();
- alert("Orçamento carregado para edição. Ajuste os valores e salve novamente.");
+ alert("Orçamento carregado para edição. Os materiais e os dados da calculadora foram restaurados.");
 }
 function saveQuote(status){
  const name=(document.getElementById("calcProjectName").value||"Projeto sem nome").trim();
  const qty=Math.max(1,+document.getElementById("calcQty").value||1);
  const a=getQuoteAdjustments();
  const c=window.lastCalc||{};
- const quoteData={date:new Date().toLocaleDateString("pt-BR"),name,qty,price:a.unitPrice,grossPrice:a.gross,discount:a.discount,freight:a.freight,finalTotal:a.finalTotal,profit:Number(c.profit)||0,colors:document.getElementById("calcColors").value.trim(),details:document.getElementById("calcDetails").value.trim(),buyerName:document.getElementById("calcBuyerName").value.trim(),thankYou:document.getElementById("calcThankYou").value.trim(),status};
+ const calcMaterials=[...document.querySelectorAll("#calcMaterials .material-row")].map(row=>({
+   materialId:row.querySelector(".calc-mat")?.value||"",
+   qty:+row.querySelector(".calc-g")?.value||0
+ })).filter(x=>x.materialId);
+ const quoteData={
+   date:new Date().toLocaleDateString("pt-BR"),
+   name,qty,price:a.unitPrice,grossPrice:a.gross,discount:a.discount,freight:a.freight,finalTotal:a.finalTotal,
+   profit:Number(c.profit)||0,
+   colors:document.getElementById("calcColors").value.trim(),
+   details:document.getElementById("calcDetails").value.trim(),
+   buyerName:document.getElementById("calcBuyerName").value.trim(),
+   thankYou:document.getElementById("calcThankYou").value.trim(),
+   status,
+   calcMaterials,
+   calcBasis:document.getElementById("calcBasis")?.value||"unit",
+   calcHours:document.getElementById("calcHours")?.value||"1:00",
+   calcWatts:+document.getElementById("calcWatts")?.value||0,
+   calcKwh:+document.getElementById("calcKwh")?.value||0,
+   calcPrinterValue:+document.getElementById("calcPrinterValue")?.value||0,
+   calcPrinterLife:+document.getElementById("calcPrinterLife")?.value||0,
+   calcWear:+document.getElementById("calcWear")?.value||0,
+   calcLabor:+document.getElementById("calcLabor")?.value||0,
+   calcPack:+document.getElementById("calcPack")?.value||0,
+   calcOther:+document.getElementById("calcOther")?.value||0,
+   calcMarkup:+document.getElementById("calcMarkup")?.value||0,
+   calcMargin:+document.getElementById("calcMargin")?.value||0,
+   calcFee:+document.getElementById("calcFee")?.value||0
+ };
  if(editingQuoteId){
    const idx=(db.quotes||[]).findIndex(x=>String(x.id)===String(editingQuoteId));
    if(idx>=0) db.quotes[idx]={...db.quotes[idx],...quoteData};
