@@ -86,10 +86,28 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 /* V54 — mapa exatamente no modelo de referência enviado, mantendo as cores */
 .state-map-panel{padding:24px 22px 22px;background:#fff;border:1px solid #eee7e2;border-radius:16px}.state-map-head{align-items:center;margin-bottom:4px}.state-map-title{display:flex;align-items:center;gap:12px}.map-title-icon{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#f7ebe4;color:#8b5e4a;font-size:22px}.state-map-title h2{font-size:20px}.state-map-title .sub{font-size:13px;color:#6e655f;margin-top:2px}.state-map-filter{background:#fff;border:1px solid #e4ddd8;border-radius:12px;padding:9px 13px;min-width:205px;box-shadow:0 1px 2px rgba(60,45,35,.03)}.state-map-filter label{display:none}.state-map-filter select{border:0!important;padding:0 4px!important;background:transparent!important;font-size:14px;font-weight:700;color:#2f2926;outline:0;width:155px}.map-filter-icon{color:#8b5e4a;font-size:17px;margin-right:5px}.state-map-layout{grid-template-columns:minmax(0,1.65fr) minmax(310px,.82fr);gap:24px;margin-top:10px}.map-area{position:relative;min-width:0}.brazil-map{position:relative;width:min(100%,760px);aspect-ratio:1283/1226;height:auto;margin:4px auto 0;background:#fff;border-radius:0;overflow:hidden;display:block}.brazil-map img{width:100%;height:100%;display:block;object-fit:contain;opacity:1;filter:none}.brazil-map:after{display:none}.map-label{position:absolute;transform:translate(-50%,0);display:flex;align-items:center;justify-content:center;color:#4f3a30;text-align:center;line-height:1;font-size:15px;font-weight:900;z-index:3;pointer-events:none;text-shadow:0 1px 1px rgba(255,255,255,.7);padding-top:17px;min-width:28px}.map-label span{font-size:14px;font-weight:900;display:block;line-height:1}.map-label.dark-state{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45)}.map-label.zero{opacity:.42}.state-ranking-panel{border:1px solid #eee4df;border-radius:14px;padding:18px 18px 16px;background:#fff;min-height:655px}.ranking-title{font-size:17px;margin-bottom:12px}.ranking-row{grid-template-columns:24px 42px 1fr 42px;padding:10px 0;border-bottom:0;gap:9px;font-size:13px}.ranking-bar{height:9px;background:#eeeae7}.ranking-bar i{background:linear-gradient(90deg,#eabfa5,#8b5e4a)}.ranking-value{font-size:13px}.ranking-summary{padding-top:16px}.map-scale{width:255px;padding:13px 16px 12px;border:1px solid #eee4df;border-radius:12px;background:#fff;margin:0 0 0 10px}.scale-title{display:block;font-size:12px;color:#625953;margin-bottom:8px}.scale-gradient{height:12px;border-radius:7px;background:linear-gradient(90deg,#f8e0d1,#e7b99d,#8b5e4a)}.scale-labels{display:flex;justify-content:space-between;font-size:11px;color:#91857d;margin-top:6px}.map-total{font-size:12px;margin:0 0 2px 8px;color:#71655e}.map-legend{display:none}
 @media(max-width:1050px){.state-map-layout{grid-template-columns:1fr}.state-ranking-panel{min-height:320px}.brazil-map{height:620px}}
+
+.auth-gate{position:fixed;inset:0;z-index:100000;background:linear-gradient(135deg,#f8f4f1,#fff);display:flex;align-items:center;justify-content:center;padding:20px}.auth-gate.hidden{display:none}.auth-card{width:min(430px,100%);background:#fff;border:1px solid #eadfd8;border-radius:22px;padding:30px;box-shadow:0 18px 60px rgba(60,45,35,.12)}.auth-brand{text-align:center;font-size:28px;font-weight:900;color:#342e2a}.auth-brand small{display:block;margin-top:5px;font-size:12px;color:#9b8c83;font-weight:600}.auth-card h1{font-size:21px;margin:25px 0 6px;color:#342e2a}.auth-sub{font-size:13px;color:#81766f;margin-bottom:20px}.auth-field{margin-bottom:12px}.auth-field label{display:block;font-size:12px;font-weight:700;color:#665d57;margin-bottom:6px}.auth-field input{width:100%;padding:12px 13px;border:1px solid #ddd1ca;border-radius:10px;background:#fff;font-size:14px;outline:0}.auth-field input:focus{border-color:#b58d78;box-shadow:0 0 0 3px rgba(139,94,74,.10)}.auth-submit{width:100%;margin-top:8px;padding:12px;border:0;border-radius:10px;background:#8b5e4a;color:#fff;font-weight:800;cursor:pointer}.auth-submit:disabled{opacity:.65;cursor:wait}.auth-message{min-height:20px;margin:12px 0;font-size:12px;text-align:center}.auth-message.error{color:#b54b4b}.auth-message.success{color:#2f7d57}.auth-message.loading{color:#8b5e4a}.auth-link{border:0;background:none;color:#8b5e4a;font-weight:700;cursor:pointer;font-size:12px;padding:8px}.auth-footer{text-align:center;margin-top:10px}.auth-logout{margin:18px 8px 0;width:calc(100% - 16px);border:1px solid #e4d9d2;background:#fff;color:#8b5e4a;border-radius:9px;padding:9px;font-weight:700;cursor:pointer}.auth-user{font-size:10px;color:#9b8c83;padding:8px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.app.app-locked{display:none}
 </style>
 <!-- Gestor 3D V58 — trigger de publicação -->
 </head>
 <body>
+<div id="authGate" class="auth-gate">
+  <div class="auth-card">
+    <div class="auth-brand">Gestor 3D<small>Vendas • Estoque • Lucro</small></div>
+    <h1 id="authTitle">Entrar no Gestor 3D</h1>
+    <div id="authSubtitle" class="auth-sub">Entre para acessar suas vendas, produtos e orçamentos.</div>
+    <form id="authForm">
+      <div id="authNameField" class="auth-field hidden"><label for="authName">Seu nome</label><input id="authName" autocomplete="name" placeholder="Seu nome"></div>
+      <div class="auth-field"><label for="authEmail">E-mail</label><input id="authEmail" type="email" autocomplete="email" required placeholder="seu@email.com"></div>
+      <div class="auth-field"><label for="authPassword">Senha</label><input id="authPassword" type="password" autocomplete="current-password" required placeholder="Mínimo de 6 caracteres"></div>
+      <div id="authMessage" class="auth-message"></div>
+      <button id="authSubmit" class="auth-submit" type="submit">Entrar</button>
+    </form>
+    <div class="auth-footer"><button id="authForgot" class="auth-link" type="button">Esqueci minha senha</button></div>
+    <div class="auth-footer"><button id="authToggle" class="auth-link" type="button">Criar uma conta</button></div>
+  </div>
+</div>
 <div class="app">
 <aside class="side">
   <div class="brand">Gestor 3D<small>V58 • Vendas • Estoque • Lucro</small></div>
@@ -114,6 +132,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
     <div class="nav-title">SISTEMA</div>
     <button onclick="show('settings',this)">⚙ <span>Configurações</span></button>
   </div>
+<div class="auth-user" id="authUserLabel"></div><button class="auth-logout" onclick="gestorAuthLogout()">↪ Sair da conta</button>
 </aside>
 <main class="main">
 <section id="dashboard">
@@ -497,8 +516,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <div class="panel"><div class="top" style="margin-bottom:12px"><h2>Registro de compras</h2><button class="btn" onclick="show('materials');toggle('materialForm')">+ Nova compra/material</button></div>
 <table><thead><tr><th>Data</th><th>Material</th><th>Quantidade</th><th>Valor</th><th>Fornecedor</th></tr></thead><tbody id="purchasesTable"></tbody></table></div>
 </div>
-</section>
-<section id="movements" class="hidden">
+</section><section id="movements" class="hidden">
 <div class="top"><div><h1>Movimentações</h1><div class="sub">Registre entradas, ajustes e saídas de materiais.</div></div></div>
 <div class="panel">
 <h2>Nova movimentação</h2>
@@ -642,6 +660,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 
 </main></div>
 
+<script src="/auth.js"></script>
 <script>
 const KEY='gestor3d_v1';
 let db=JSON.parse(localStorage.getItem(KEY)||'{"products":[],"sales":[],"materials":[]}');
@@ -997,8 +1016,7 @@ function addProduct(){
    const idx=db.products.findIndex(x=>String(x.id)===String(editingId));
    if(idx>=0)db.products[idx]=p;
  }else db.products.push(p);
- save();
- window.editingProductId=null;
+ save(); window.editingProductId=null;
  document.getElementById("productForm").classList.add("hidden");
  document.getElementById("productFormTitle").textContent="Novo produto";
  document.getElementById("productSaveBtn").textContent="Salvar produto";
@@ -1497,8 +1515,7 @@ function printQuote(id){
  const discount=Number(q.discount)||0, freight=Number(q.freight)||0;
  const finalTotal=Number(q.finalTotal??Math.max(0,gross-discount+freight));
  const html=`<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Orçamento - ${esc(q.name)}</title><style>
- body{font-family:Arial,sans-serif;color:#2d2926;margin:0;padding:35px}.sheet{max-width:800px;margin:auto;border:1px solid #ddd;padding:35px;border-radius:12px}.head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #8b5e4a;padding-bottom:18px}.logo{max-width:220px;max-height:80px}.brand{font-size:24px;font-weight:800}.meta{color:#777;font-size:12px;margin-top:5px}h1{font-size:22px;margin:25px 0 8px}.box{background:#f8f5f3;padding:15px;border-radius:8px;margin:14px 0}.row{display:flex;justify-content:space-between;gap:20px;padding:8px 0;border-bottom:1px solid #eee}.row:last-child{border:0}.discount{color:#b54b4b}.freight{color:#4d7d65}.total{font-size:22px;font-weight:800;color:#8b5e4a}.thanks{font-size:14px;line-height:1.5}.foot{margin-top:35px;color:#777;font-size:11px;text-align:center}@media print{body{padding:0}.sheet{border:0}}
- </style></head><body><div class="sheet"><div class="head">${logo?`<img class="logo" src="${logo}" alt="Logo">`:`<div class="brand">Gestor 3D</div>`}<div style="text-align:right"><b>ORÇAMENTO</b><div class="meta">${esc(q.date)}</div></div></div>
+ body{font-family:Arial,sans-serif;color:#2d2926;margin:0;padding:35px}.sheet{max-width:800px;margin:auto;border:1px solid #ddd;padding:35px;border-radius:12px}.head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #8b5e4a;padding-bottom:18px}.logo{max-width:220px;max-height:80px}.brand{font-size:24px;font-weight:800}.meta{color:#777;font-size:12px;margin-top:5px}h1{font-size:22px;margin:25px 0 8px}.box{background:#f8f5f3;padding:15px;border-radius:8px;margin:14px 0}.row{display:flex;justify-content:space-between;gap:20px;padding:8px 0;border-bottom:1px solid #eee}.row:last-child{border:0}.discount{color:#b54b4b}.freight{color:#4d7d65}.total{font-size:22px;font-weight:800;color:#8b5e4a}.thanks{font-size:14px;line-height:1.5}.foot{margin-top:35px;color:#777;font-size:11px;text-align:center}@media print{body{padding:0}.sheet{border:0}} </style></head><body><div class="sheet"><div class="head">${logo?`<img class="logo" src="${logo}" alt="Logo">`:`<div class="brand">Gestor 3D</div>`}<div style="text-align:right"><b>ORÇAMENTO</b><div class="meta">${esc(q.date)}</div></div></div>
  ${q.buyerName?`<div class="meta" style="margin-top:18px">Cliente: <b style="color:#2d2926">${esc(q.buyerName)}</b></div>`:""}
  <h1>${esc(q.name)}</h1><div class="box"><div class="row"><span>Quantidade</span><b>${esc(q.qty)}</b></div>${q.colors?`<div class="row"><span>Cores / acabamento</span><b>${esc(q.colors)}</b></div>`:""}<div class="row"><span>Preço por unidade</span><b>${money(q.price)}</b></div><div class="row"><span>Subtotal</span><b>${money(gross)}</b></div>${discount>0?`<div class="row discount"><span>Desconto</span><b>- ${money(discount)}</b></div>`:""}${freight>0?`<div class="row freight"><span>Frete</span><b>+ ${money(freight)}</b></div>`:""}<div class="row"><span><b>Total final</b></span><b class="total">${money(finalTotal)}</b></div></div>
  ${q.details?`<div class="box"><b>Observações</b><div style="margin-top:8px">${esc(q.details)}</div></div>`:""}${q.thankYou?`<div class="box thanks"><b>${esc(q.thankYou)}</b></div>`:""}<div class="foot">Orçamento gerado pelo Gestor 3D.</div></div><script>window.onload=()=>window.print();<\/script></body></html>`;
@@ -1997,8 +2014,7 @@ db.products.forEach(p=>{
  const sst=document.getElementById("shopeeStockTable"); if(sst) sst.innerHTML=db.products.map(p=>`<tr><td>${p.name}</td><td>${p.sku||"—"}</td><td>${p.stock||0}</td><td>—</td><td><span class="tag">Aguardando conexão</span></td></tr>`).join('')||'<tr><td colspan="5">Nenhum produto.</td></tr>';
 
  refreshMovementSelect();
- const movementsTable=document.getElementById("movementsTable"); if(movementsTable) movementsTable.innerHTML=(db.movements||[]).slice(0,100).map(m=>`<tr><td>${m.date}</td><td>${m.material}</td><td><span class="tag">${m.type}</span></td><td>${m.qty}</td><td>${m.note||"—"}</td></tr>`).join('')||'<tr><td colspan="5">Nenhuma movimentação.</td></tr>';
- // Consumo de materiais: soma somente saídas e mostra o estoque atual do cadastro.
+ const movementsTable=document.getElementById("movementsTable"); if(movementsTable) movementsTable.innerHTML=(db.movements||[]).slice(0,100).map(m=>`<tr><td>${m.date}</td><td>${m.material}</td><td><span class="tag">${m.type}</span></td><td>${m.qty}</td><td>${m.note||"—"}</td></tr>`).join('')||'<tr><td colspan="5">Nenhuma movimentação.</td></tr>'; // Consumo de materiais: soma somente saídas e mostra o estoque atual do cadastro.
  const consumptionRows=(db.materials||[]).map(mat=>{
    const outs=(db.movements||[]).filter(m=>String(m.materialId)===String(mat.id) && String(m.type).toLowerCase().includes("saída"));
    const used=outs.reduce((sum,m)=>sum+(Number(m.qty)||0),0);
