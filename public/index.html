@@ -242,12 +242,15 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 </div></div>
 <div class="panel">
 <h2>💾 Backup automático</h2>
-<div class="sub" style="margin-bottom:14px">O Gestor 3D cria cópias automáticas dos dados antes dos salvamentos. As últimas 20 versões ficam armazenadas neste navegador.</div>
-<div class="notice" id="backupStatus">Backup automático: verificando...</div>
+<div class="sub" style="margin-bottom:14px">O Gestor 3D mantém cópias automáticas locais e também pode salvar versões na nuvem, protegidas pela sua conta.</div>
+<div class="notice" id="backupStatus">Backup local: verificando...</div>
+<div class="notice" id="cloudBackupStatus" style="margin-top:10px">Backup na nuvem: verificando...</div>
 <div class="actions" style="margin-top:12px">
-<button class="btn secondary" type="button" onclick="restoreLatestAutoBackup()">↶ Restaurar último backup</button>
+<button class="btn secondary" type="button" onclick="restoreLatestAutoBackup()">↶ Restaurar último local</button>
+<button class="btn secondary" type="button" onclick="restoreLatestCloudBackup()">☁️ Restaurar da nuvem</button>
+<button class="btn" type="button" onclick="backupCurrentToCloud()">☁️ Fazer backup agora</button>
 </div>
-<div class="sub" style="margin-top:10px">Importante: esse backup protege contra alterações acidentais e erros no sistema, mas ainda fica neste navegador. Para proteção contra perda do computador, depois podemos adicionar o backup em arquivo/nuvem.</div>
+<div class="sub" style="margin-top:10px">A nuvem guarda as últimas 20 versões da sua conta. O backup local continua funcionando mesmo sem internet.</div>
 </div>
 <div class="panel"><h2>Logo para orçamentos</h2><div class="formgrid">
 <div class="field"><label>Enviar logo</label><input id="companyLogoInput" type="file" accept="image/png,image/jpeg,image/webp" onchange="saveCompanyLogo(this)"><div class="sub">A logo fica salva neste navegador e será usada nos orçamentos impressos.</div></div>
@@ -497,8 +500,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 
 <div id="inv-finished" class="inventory-pane hidden">
 <div class="panel"><h2>Peças acabadas</h2>
-<table><thead><tr><th>Produto</th><th>SKU</th><th>Loja</th><th>Estoque</th><th>Preço sugerido</th><th>Custo</th></tr></thead><tbody id="finishedTable"></tbody></table></div>
-</div>
+<table><thead><tr><th>Produto</th><th>SKU</th><th>Loja</th><th>Estoque</th><th>Preço sugerido</th><th>Custo</th></tr></thead><tbody id="finishedTable"></tbody></table></div></div>
 
 <div id="inv-paints" class="inventory-pane hidden">
 <div class="panel"><h2>Tintas</h2><div class="empty-state">Cadastre tintas em <b>Filamento / Insumos</b> usando a categoria <b>Outro</b>. A aba específica será automatizada na próxima etapa.</div></div>
@@ -738,6 +740,64 @@ const money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'B
 // Compatibilidade: evita que uma referência antiga a "cost" interrompa o salvamento do pedido.
 if(typeof globalThis.cost === "undefined") globalThis.cost = 0;
 let lastSavedSnapshot=localStorage.getItem(KEY)||"";
+const CLOUD_BACKUP_LIMIT=20;
+function getBackupDeviceId(){
+ let id=localStorage.getItem("gestor3d_backup_device_id");
+ if(!id){id=(crypto?.randomUUID?crypto.randomUUID():("dev-"+Date.now()+"-"+Math.random().toString(36).slice(2)));localStorage.setItem("gestor3d_backup_device_id",id);}
+ return id;
+}
+async function cloudBackup(snapshot,reason="automático"){
+ try{
+   const client=window.gestorSupabase;
+   if(!client)return false;
+   const {data:{user}}=await client.auth.getUser();
+   if(!user)return false;
+   let parsed=typeof snapshot==="string"?JSON.parse(snapshot):snapshot;
+   const {error}=await client.from("gestor3d_backups").insert({
+     user_id:user.id,device_id:getBackupDeviceId(),reason,data:parsed,app_version:"V58"
+   });
+   if(error)throw error;
+   const {data:rows}=await client.from("gestor3d_backups").select("id").eq("user_id",user.id).order("created_at",{ascending:false}).range(CLOUD_BACKUP_LIMIT,9999);
+   if(Array.isArray(rows)&&rows.length)await client.from("gestor3d_backups").delete().in("id",rows.map(x=>x.id));
+   updateCloudBackupStatus();
+   return true;
+ }catch(e){console.warn("Backup na nuvem indisponível:",e);updateCloudBackupStatus();return false;}
+}
+async function getLatestCloudBackup(){
+ try{
+   const client=window.gestorSupabase;if(!client)return null;
+   const {data:{user}}=await client.auth.getUser();if(!user)return null;
+   const {data,error}=await client.from("gestor3d_backups").select("id,created_at,reason,data,app_version").eq("user_id",user.id).order("created_at",{ascending:false}).limit(1).maybeSingle();
+   if(error)throw error;return data||null;
+ }catch(e){console.warn("Não foi possível consultar o backup na nuvem:",e);return null;}
+}
+async function updateCloudBackupStatus(){
+ const el=document.getElementById("cloudBackupStatus");if(!el)return;
+ try{
+   const latest=await getLatestCloudBackup();
+   if(!latest){el.textContent="Backup na nuvem: nenhum backup encontrado.";return;}
+   el.textContent="Último backup na nuvem: "+new Date(latest.created_at).toLocaleString("pt-BR")+" • "+(latest.reason||"automático");
+ }catch(e){el.textContent="Backup na nuvem: aguardando conexão.";}
+}
+async function restoreLatestCloudBackup(){
+ const latest=await getLatestCloudBackup();
+ if(!latest){alert("Ainda não existe backup na nuvem para esta conta.");return;}
+ if(!confirm("Restaurar o último backup da nuvem? Os dados atuais deste navegador serão substituídos pela versão salva na nuvem."))return;
+ try{
+   const parsed=typeof latest.data==="string"?JSON.parse(latest.data):latest.data;
+   localStorage.setItem(KEY,JSON.stringify(parsed));
+   lastSavedSnapshot=JSON.stringify(parsed);
+   alert("Backup da nuvem restaurado com sucesso. O Gestor 3D será recarregado.");
+   location.reload();
+ }catch(e){alert("Não foi possível restaurar o backup da nuvem.");}
+}
+async function backupCurrentToCloud(){
+ const current=localStorage.getItem(KEY)||"";
+ if(!current){alert("Ainda não há dados para enviar para a nuvem.");return;}
+ const ok=await cloudBackup(current,"backup manual");
+ if(ok)alert("Backup enviado para a nuvem com sucesso! ☁️");
+ else alert("Não foi possível enviar o backup. Verifique se você está conectado à sua conta.");
+}
 
 function openBackupDB(){
  return new Promise((resolve,reject)=>{
@@ -799,9 +859,12 @@ async function restoreLatestAutoBackup(){
 function save(){
  const current=JSON.stringify(db);
  // Antes de substituir os dados atuais, guarda a versão anterior.
- if(lastSavedSnapshot && lastSavedSnapshot!==current) createAutoBackup(lastSavedSnapshot,"antes do salvamento");
+ if(lastSavedSnapshot && lastSavedSnapshot!==current){
+   createAutoBackup(lastSavedSnapshot,"antes do salvamento");
+ }
  localStorage.setItem(KEY,current);
  lastSavedSnapshot=current;
+ cloudBackup(current,"salvamento automático");
  try{render();}catch(e){console.error("Pedido salvo, mas houve erro ao atualizar a tela:",e);}
 }
 function show(id,btn){if(id==='sales')setTimeout(populateSaleProducts,0);document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render();if(id==='shopee'){refreshShopeeStatus();renderShopeeStock();}}
@@ -997,8 +1060,7 @@ function addProduct(){
    const m=(db.materials||[]).find(x=>String(x.id)===String(select.value));
    const entered=+r.querySelector(".mat-qty").value||0;
    const qty=batch?entered/batchQty:entered;
-   return {materialId:m?.id||"", name:m?.name||"", qty, unit:m?.unit||"", unitCost:m?.unitCost||0, sourceQty:entered};
- }).filter(m=>m.name && m.qty>0);
+   return {materialId:m?.id||"", name:m?.name||"", qty, unit:m?.unit||"", unitCost:m?.unitCost||0, sourceQty:entered}; }).filter(m=>m.name && m.qty>0);
  const enteredHours=parseHoursInput(document.getElementById("pPrintHours")?.value);
  const printHours=batch?enteredHours/batchQty:enteredHours;
  const packEntered=+pPack.value||0, laborPercent=+pLabor.value||20, otherEntered=+pOther.value||0; const machineWatts=+document.getElementById("pMachineWatts")?.value||200, machineKwh=+document.getElementById("pMachineKwh")?.value||0.90, machineValue=+document.getElementById("pMachineValue")?.value||3000, machineLife=Math.max(1,+document.getElementById("pMachineLife")?.value||5000), machineWear=+document.getElementById("pMachineWear")?.value||0.20;
@@ -1497,8 +1559,7 @@ function renderQuotesPage(){
    <td>${q.date||"—"}</td>
    <td><b>${q.buyerName||"Sem cliente"}</b></td>
    <td>${q.name||"Projeto sem nome"}</td>
-   <td>${q.qty||1}</td>
-   <td><b>${money(q.finalTotal??q.totalPrice??((+q.price||0)*(+q.qty||1)))}</b></td>
+   <td>${q.qty||1}</td>   <td><b>${money(q.finalTotal??q.totalPrice??((+q.price||0)*(+q.qty||1)))}</b></td>
    <td><span class="tag">${q.status||"salvo"}</span></td>
    <td><div class="row-actions"><button class="btn xs outline" onclick="editQuote('${q.id}')">✎ Editar</button><button class="btn xs outline" onclick="printQuote('${q.id}')">🖨 Imprimir</button></div></td>
  </tr>`).join("")||'<tr><td colspan="7"><div class="empty-state">Nenhum orçamento salvo ainda.</div></td></tr>';
@@ -1997,8 +2058,7 @@ function render(){
 db.products.forEach(p=>{
  if(p.printHours===undefined)p.printHours=0;
  if(p.productionBasis==="batch"){
-   const bq=Math.max(1,+p.productionBatchQty||1);
-   (p.materials||[]).forEach(r=>{ if(r.sourceQty===undefined) r.sourceQty=(+r.qty||0)*bq; });
+   const bq=Math.max(1,+p.productionBatchQty||1);   (p.materials||[]).forEach(r=>{ if(r.sourceQty===undefined) r.sourceQty=(+r.qty||0)*bq; });
    if(p.productionSourceMaterials===undefined) p.productionSourceMaterials=(p.materials||[]).map(r=>({materialId:r.materialId,sourceQty:r.sourceQty}));
  }
 });
@@ -2056,6 +2116,7 @@ render();
 try{const q=new URLSearchParams(location.search);if(q.get("shopee_connected")){history.replaceState({},document.title,"/");setTimeout(()=>{show("shopee");refreshShopeeStatus();alert("Loja Shopee autorizada com sucesso!");},200);}}catch(e){}
 updateCalcBasisUI();
 updateBackupStatus();
+updateCloudBackupStatus();
 setInterval(()=>{
  const current=localStorage.getItem(KEY)||"";
  if(current && current!==lastSavedSnapshot) lastSavedSnapshot=current;
