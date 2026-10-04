@@ -86,6 +86,50 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 /* V54 — mapa exatamente no modelo de referência enviado, mantendo as cores */
 .state-map-panel{padding:24px 22px 22px;background:#fff;border:1px solid #eee7e2;border-radius:16px}.state-map-head{align-items:center;margin-bottom:4px}.state-map-title{display:flex;align-items:center;gap:12px}.map-title-icon{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#f7ebe4;color:#8b5e4a;font-size:22px}.state-map-title h2{font-size:20px}.state-map-title .sub{font-size:13px;color:#6e655f;margin-top:2px}.state-map-filter{background:#fff;border:1px solid #e4ddd8;border-radius:12px;padding:9px 13px;min-width:205px;box-shadow:0 1px 2px rgba(60,45,35,.03)}.state-map-filter label{display:none}.state-map-filter select{border:0!important;padding:0 4px!important;background:transparent!important;font-size:14px;font-weight:700;color:#2f2926;outline:0;width:155px}.map-filter-icon{color:#8b5e4a;font-size:17px;margin-right:5px}.state-map-layout{grid-template-columns:minmax(0,1.65fr) minmax(310px,.82fr);gap:24px;margin-top:10px}.map-area{position:relative;min-width:0}.brazil-map{position:relative;width:min(100%,760px);aspect-ratio:1283/1226;height:auto;margin:4px auto 0;background:#fff;border-radius:0;overflow:hidden;display:block}.brazil-map img{width:100%;height:100%;display:block;object-fit:contain;opacity:1;filter:none}.brazil-map:after{display:none}.map-label{position:absolute;transform:translate(-50%,0);display:flex;align-items:center;justify-content:center;color:#4f3a30;text-align:center;line-height:1;font-size:15px;font-weight:900;z-index:3;pointer-events:none;text-shadow:0 1px 1px rgba(255,255,255,.7);padding-top:17px;min-width:28px}.map-label span{font-size:14px;font-weight:900;display:block;line-height:1}.map-label.dark-state{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45)}.map-label.zero{opacity:.42}.state-ranking-panel{border:1px solid #eee4df;border-radius:14px;padding:18px 18px 16px;background:#fff;min-height:655px}.ranking-title{font-size:17px;margin-bottom:12px}.ranking-row{grid-template-columns:24px 42px 1fr 42px;padding:10px 0;border-bottom:0;gap:9px;font-size:13px}.ranking-bar{height:9px;background:#eeeae7}.ranking-bar i{background:linear-gradient(90deg,#eabfa5,#8b5e4a)}.ranking-value{font-size:13px}.ranking-summary{padding-top:16px}.map-scale{width:255px;padding:13px 16px 12px;border:1px solid #eee4df;border-radius:12px;background:#fff;margin:0 0 0 10px}.scale-title{display:block;font-size:12px;color:#625953;margin-bottom:8px}.scale-gradient{height:12px;border-radius:7px;background:linear-gradient(90deg,#f8e0d1,#e7b99d,#8b5e4a)}.scale-labels{display:flex;justify-content:space-between;font-size:11px;color:#91857d;margin-top:6px}.map-total{font-size:12px;margin:0 0 2px 8px;color:#71655e}.map-legend{display:none}
 @media(max-width:1050px){.state-map-layout{grid-template-columns:1fr}.state-ranking-panel{min-height:320px}.brazil-map{height:620px}}
+/* V58 — Tema escuro para uso noturno */
+:root{
+ --bg:#11100f;--card:#1b1918;--text:#f1ece8;--muted:#aaa19b;--accent:#b77d60;--line:#393330;
+ --good:#66c99a;--danger:#e56b6b;
+}
+body,.main{background:#11100f!important;color:#f1ece8}
+.side{background:#171514!important;color:#eee8e4;border-right:1px solid #332e2b!important}
+.brand{color:#f3ece7!important}.brand small{color:#a99d96!important}
+.nav-title{color:#8f857f!important}.nav button{color:#c9c1bc!important}
+.nav button:hover,.nav button.active{background:#332a26!important;color:#fff!important}
+.card,.panel,.quick-card,.store-item,.channel-card,.state-ranking-panel,.tech-card,.product-loader,.price-banner,.quote-box,.empty-state,
+.state-map-panel,.state-map-filter,.map-scale,.step{background:#1b1918!important;border-color:#393330!important;color:#f1ece8}
+.sub,.label,.card-foot,.quick-card span,.store-item small,.field label,.report-period label,.state-map-filter label,.map-total,.map-legend,
+.ranking-empty,.calc-title,.result-label,.analysis-row span,.tech-box span,.channel-card .sub{color:#aaa19b!important}
+.panel h2,.top h1,.ranking-title,.state-map-title h2,.store-item b,.quick-card b,.value,.ranking-value,.ranking-uf,.product-ranking-name,
+.state-map-title .sub,.ranking-summary b{color:#f1ece8}
+table th{color:#aaa19b!important}th,td,.category-item,.quote-item,.tech-list,.tech-row,.analysis-row{border-color:#393330!important}
+.field input,.field select,.material-row input,.component-row input,.report-period input,.product-loader select,
+.state-map-filter select,.color-input{background:#24211f!important;color:#f1ece8!important;border-color:#4a423d!important}
+.field input::placeholder,.material-row input::placeholder,.component-row input::placeholder{color:#817872}
+.btn.secondary{background:#342d29!important;color:#eadfd8!important}.btn.outline{background:#211e1c!important;color:#d5c9c2!important;border-color:#504640!important}
+.remove-material{background:#3a2925!important;color:#efaaa0!important}
+.notice,.sync-bar,.shopee-live-msg{background:#28221f!important;border-color:#514039!important;color:#d9cec7!important}
+.tag{background:#332e2b!important;color:#ddd5d0}.tag.good{background:#173a2b!important;color:#79d4a6}.tag.warn{background:#44331f!important;color:#e7b36d}
+.calc-tabs,.inventory-tabs,.channel-tabs{background:#292522!important}.calc-tab,.inventory-tab,.channel-tab{color:#b9aea7!important}
+.calc-tab.active,.inventory-tab.active,.channel-tab.active{background:#3a312d!important;color:#f0dfd5!important;box-shadow:0 1px 4px #0b0a09}
+.price-banner{background:#2b211c!important;border-color:#5a3d2e!important}.result-panel{background:#241e1b!important}
+.result-pills span{background:#352f2b!important;color:#bdb2ab!important}.result-pills b{color:#eee5df!important}
+.calc-block{border-color:#393330!important}.quote-box{border-color:#55473f!important}
+.channel-logo,.quick-icon,.dash-card-icon,.map-title-icon{background:#352823!important;color:#d39a7b!important}
+.channel-tabs .active,.inventory-tab.active{color:#e3b79e!important}
+.tech-box{background:#252220!important}.close-tech{background:#35302d!important;color:#eee8e4!important}
+.status-select{color:#fff!important}.status-recebido{background:#183149!important;color:#83c6f2!important}.status-producao{background:#453719!important;color:#f0c65d!important}
+.status-pronto{background:#183b2a!important;color:#75d7a2!important}.status-enviado{background:#30234c!important;color:#c3a5ff!important}.status-entregue{background:#173c35!important;color:#7dd9c6!important}.status-cancelado{background:#48232a!important;color:#ff9aaa!important}
+.status-pill-recebido{background:#183149!important;color:#83c6f2!important}.status-pill-producao{background:#453719!important;color:#f0c65d!important}.status-pill-pronto{background:#183b2a!important;color:#75d7a2!important}.status-pill-enviado{background:#30234c!important;color:#c3a5ff!important}.status-pill-entregue{background:#173c35!important;color:#7dd9c6!important}.status-pill-cancelado{background:#48232a!important;color:#ff9aaa!important}
+.state-map-panel{background:#181615!important}.state-map-filter{box-shadow:none!important}.state-map-filter select{color:#eee8e4!important}
+.state-ranking-panel{background:#1b1918!important}.ranking-row{border-color:#393330!important}.ranking-bar{background:#3a3532!important}.ranking-bar i{background:linear-gradient(90deg,#d8a88d,#9d6850)!important}
+.ranking-summary{border-color:#393330!important}.ranking-summary div{background:#25211f!important}
+.products-ranking{border-color:#393330!important}
+.brazil-map{background:#181615!important}.map-count{background:#292421!important;color:#f1e7e1!important;border-color:#805d4b!important}.map-scale{background:#1b1918!important}.scale-title,.scale-labels{color:#aaa19b!important}
+.quick-card{box-shadow:0 2px 10px rgba(0,0,0,.22)!important}.quick-card:hover{border-color:#735445!important}
+.tech-modal{background:rgba(0,0,0,.72)!important}
+input[type="date"],input[type="month"],input[type="time"]{color-scheme:dark}
+select option{background:#24211f;color:#f1ece8}
 </style>
 <!-- Gestor 3D V58 — trigger de publicação -->
 </head>
