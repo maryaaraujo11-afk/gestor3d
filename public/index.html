@@ -991,12 +991,21 @@ function saleProductionCost(p, orderQty=1, sale=null){
   if(!p)return 0;
   const q=Math.max(0,Number(orderQty)||0);
   const mats=saleRecipeMaterials(p,sale).reduce((sum,r)=>{
-    const use=materialConsumptionForSale(p,r,q);
-    return sum+use*(Number(r.unitCost||r.costPerGram)||0);
+   const use=materialConsumptionForSale(p,r,q);
+   return sum+use*(Number(r.unitCost||r.costPerGram)||0);
   },0);
   const comps=Array.isArray(p.components)?p.components.reduce((sum,c)=>sum+(Number(c.qty)||0)*(Number(c.unitCost)||0)*q,0):0;
-  return (mats+(Number(p.labor)||0)*q+(Number(p.other)||0)*q)||0;
+  const machine=machineUnitCost(p).total*q;
+  const other=(+p.other||0)*q;
+  const laborBase=mats+comps+machine+other;
+  const labor=laborBase*((+p.laborPercent||20)/100);
+  return (mats+comps+machine+labor+other)||0;
  }catch(e){console.error("Erro ao calcular custo do produto",e);return 0;}
+}
+function saleEstimatedProfit(s){
+ const net=Number(s?.netValue??0)||0;
+ const cost=Number(s?.cost??0)||0;
+ return net-cost;
 }
 function adjustStockForSale(s, direction, note){
  const p=saleProduct(s); if(!p)return;
@@ -1057,7 +1066,7 @@ function renderSalesTable(){
  const filter=document.getElementById("salesFilter")?.value||"todos";
  let rows=(db.sales||[]).filter(s=>filter==="todos" ? true : filter==="atrasados" ? isLate(s) : s.status===filter);
  rows.sort((a,b)=>{const ad=a.dueDate||"9999-12-31",bd=b.dueDate||"9999-12-31"; if(ad!==bd)return ad.localeCompare(bd); const at=`${a.dateISO||""}T${a.time||"00:00"}`,bt=`${b.dateISO||""}T${b.time||"00:00"}`; return at.localeCompare(bt);});
- table.innerHTML=rows.map(s=>{const late=isLate(s); return `<tr><td>${formatDateISO(s.dateISO||"")}<small class="sub" style="display:block">${s.time||"—"}</small></td><td>${s.customerName||"—"}</td><td>${s.state||"—"}</td><td>${s.product}${s.variantName?`<small class="sub" style="display:block">Cor: ${s.variantName}</small>`:""}</td><td>${s.store||"—"}</td><td>${s.qty}</td><td><span class="${late?'tag warn':'tag'}">${formatDateISO(s.dueDate)}</span>${late?'<small style="display:block;color:#a33;font-weight:700">Atrasado</small>':''}</td><td>${money(Number(s.grossValue??s.value)||0)}<small class="sub" style="display:block">Líquido: ${money(Number(s.netValue??0)||0)}</small></td><td><select data-sale-status="${s.id}" class="status-select status-${saleStatusKey(s.status||"Recebido")}" onchange="updateSaleStatus('${s.id}',this.value)">${["Recebido","Em produção","Pronto","Enviado","Entregue","Cancelado"].map(st=>`<option value="${st}" ${s.status===st?'selected':''}>${st}</option>`).join("")}</select></td><td>${s.notes||"—"}</td><td style="white-space:nowrap"><button class="btn xs outline" onclick="startEditSale('${s.id}')">Editar</button> <button class="btn xs danger" onclick="deleteSale('${s.id}')">Excluir</button></td></tr>`}).join("")||'<tr><td colspan="11">Nenhum pedido encontrado.</td></tr>';
+ table.innerHTML=rows.map(s=>{const late=isLate(s); return `<tr><td>${formatDateISO(s.dateISO||"")}<small class="sub" style="display:block">${s.time||"—"}</small></td><td>${s.customerName||"—"}</td><td>${s.state||"—"}</td><td>${s.product}${s.variantName?`<small class="sub" style="display:block">Cor: ${s.variantName}</small>`:""}</td><td>${s.store||"—"}</td><td>${s.qty}</td><td><span class="${late?'tag warn':'tag'}">${formatDateISO(s.dueDate)}</span>${late?'<small style="display:block;color:#a33;font-weight:700">Atrasado</small>':''}</td><td>${money(Number(s.grossValue??s.value)||0)}<small class="sub" style="display:block">Líquido: ${money(Number(s.netValue??0)||0)}</small></td><td><b style="color:${saleEstimatedProfit(s)>=0?'#2f7d57':'#b54b4b'}">${money(saleEstimatedProfit(s))}</b><small class="sub" style="display:block">Lucro estimado</small></td><td><select data-sale-status="${s.id}" class="status-select status-${saleStatusKey(s.status||"Recebido")}" onchange="updateSaleStatus('${s.id}',this.value)">${["Recebido","Em produção","Pronto","Enviado","Entregue","Cancelado"].map(st=>`<option value="${st}" ${s.status===st?'selected':''}>${st}</option>`).join("")}</select></td><td>${s.notes||"—"}</td><td style="white-space:nowrap"><button class="btn xs outline" onclick="startEditSale('${s.id}')">Editar</button> <button class="btn xs danger" onclick="deleteSale('${s.id}')">Excluir</button></td></tr>`}).join("")||'<tr><td colspan="11">Nenhum pedido encontrado.</td></tr>';
 }
 function addSaleItemRow(item={}){
  const wrap=document.getElementById("saleItemsList"); if(!wrap)return;
