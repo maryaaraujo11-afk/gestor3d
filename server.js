@@ -16,9 +16,12 @@ if (fs.existsSync(ENV_FILE)) {
 
 const PORT = Number(process.env.PORT || 3000);
 const PARTNER_ID = String(process.env.SHOPEE_PARTNER_ID || "");
-const PARTNER_KEY = String(process.env.SHOPEE_PARTNER_KEY || "");
 const SHOPEE_ENV = String(process.env.SHOPEE_ENV || "production").toLowerCase();
-const BASE = SHOPEE_ENV === "sandbox" ? "https://partner.test-stable.shopeemobile.com" : "https://partner.shopeemobile.com";
+const RAW_PARTNER_KEY = String(process.env.SHOPEE_PARTNER_KEY || "").trim();
+// As chaves de teste atuais podem vir com o prefixo "shpk". No Sandbox,
+// a assinatura deve usar apenas a parte da chave após esse prefixo.
+const PARTNER_KEY = SHOPEE_ENV === "sandbox" ? RAW_PARTNER_KEY.replace(/^shpk/i, "") : RAW_PARTNER_KEY;
+const BASE = SHOPEE_ENV === "sandbox" ? "https://openplatform.sandbox.test-stable.shopee.sg" : "https://partner.shopeemobile.com";
 const SUPABASE_URL = String(process.env.SUPABASE_URL || "https://givfacbmlhjizrmgguzi.supabase.co").replace(/\/$/, "");
 const SUPABASE_PUBLISHABLE_KEY = String(process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_-RaV-4hmFnLPyGhewGQZeg_1I_fs_wH");
 const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
