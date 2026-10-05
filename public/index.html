@@ -20,7 +20,7 @@
 table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:11px 8px;border-bottom:1px solid #eee}th{color:var(--muted);font-size:11px;text-transform:uppercase}
 .btn{border:0;border-radius:9px;padding:10px 14px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}.btn.secondary{background:#eee5df;color:#4b403a}.btn.danger{background:#b54b4b}.actions{display:flex;gap:8px;flex-wrap:wrap}
 .formgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}.field input,.field select{width:100%;padding:10px;border:1px solid #ddd1ca;border-radius:8px;background:white}
-.material-row{display:grid;grid-template-columns:1.7fr .8fr auto;gap:8px;margin-bottom:8px;align-items:end}.component-row{display:grid;grid-template-columns:1.5fr .7fr .8fr auto;gap:8px;margin-bottom:8px;align-items:end}.material-row input,.component-row input{width:100%;padding:10px;border:1px solid #ddd1ca;border-radius:8px;background:white}.remove-material{border:0;background:#f3e5e1;color:#9b4a3f;border-radius:8px;padding:10px;cursor:pointer}.material-summary{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.hidden{display:none}.tag{display:inline-block;padding:4px 8px;border-radius:99px;background:#f0ebe8;font-size:11px}.tag.good{background:#e6f3ec;color:#276a4b}.tag.warn{background:#fff0df;color:#9b611d}.tag.date-late{background:#fde7e7;color:#b33a3a}.tag.date-today{background:#fff0cf;color:#9a6a00}.tag.date-future{background:#e6f3ec;color:#276a4b}.tag.date-sent{background:#e7f0ff;color:#2563a8}.category-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}.category-dot{width:7px;height:7px;border-radius:50%;display:inline-block}.row-actions{display:flex;gap:6px;flex-wrap:wrap}.btn.xs{padding:7px 9px;font-size:11px}.btn.outline{background:#fff;color:#7b6c63;border:1px solid #d9cec8}.category-manager{margin-top:14px}.category-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #eee}.category-item:last-child{border-bottom:0}.color-input{width:42px;height:32px;padding:2px;border:1px solid #ddd1ca;border-radius:8px;background:#fff;cursor:pointer}
+.material-row{display:grid;grid-template-columns:1.7fr .8fr auto;gap:8px;margin-bottom:8px;align-items:end}.product-variant-row{border:1px solid #e7e0dc;border-radius:12px;padding:12px;margin:10px 0;background:#fff}.variant-head{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}.variant-head input{width:100%;padding:10px;border:1px solid #ddd1ca;border-radius:8px;background:#fff}.variant-remove{white-space:nowrap}.variant-materials{margin-top:10px;padding:10px;background:#faf8f6;border-radius:9px}.variant-materials-list{display:flex;flex-direction:column;gap:7px;margin:7px 0}.variant-material-row{display:grid;grid-template-columns:1.7fr .8fr auto;gap:8px;align-items:end}.variant-material-row select,.variant-material-row input{width:100%;padding:10px;border:1px solid #ddd1ca;border-radius:8px;background:#fff}.component-row{display:grid;grid-template-columns:1.5fr .7fr .8fr auto;gap:8px;margin-bottom:8px;align-items:end}.material-row input,.component-row input{width:100%;padding:10px;border:1px solid #ddd1ca;border-radius:8px;background:white}.remove-material{border:0;background:#f3e5e1;color:#9b4a3f;border-radius:8px;padding:10px;cursor:pointer}.material-summary{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.hidden{display:none}.tag{display:inline-block;padding:4px 8px;border-radius:99px;background:#f0ebe8;font-size:11px}.tag.good{background:#e6f3ec;color:#276a4b}.tag.warn{background:#fff0df;color:#9b611d}.tag.date-late{background:#fde7e7;color:#b33a3a}.tag.date-today{background:#fff0cf;color:#9a6a00}.tag.date-future{background:#e6f3ec;color:#276a4b}.tag.date-sent{background:#e7f0ff;color:#2563a8}.category-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}.category-dot{width:7px;height:7px;border-radius:50%;display:inline-block}.row-actions{display:flex;gap:6px;flex-wrap:wrap}.btn.xs{padding:7px 9px;font-size:11px}.btn.outline{background:#fff;color:#7b6c63;border:1px solid #d9cec8}.category-manager{margin-top:14px}.category-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #eee}.category-item:last-child{border-bottom:0}.color-input{width:42px;height:32px;padding:2px;border:1px solid #ddd1ca;border-radius:8px;background:#fff;cursor:pointer}
 .notice{padding:12px;background:#faf5f1;border:1px dashed #d9c7bc;border-radius:10px;color:#63564e;font-size:13px}
 @media(max-width:900px){.side{width:70px}.brand{font-size:0}.brand small{display:none}.nav button{font-size:0;text-align:center}.nav button::first-letter{font-size:20px}.main{margin-left:70px;width:calc(100% - 70px);padding:18px}.cards{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.formgrid{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.cards{grid-template-columns:1fr}.formgrid{grid-template-columns:1fr}.main{padding:12px}}
@@ -1001,25 +1001,68 @@ function updateProductBasisUI(){
  updateProductMaterialTotal();
 }
 
-function addProductVariantRow(variant={}){
- const wrap=document.getElementById("productVariantsList");
+function addVariantMaterialRow(variantRow,material={}){
+ const wrap=variantRow?.querySelector(".variant-materials-list");
  if(!wrap)return;
- const row=document.createElement("div"); row.className="component-row product-variant-row";
- const options=(db.materials||[]).map(m=>`<option value="${m.id}" ${String(m.id)===String(variant.materialId||"")?"selected":""}>${m.name}${m.color?" — "+m.color:""} (${money(m.unitCost)}/${m.unit})</option>`).join("");
- row.innerHTML=`<div><label class="sub">Nome da cor / variação</label><input class="variant-name" type="text" placeholder="Ex.: Rosa" value="${String(variant.name||"").replace(/"/g,'&quot;')}"></div>
- <div><label class="sub">Filamento / material</label><select class="variant-material"><option value="">Selecione</option>${options}</select></div>
- <div><label class="sub">Consumo / unidade</label><input class="variant-qty" type="number" min="0" step="0.0001" placeholder="Ex.: 1,70" value="${variant.qty??""}"></div>
+ const row=document.createElement("div");
+ row.className="variant-material-row";
+ const options=(db.materials||[]).map(m=>`<option value="${m.id}" ${String(m.id)===String(material.materialId||"")?"selected":""}>${m.name}${m.color?" — "+m.color:""} (${money(m.unitCost)}/${m.unit})</option>`).join("");
+ row.innerHTML=`<select class="variant-material"><option value="">Selecione o filamento / material</option>${options}</select>
+ <input class="variant-qty" type="number" min="0" step="0.0001" placeholder="Consumo / unidade" value="${material.qty??""}">
  <button type="button" class="remove-material" onclick="this.parentElement.remove()">Remover</button>`;
  wrap.appendChild(row);
 }
+
+function addProductVariantRow(variant={}){
+ const wrap=document.getElementById("productVariantsList");
+ if(!wrap)return;
+ const row=document.createElement("div");
+ row.className="product-variant-row";
+ row.dataset.variantId=variant.id||String(Date.now()+Math.random());
+ const legacyMaterials=variant.materials?.length ? variant.materials : (variant.materialId ? [{
+   materialId:variant.materialId,
+   materialName:variant.materialName||"",
+   unit:variant.unit||"",
+   unitCost:variant.unitCost||0,
+   qty:variant.qty||0
+ }] : []);
+ row.innerHTML=`<div class="variant-head">
+   <div><label class="sub">Nome da cor / variação</label><input class="variant-name" type="text" placeholder="Ex.: Rosa" value="${String(variant.name||"").replace(/"/g,'&quot;')}"></div>
+   <button type="button" class="remove-material variant-remove" onclick="this.closest('.product-variant-row').remove()">Remover cor</button>
+ </div>
+ <div class="variant-materials">
+   <label class="sub"><b>Filamentos / materiais desta cor</b></label>
+   <div class="variant-materials-list"></div>
+   <button type="button" class="btn secondary" onclick="addVariantMaterialRow(this.closest('.product-variant-row'))">+ Adicionar filamento / material</button>
+   <div class="sub" style="margin-top:5px">Você pode cadastrar vários filamentos ou materiais na mesma cor e informar o consumo de cada um por unidade.</div>
+ </div>`;
+ wrap.appendChild(row);
+ if(legacyMaterials.length) legacyMaterials.forEach(m=>addVariantMaterialRow(row,m));
+ else addVariantMaterialRow(row);
+}
+
 function collectProductVariants(){
  return [...document.querySelectorAll("#productVariantsList .product-variant-row")].map(row=>{
    const name=row.querySelector(".variant-name")?.value.trim()||"";
-   const materialId=row.querySelector(".variant-material")?.value||"";
-   const qty=+row.querySelector(".variant-qty")?.value||0;
-   const m=(db.materials||[]).find(x=>String(x.id)===String(materialId));
-   return {id:row.dataset.variantId||String(Date.now()+Math.random()),name,materialId:m?.id||"",materialName:m?.name||"",unit:m?.unit||"",unitCost:+m?.unitCost||0,qty};
- }).filter(v=>v.name&&v.materialId&&v.qty>0);
+   const materials=[...row.querySelectorAll(".variant-material-row")].map(mrow=>{
+     const materialId=mrow.querySelector(".variant-material")?.value||"";
+     const qty=+mrow.querySelector(".variant-qty")?.value||0;
+     const m=(db.materials||[]).find(x=>String(x.id)===String(materialId));
+     return {materialId:m?.id||"",materialName:m?.name||"",unit:m?.unit||"",unitCost:+m?.unitCost||0,qty};
+   }).filter(m=>m.materialId&&m.qty>0);
+   const first=materials[0]||{};
+   return {
+     id:row.dataset.variantId||String(Date.now()+Math.random()),
+     name,
+     materials,
+     // Mantém os campos antigos para compatibilidade com produtos já cadastrados.
+     materialId:first.materialId||"",
+     materialName:first.materialName||"",
+     unit:first.unit||"",
+     unitCost:first.unitCost||0,
+     qty:first.qty||0
+   };
+ }).filter(v=>v.name&&v.materials.length);
 }
 function variantForSale(p,variantId){
  const variants=Array.isArray(p?.variants)?p.variants:[];
@@ -1029,10 +1072,23 @@ function saleRecipeMaterials(p,s){
  const base=Array.isArray(p?.materials)?p.materials:[];
  const v=variantForSale(p,s?.variantId);
  if(!v)return base;
- const m=(db.materials||[]).find(x=>String(x.id)===String(v.materialId));
- const variantMat={materialId:v.materialId,name:v.materialName||m?.name||v.name,qty:+v.qty||0,unit:m?.unit||v.unit||"",unitCost:+(m?.unitCost??v.unitCost)||0};
- const shared=base.filter(r=>String(r.materialId)!==String(v.materialId));
- return [variantMat,...shared];
+ const variantMaterials=Array.isArray(v.materials)&&v.materials.length
+   ? v.materials
+   : (v.materialId ? [v] : []);
+ if(!variantMaterials.length)return base;
+ const mapped=variantMaterials.map(vm=>{
+   const m=(db.materials||[]).find(x=>String(x.id)===String(vm.materialId));
+   return {
+     materialId:vm.materialId,
+     name:vm.materialName||m?.name||v.name,
+     qty:+vm.qty||0,
+     unit:m?.unit||vm.unit||"",
+     unitCost:+(m?.unitCost??vm.unitCost)||0
+   };
+ });
+ const variantIds=new Set(variantMaterials.map(vm=>String(vm.materialId)));
+ const shared=base.filter(r=>!variantIds.has(String(r.materialId)));
+ return [...mapped,...shared];
 }
 function variantLabel(v){ return v?.name ? ` — ${v.name}` : ""; }
 function suggestedForSale(p,saleLike=null){
@@ -1438,7 +1494,7 @@ function openTechModal(id){
    </div>
    <h3>Filamentos</h3>
    <div class="tech-list">${matRows||'<div class="sub" style="padding:10px 0">Nenhum filamento cadastrado.</div>'}</div>
-   ${(p.variants||[]).length?`<h3 style="margin-top:18px">Variações de cor</h3><div class="tech-list">${p.variants.map(v=>`<div class="tech-row"><span>${v.name||"Variação"} <small class="sub">${v.qty||0} ${v.unit||""} — ${v.materialName||"Material"}</small></span><b>${money((+v.qty||0)*(+v.unitCost||0))}</b></div>`).join("")}</div>`:""}
+   ${(p.variants||[]).length?`<h3 style="margin-top:18px">Variações de cor</h3><div class="tech-list">${p.variants.map(v=>{const ms=Array.isArray(v.materials)&&v.materials.length?v.materials:(v.materialId?[v]:[]);const total=ms.reduce((a,m)=>a+(+m.qty||0)*(+m.unitCost||0),0);return `<div class="tech-row"><span><b>${v.name||"Variação"}</b>${ms.map(m=>`<small class="sub" style="display:block">${m.qty||0} ${m.unit||""} — ${m.materialName||"Material"}</small>`).join("")}</span><b>${money(total)}</b></div>`}).join("")}</div>`:""}
    <h3 style="margin-top:18px">Componentes / insumos</h3>
    <div class="tech-list">${compRows||'<div class="sub" style="padding:10px 0">Nenhum componente cadastrado.</div>'}</div>
    <h3 style="margin-top:18px">Custos adicionais</h3>
