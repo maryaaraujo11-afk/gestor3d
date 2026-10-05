@@ -1121,13 +1121,15 @@ function addProduct(){
  const printHours=batch?enteredHours/batchQty:enteredHours;
  const packEntered=+pPack.value||0, laborPercent=+pLabor.value||20, otherEntered=+pOther.value||0; const machineWatts=+document.getElementById("pMachineWatts")?.value||200, machineKwh=+document.getElementById("pMachineKwh")?.value||0.90, machineValue=+document.getElementById("pMachineValue")?.value||3000, machineLife=Math.max(1,+document.getElementById("pMachineLife")?.value||5000), machineWear=+document.getElementById("pMachineWear")?.value||0.20;
  const pack=packEntered;
- const tempProduct={materials,printHours,machineWatts,machineKwh,machineValue,machineLife,machineWear,other}; const laborBaseBeforeLabor=materialCost(tempProduct)+componentCost(tempProduct)+machineUnitCost(tempProduct).total+other; const labor=laborBaseBeforeLabor*(laborPercent/100);
  const other=batch?otherEntered/batchQty:otherEntered;
+ const tempProduct={materials,printHours,machineWatts,machineKwh,machineValue,machineLife,machineWear,other};
+ const laborBaseBeforeLabor=materialCost(tempProduct)+componentCost(tempProduct)+machineUnitCost(tempProduct).total+other;
+ const labor=laborBaseBeforeLabor*(laborPercent/100);
  const old=editingId?(db.products||[]).find(x=>String(x.id)===String(editingId)):null;
  const variants=collectProductVariants();
  let p={...(old||{}),id:editingId||Date.now(),name:pName.value.trim(),sku:pSku.value.trim(),store:pStore.value,shopeeSku:pShopeeSku.value.trim(),shopeeName:pShopeeName.value.trim(),materials,variants,
  filamentCost:materials.reduce((sum,m)=>sum+(+m.qty||0)*(+m.unitCost||0),0),pack,labor,laborPercent,other,machineWatts,machineKwh,machineValue,machineLife,machineWear,
- fee:+pFee.value||0,margin:+pMargin.value||0,stock:+pStock.value||0,printHours,productionBatchQty:batch?batchQty:1,productionBasis:batch?"batch":"unit",productionSourceHours:enteredHours,productionSourcePack:packEntered,productionSourceLabor:laborEntered,productionSourceOther:otherEntered,productionSourceMaterials:batch?materials.map(m=>({materialId:m.materialId,sourceQty:m.sourceQty})):null,stockManaged:old?.stockManaged||false};
+ fee:+pFee.value||0,margin:+pMargin.value||0,stock:+pStock.value||0,printHours,productionBatchQty:batch?batchQty:1,productionBasis:batch?"batch":"unit",productionSourceHours:enteredHours,productionSourcePack:packEntered,productionSourceLabor:laborPercent,productionSourceOther:otherEntered,productionSourceMaterials:batch?materials.map(m=>({materialId:m.materialId,sourceQty:m.sourceQty})):null,stockManaged:old?.stockManaged||false};
  if(!p.name){alert("Informe o nome do produto.");return}
  if(!materials.length){alert("Adicione pelo menos um material ou insumo.");return}
  if(editingId){
