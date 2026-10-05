@@ -17,7 +17,8 @@ if (fs.existsSync(ENV_FILE)) {
 const PORT = Number(process.env.PORT || 3000);
 const PARTNER_ID = String(process.env.SHOPEE_PARTNER_ID || "");
 const PARTNER_KEY = String(process.env.SHOPEE_PARTNER_KEY || "");
-const BASE = "https://partner.shopeemobile.com";
+const SHOPEE_ENV = String(process.env.SHOPEE_ENV || "production").toLowerCase();
+const BASE = SHOPEE_ENV === "sandbox" ? "https://partner.test-stable.shopeemobile.com" : "https://partner.shopeemobile.com";
 const SUPABASE_URL = String(process.env.SUPABASE_URL || "https://givfacbmlhjizrmgguzi.supabase.co").replace(/\/$/, "");
 const SUPABASE_PUBLISHABLE_KEY = String(process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_-RaV-4hmFnLPyGhewGQZeg_1I_fs_wH");
 const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
