@@ -193,7 +193,9 @@ async function shopee(pathname, method, s, query={}, body=null){
     return {r,data,mode};
   };
 
-  const key=String(PARTNER_KEY);
+  // As Partner Keys atuais do Console podem vir com o prefixo "shpk".
+  // Para chamadas de Shop API, a assinatura HMAC usa somente a chave secreta sem esse prefixo.
+  const key=/^shpk/i.test(String(PARTNER_KEY)) ? String(PARTNER_KEY).slice(4) : String(PARTNER_KEY);
   const modes=SHOPEE_ENV==="sandbox"
     ? ["partner_path_ts_token_shop","partner_path_ts_token","partner_path_ts"]
     : ["partner_path_ts_token_shop"];
