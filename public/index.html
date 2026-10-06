@@ -1469,7 +1469,7 @@ function openTechModal(id){
  if(!p)return;
  document.getElementById("techTitle").textContent=p.name;
  document.getElementById("techSub").textContent=[p.sku,p.shopeeSku].filter(Boolean).join(" • ")||"Sem SKU";
- const matRows=(p.materials||[]).map(r=>`<div class="tech-row"><span>${r.name||"Material"} <small class="sub">${r.grams||0} g</small></span><b>${money((+r.grams||0)*(+r.costPerGram||0))}</b></div>`).join("");
+ const matRows=(p.materials||[]).map(r=>{const qty=Number(r.qty??r.grams??0)||0;const unit=r.unit||"un.";const unitCost=Number(r.unitCost??r.costPerGram??0)||0;return `<div class="tech-row"><span>${r.name||"Material"} <small class="sub">${qty.toLocaleString("pt-BR",{maximumFractionDigits:4})} ${unit}</small></span><b>${money(qty*unitCost)}</b></div>`;}).join("");
  const compRows=(p.components||[]).map(r=>`<div class="tech-row"><span>${r.name||"Componente"} <small class="sub">${r.qty||0} un.</small></span><b>${money((+r.qty||0)*(+r.unitCost||0))}</b></div>`).join("");
  const total=totalCost(p), price=suggested(p), laborValue=laborAmount(p);
  document.getElementById("techBody").innerHTML=`
@@ -1481,7 +1481,7 @@ function openTechModal(id){
      <div class="tech-box"><span>Preço sugerido a partir de</span><b>${money(price)}</b></div>
      <div class="tech-box"><span>Margem / taxa</span><b>${p.margin||0}% / ${p.fee||0}%</b></div>
    </div>
-   <h3>Filamentos</h3>
+   <h3>Filamentos / receita base</h3>
    <div class="tech-list">${matRows||'<div class="sub" style="padding:10px 0">Nenhum filamento cadastrado.</div>'}</div>
    ${(p.variants||[]).length?`<h3 style="margin-top:18px">Variações de cor</h3><div class="tech-list">${p.variants.map(v=>{const ms=Array.isArray(v.materials)&&v.materials.length?v.materials:(v.materialId?[v]:[]);const total=ms.reduce((a,m)=>a+(+m.qty||0)*(+m.unitCost||0),0);const vh=Number(v.printHours)>0?formatHoursInput(Number(v.printHours)):"Tempo padrão";return `<div class="tech-row"><span><b>${v.name||"Variação"}</b><small class="sub" style="display:block">⏱ ${vh}</small>${ms.map(m=>`<small class="sub" style="display:block">${m.qty||0} ${m.unit||""} — ${m.materialName||"Material"}</small>`).join("")}</span><b>${money(total)}</b></div>`}).join("")}</div>`:""}
    <h3 style="margin-top:18px">Componentes / insumos</h3>
