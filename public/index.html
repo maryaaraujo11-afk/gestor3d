@@ -1894,7 +1894,7 @@ async function syncShopeeProducts(){
  const store=+document.getElementById("productStore").value;
  try{
   const d=await api(`/api/shopee/products/${store}`); shopeeCache.products[store]=d;
-  const raw=d.data?.response?.item||d.data?.item||d.data?.response?.item_list||d.data?.item_list||[];
+  const raw=d.items||d.data?.response?.item||d.data?.item||d.data?.response?.item_list||d.data?.item_list||[];
   const rows=Array.isArray(raw)?raw:[];
   document.getElementById("shopeeProductsTable").innerHTML=rows.map(x=>{
     const iid=x.item_id||x.itemid||"";
