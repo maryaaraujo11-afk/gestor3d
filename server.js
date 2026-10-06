@@ -18,7 +18,7 @@ const PORT = Number(process.env.PORT || 3000);
 const PARTNER_ID = String(process.env.SHOPEE_PARTNER_ID || "");
 const PARTNER_KEY = String(process.env.SHOPEE_PARTNER_KEY || "").trim();
 const SHOPEE_ENV = String(process.env.SHOPEE_ENV || "production").toLowerCase();
-const BASE = SHOPEE_ENV === "sandbox" ? "https://openplatform.sandbox.test-stable.shopee.sg" : "https://partner.shopeemobile.com";
+const BASE = SHOPEE_ENV === "sandbox" ? "https://partner.test-stable.shopeemobile.com" : "https://partner.shopeemobile.com";
 const SUPABASE_URL = String(process.env.SUPABASE_URL || "https://givfacbmlhjizrmgguzi.supabase.co").replace(/\/$/, "");
 const SUPABASE_PUBLISHABLE_KEY = String(process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_-RaV-4hmFnLPyGhewGQZeg_1I_fs_wH");
 const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
@@ -183,16 +183,30 @@ async function shopee(pathname, method, s, query={}, body=null){
   return data;
 }
 async function exchangeCode(code, shopId){
-  const u=BASE+"/api/v2/auth/token/get";
-  const r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,shop_id:Number(shopId),partner_id:Number(PARTNER_ID)})});
-  const data=await r.json();
+  const pathname="/api/v2/auth/token/get";
+  const timestamp=Math.floor(Date.now()/1000);
+  const u=new URL(BASE+pathname);
+  u.searchParams.set("partner_id",PARTNER_ID);
+  u.searchParams.set("timestamp",String(timestamp));
+  u.searchParams.set("sign",authSign(pathname,timestamp));
+  const body={code,partner_id:Number(PARTNER_ID)};
+  if(shopId)body.shop_id=Number(shopId);
+  const r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const data=await r.json().catch(()=>({}));
   if(!r.ok || data.error) throw new Error(data.message||data.error||"Falha ao trocar code por token.");
+  if(!data.access_token || !data.refresh_token) throw new Error("A Shopee não retornou access_token/refresh_token após a autorização.");
   return data;
 }
 async function refresh(userId,storeId){
   const s=await getStore(userId,storeId);
   if(!s?.refresh_token) throw new Error("Loja não conectada ou sem refresh_token.");
-  const r=await fetch(BASE+"/api/v2/auth/access_token/get",{
+  const pathname="/api/v2/auth/access_token/get";
+  const timestamp=Math.floor(Date.now()/1000);
+  const u=new URL(BASE+pathname);
+  u.searchParams.set("partner_id",PARTNER_ID);
+  u.searchParams.set("timestamp",String(timestamp));
+  u.searchParams.set("sign",authSign(pathname,timestamp));
+  const r=await fetch(u,{
     method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({refresh_token:s.refresh_token,shop_id:Number(s.shop_id),partner_id:Number(PARTNER_ID)})
   });
