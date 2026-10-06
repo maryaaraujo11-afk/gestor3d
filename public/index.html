@@ -650,7 +650,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 </div>
 
 <div id="shopeeOrders" class="hidden">
-<div class="sync-bar"><div><b>Pedidos Shopee</b><div class="sub">Busca pedidos atualizados dos últimos 7 dias.</div></div><div class="actions"><select id="orderStore"><option value="1">F4R Studio 3D</option><option value="2">F4RM 3D</option></select><button class="btn secondary" onclick="syncShopeeOrders()">↻ Sincronizar pedidos</button></div></div>
+<div class="sync-bar"><div><b>Pedidos Shopee</b><div class="sub">Sincroniza somente pedidos criados a partir de hoje, para não duplicar vendas lançadas manualmente antes disso.</div></div><div class="actions"><select id="orderStore"><option value="1">F4R Studio 3D</option><option value="2">F4RM 3D</option></select><button class="btn secondary" onclick="syncShopeeOrders()">↻ Sincronizar pedidos</button></div></div>
 <div id="shopeeOrderMsg" class="notice hidden" style="margin-top:12px"></div>
 <div class="panel" style="margin-top:14px"><table><thead><tr><th>Pedido</th><th>Loja</th><th>Produto/SKU</th><th>Qtd.</th><th>Status</th><th>Total</th><th>Ação</th></tr></thead><tbody id="shopeeOrdersTable"><tr><td colspan="7" class="sub">Nenhum pedido sincronizado.</td></tr></tbody></table></div>
 </div>
@@ -1866,7 +1866,7 @@ async function syncShopeeOrders(){
    <td><b>${i.order_sn||"—"}</b></td><td>Loja ${store}</td><td>${i.item_name||i.model_name||i.item_id||"—"}<div class="sub">${i.item_sku||""}</div></td>
    <td>${i.model_quantity_purchased||i.quantity||1}</td><td>${shopeeOrderStatusLabel(i.status)}</td><td>${money(i.total_amount||0)}</td>
    <td><button class="btn secondary" onclick="importShopeeOrder('${String(i.order_sn||"").replace(/'/g,"")}','${store}')">Registrar</button></td></tr>`).join(""):'<tr><td colspan="7" class="sub">Nenhum pedido encontrado.</td></tr>';
-  showShopeeMessage(`${d.orders?.length||0} pedido(s) encontrados. Os pedidos só devem ser registrados uma vez.`);
+  showShopeeMessage(`${d.orders?.length||0} pedido(s) criados hoje encontrados. Pedidos anteriores a hoje não entram nesta sincronização.`);
  }catch(e){showShopeeMessage("Erro: "+e.message);}
 }
 function findProductForShopee(item){
