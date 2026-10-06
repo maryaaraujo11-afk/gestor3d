@@ -184,46 +184,35 @@ async function shopee(pathname, method, s, query={}, body=null){
 }
 async function exchangeCode(code, shopId){
   const pathname="/api/v2/auth/token/get";
-  const keys=[PARTNER_KEY];
-  const stripped=PARTNER_KEY.replace(/^shpk/i,"");
-  if(stripped && stripped!==PARTNER_KEY)keys.push(stripped);
-
-  const modes=[false,true];
-  let last={data:{},r:{status:0},useShopIdInSignature:false,keyMode:"full"};
-
-  for(const key of keys){
-    for(const useShopIdInSignature of modes){
-      const timestamp=Math.floor(Date.now()/1000);
-      const base=String(PARTNER_ID)+pathname+String(timestamp)+(useShopIdInSignature?String(shopId):"");
-      const signValue=crypto.createHmac("sha256",key).update(base).digest("hex");
-      const u=new URL(BASE+pathname);
-      u.searchParams.set("partner_id",String(PARTNER_ID));
-      u.searchParams.set("timestamp",String(timestamp));
-      u.searchParams.set("sign",signValue);
-      if(useShopIdInSignature)u.searchParams.set("shop_id",String(shopId));
-      const body={code:String(code),partner_id:Number(PARTNER_ID)};
-      if(shopId)body.shop_id=Number(shopId);
-      const r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-      const data=await r.json().catch(()=>({}));
-      last={data,r,useShopIdInSignature,keyMode:key===PARTNER_KEY?"full":"without_shpk"};
-      if(r.ok && !data?.error){
-        if(!data.access_token || !data.refresh_token) throw new Error("A Shopee não retornou access_token/refresh_token após a autorização.");
-        return data;
-      }
-    }
+  const timestamp=Math.floor(Date.now()/1000);
+  // Regra oficial da Public API: partner_id + api_path + timestamp.
+  const base=String(PARTNER_ID)+pathname+String(timestamp);
+  const signValue=crypto.createHmac("sha256",PARTNER_KEY).update(base).digest("hex");
+  const u=new URL(BASE+pathname);
+  u.searchParams.set("partner_id",String(PARTNER_ID));
+  u.searchParams.set("timestamp",String(timestamp));
+  u.searchParams.set("sign",signValue);
+  const body={code:String(code),partner_id:Number(PARTNER_ID)};
+  if(shopId)body.shop_id=Number(shopId);
+  const r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok || data.error){
+    const key=String(PARTNER_KEY);
+    const details=[
+      data?.message||data?.error||("Falha HTTP "+r.status+" ao trocar code por token."),
+      data?.request_id?("request_id="+data.request_id):"",
+      "env="+SHOPEE_ENV,
+      "partner_id="+PARTNER_ID,
+      "host="+new URL(BASE).host,
+      "path="+pathname,
+      "key_length="+key.length,
+      "key_prefix="+key.slice(0,4),
+      "key_suffix="+key.slice(-4)
+    ].filter(Boolean).join(" | ");
+    throw new Error(details);
   }
-
-  const details=[
-    last.data?.message||last.data?.error||("Falha HTTP "+last.r.status+" ao trocar code por token."),
-    last.data?.request_id?("request_id="+last.data.request_id):"",
-    "env="+SHOPEE_ENV,
-    "partner_id="+PARTNER_ID,
-    "host="+new URL(BASE).host,
-    "path="+pathname,
-    "signature_mode="+(last.useShopIdInSignature?"partner+path+timestamp+shop_id":"partner+path+timestamp"),
-    "key_mode="+last.keyMode
-  ].filter(Boolean).join(" | ");
-  throw new Error(details);
+  if(!data.access_token || !data.refresh_token) throw new Error("A Shopee não retornou access_token/refresh_token após a autorização.");
+  return data;
 }
 async function refresh(userId,storeId){
   const s=await getStore(userId,storeId);
