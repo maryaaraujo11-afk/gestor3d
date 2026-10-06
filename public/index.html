@@ -1101,7 +1101,7 @@ function addProduct(){
  filamentCost:materials.reduce((sum,m)=>sum+(+m.qty||0)*(+m.unitCost||0),0),pack,labor,laborPercent,other,machineWatts,machineKwh,machineValue,machineLife,machineWear,
  fee:+pFee.value||0,margin:+pMargin.value||0,stock:+pStock.value||0,printHours,productionBatchQty:batch?batchQty:1,productionBasis:batch?"batch":"unit",productionSourceHours:enteredHours,productionSourcePack:packEntered,productionSourceLabor:laborPercent,productionSourceOther:otherEntered,productionSourceMaterials:batch?materials.map(m=>({materialId:m.materialId,sourceQty:m.sourceQty})):null,stockManaged:old?.stockManaged||false};
  if(!p.name){alert("Informe o nome do produto.");return}
- if(!materials.length){alert("Adicione pelo menos um material ou insumo.");return}
+ if(!materials.length && !variants.some(v=>Array.isArray(v.materials)&&v.materials.length)){alert("Adicione pelo menos um material ou insumo, seja na receita principal ou em uma variação de tamanho.");return}
  if(editingId){
    const idx=db.products.findIndex(x=>String(x.id)===String(editingId));
    if(idx>=0)db.products[idx]=p;
