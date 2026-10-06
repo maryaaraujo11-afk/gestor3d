@@ -18,7 +18,9 @@ const PORT = Number(process.env.PORT || 3000);
 const PARTNER_ID = String(process.env.SHOPEE_PARTNER_ID || "").trim();
 const PARTNER_KEY = String(process.env.SHOPEE_PARTNER_KEY || "").trim();
 const SHOPEE_ENV = String(process.env.SHOPEE_ENV || "production").trim().toLowerCase();
+// No Sandbox v2, a autorização/token usa o host OpenPlatform; as APIs de loja usam o host Partner.
 const BASE = SHOPEE_ENV === "sandbox" ? "https://openplatform.sandbox.test-stable.shopee.sg" : "https://partner.shopeemobile.com";
+const API_BASE = SHOPEE_ENV === "sandbox" ? "https://partner.test-stable.shopeemobile.com" : "https://partner.shopeemobile.com";
 const SUPABASE_URL = String(process.env.SUPABASE_URL || "https://givfacbmlhjizrmgguzi.supabase.co").replace(/\/$/, "");
 const SUPABASE_PUBLISHABLE_KEY = String(process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_-RaV-4hmFnLPyGhewGQZeg_1I_fs_wH");
 const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
@@ -168,7 +170,7 @@ async function shopee(pathname, method, s, query={}, body=null){
   const timestamp=Math.floor(Date.now()/1000);
   const sid=String(s.shop_id);
   const sg=sign(pathname,timestamp,s.access_token,sid);
-  const u=new URL(BASE+pathname);
+  const u=new URL(API_BASE+pathname);
   u.searchParams.set("partner_id",PARTNER_ID);
   u.searchParams.set("timestamp",String(timestamp));
   u.searchParams.set("access_token",s.access_token);
