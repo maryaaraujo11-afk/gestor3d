@@ -395,7 +395,7 @@ const server=http.createServer(async(req,res)=>{
       let items=Array.isArray(rawItems)?rawItems:[];
       if(itemIds.length){
         const base=await withRefresh(user.id,store,s=>shopee("/api/v2/product/get_item_base_info","GET",s,{
-          item_id_list:JSON.stringify(itemIds.slice(0,50)),
+          item_id_list:itemIds.slice(0,50),
           need_tax_info:false,
           need_complaint_policy:false
         }));
