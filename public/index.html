@@ -1026,9 +1026,15 @@ function addProductVariantRow(variant={}){
    unitCost:variant.unitCost||0,
    qty:variant.qty||0
  }] : []);
+ const editingProduct=(db.products||[]).find(x=>String(x.id)===String(window.editingProductId||""));
+ const defaultVariantHours=variant.printHours??editingProduct?.printHours??parseHoursInput(document.getElementById("pPrintHours")?.value||"0");
  row.innerHTML=`<div class="variant-head">
-   <div><label class="sub">Nome da cor / variação</label><input class="variant-name" type="text" placeholder="Ex.: Rosa" value="${String(variant.name||"").replace(/"/g,'&quot;')}"></div>
-   <button type="button" class="remove-material variant-remove" onclick="this.closest('.product-variant-row').remove()">Remover cor</button>
+   <div><label class="sub">Nome da cor / variação</label><input class="variant-name" type="text" placeholder="Ex.: Pequeno" value="${String(variant.name||"").replace(/"/g,'&quot;')}"></div>
+   <button type="button" class="remove-material variant-remove" onclick="this.closest('.product-variant-row').remove()">Remover tamanho</button>
+ </div>
+ <div class="variant-time" style="margin-top:8px">
+   <label class="sub">Tempo de impressão por unidade</label>
+   <input class="variant-print-hours" type="text" inputmode="text" placeholder="Ex.: 1:43" value="${defaultVariantHours?formatHoursInput(defaultVariantHours):""}" onblur="normalizeHoursField(this)">
  </div>
  <div class="variant-materials">
    <label class="sub"><b>Filamentos / materiais desta cor</b></label>
@@ -1055,6 +1061,7 @@ function collectProductVariants(){
      id:row.dataset.variantId||String(Date.now()+Math.random()),
      name,
      materials,
+     printHours:parseHoursInput(row.querySelector(".variant-print-hours")?.value||"0"),
      // Mantém os campos antigos para compatibilidade com produtos já cadastrados.
      materialId:first.materialId||"",
      materialName:first.materialName||"",
@@ -1257,7 +1264,10 @@ function saleProductionCost(p, orderQty=1, sale=null){
    return sum+use*(Number(r.unitCost||r.costPerGram)||0);
   },0);
   const comps=Array.isArray(p.components)?p.components.reduce((sum,c)=>sum+(Number(c.qty)||0)*(Number(c.unitCost)||0)*q,0):0;
-  const machine=machineUnitCost(p).total*q;
+  const variant=variantForSale(p,sale);
+  const variantHours=variant&&Number(variant.printHours)>0?Number(variant.printHours):Number(p.printHours)||0;
+  const costProductForTime={...p,printHours:variantHours};
+  const machine=machineUnitCost(costProductForTime).total*q;
   const other=(+p.other||0)*q;
   const laborBase=mats+comps+machine+other;
   const labor=laborBase*((+p.laborPercent||20)/100);
@@ -1503,7 +1513,7 @@ function openTechModal(id){
    </div>
    <h3>Filamentos</h3>
    <div class="tech-list">${matRows||'<div class="sub" style="padding:10px 0">Nenhum filamento cadastrado.</div>'}</div>
-   ${(p.variants||[]).length?`<h3 style="margin-top:18px">Variações de cor</h3><div class="tech-list">${p.variants.map(v=>{const ms=Array.isArray(v.materials)&&v.materials.length?v.materials:(v.materialId?[v]:[]);const total=ms.reduce((a,m)=>a+(+m.qty||0)*(+m.unitCost||0),0);return `<div class="tech-row"><span><b>${v.name||"Variação"}</b>${ms.map(m=>`<small class="sub" style="display:block">${m.qty||0} ${m.unit||""} — ${m.materialName||"Material"}</small>`).join("")}</span><b>${money(total)}</b></div>`}).join("")}</div>`:""}
+   ${(p.variants||[]).length?`<h3 style="margin-top:18px">Variações de cor</h3><div class="tech-list">${p.variants.map(v=>{const ms=Array.isArray(v.materials)&&v.materials.length?v.materials:(v.materialId?[v]:[]);const total=ms.reduce((a,m)=>a+(+m.qty||0)*(+m.unitCost||0),0);const vh=Number(v.printHours)>0?formatHoursInput(Number(v.printHours)):"Tempo padrão";return `<div class="tech-row"><span><b>${v.name||"Variação"}</b><small class="sub" style="display:block">⏱ ${vh}</small>${ms.map(m=>`<small class="sub" style="display:block">${m.qty||0} ${m.unit||""} — ${m.materialName||"Material"}</small>`).join("")}</span><b>${money(total)}</b></div>`}).join("")}</div>`:""}
    <h3 style="margin-top:18px">Componentes / insumos</h3>
    <div class="tech-list">${compRows||'<div class="sub" style="padding:10px 0">Nenhum componente cadastrado.</div>'}</div>
    <h3 style="margin-top:18px">Custos adicionais</h3>
