@@ -1928,6 +1928,7 @@ function addShopeeProductToGestor(item,store,silent=false){
  const p=buildImportedShopeeProduct(item,store);
  db.products.push(p);
  save();
+ render();
  if(!silent)alert("Produto adicionado ao Gestor 3D. Você pode completar a ficha técnica e os custos depois.");
  return p;
 }
