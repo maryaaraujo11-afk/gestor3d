@@ -20,7 +20,7 @@ const PARTNER_KEY = String(process.env.SHOPEE_PARTNER_KEY || "").trim();
 const SHOPEE_ENV = String(process.env.SHOPEE_ENV || "production").trim().toLowerCase();
 // No Sandbox v2, a autorização/token usa o host OpenPlatform; as APIs de loja usam o host Partner.
 const BASE = SHOPEE_ENV === "sandbox" ? "https://openplatform.sandbox.test-stable.shopee.sg" : "https://partner.shopeemobile.com";
-const API_BASE = SHOPEE_ENV === "sandbox" ? "https://partner.test-stable.shopeemobile.com" : "https://partner.shopeemobile.com";
+const API_BASE = BASE;
 const SUPABASE_URL = String(process.env.SUPABASE_URL || "https://givfacbmlhjizrmgguzi.supabase.co").replace(/\/$/, "");
 const SUPABASE_PUBLISHABLE_KEY = String(process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_-RaV-4hmFnLPyGhewGQZeg_1I_fs_wH");
 const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
@@ -193,20 +193,12 @@ async function shopee(pathname, method, s, query={}, body=null){
     return {r,data,mode};
   };
 
-  // As Partner Keys atuais do Console podem vir com o prefixo "shpk".
-  // Para chamadas de Shop API, a assinatura HMAC usa somente a chave secreta sem esse prefixo.
-  const key=/^shpk/i.test(String(PARTNER_KEY)) ? String(PARTNER_KEY).slice(4) : String(PARTNER_KEY);
-  const modes=SHOPEE_ENV==="sandbox"
-    ? ["partner_path_ts_token_shop","partner_path_ts_token","partner_path_ts"]
-    : ["partner_path_ts_token_shop"];
-
-  let last=null;
-  for(const mode of modes){
-    const out=await attempt(mode,key);
-    last=out;
-    if(out.r.ok && !out.data?.error)return out.data;
-    if(String(out.data?.error||"").toLowerCase()!=="error_sign")break;
-  }
+  // Shop APIs usam a assinatura padrão com partner_id + path + timestamp + access_token + shop_id
+  // e a Partner Key exatamente como fornecida pelo Console.
+  const key=String(PARTNER_KEY);
+  const out=await attempt("partner_path_ts_token_shop",key);
+  const last=out;
+  if(out.r.ok && !out.data?.error)return out.data;
 
   const data=last?.data||{};
   const e=new Error(
