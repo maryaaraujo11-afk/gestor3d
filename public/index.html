@@ -1908,14 +1908,75 @@ async function syncShopeeProducts(){
   }).join("")||'<tr><td colspan="5" class="sub">Nenhum anúncio retornado.</td></tr>';
  }catch(e){alert("Erro ao importar produtos: "+e.message);}
 }
+async function copyShopeeLinkCode(text,label){
+ try{
+   if(navigator.clipboard&&navigator.clipboard.writeText){
+     await navigator.clipboard.writeText(String(text));
+   }else{
+     const ta=document.createElement("textarea");
+     ta.value=String(text); ta.style.position="fixed"; ta.style.opacity="0";
+     document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand("copy"); ta.remove();
+   }
+   alert((label||"Código")+" copiado.");
+ }catch(e){
+   prompt("Copie o código abaixo:",String(text));
+ }
+}
+function closeShopeeLinkModal(){
+ const el=document.getElementById("shopeeLinkModal");
+ if(el)el.remove();
+}
 function linkShopeeItem(itemId,name,sku){
- const choices=(db.products||[]).map(p=>`${p.id} — ${p.name}`).join("\n");
- const selected=prompt(`Digite o ID do produto interno para vincular ao Item ID ${itemId}.\n\n${choices}`);
- const p=(db.products||[]).find(x=>String(x.id)===String(selected).split(" ")[0]);
- if(!p)return;
- p.shopeeItemId=String(itemId); if(!p.shopeeName)p.shopeeName=name||""; if(!p.shopeeSku)p.shopeeSku=sku||"";
- save(); alert("Vínculo salvo.");
- syncShopeeProducts();
+ const products=Array.isArray(db.products)?db.products:[];
+ if(!products.length){alert("Nenhum produto interno cadastrado.");return;}
+ const esc=v=>String(v??"").replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]});
+ const rows=products.map(function(p,i){
+   return '<label class="shopee-link-choice" data-search="'+esc((p.name||"")+" "+p.id+" "+(p.sku||""))+'" style="display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid #eadfd8;border-radius:9px;margin-bottom:8px;cursor:pointer;background:#fff;">'+
+     '<input type="radio" name="shopeeLinkProduct" value="'+esc(p.id)+'" '+(i===0?"checked":"")+'>'+
+     '<span style="flex:1;min-width:0;"><b style="display:block;">'+esc(p.name||"Produto sem nome")+'</b><small style="color:#777;">Código: '+esc(p.id)+(p.sku?" • SKU: "+esc(p.sku):"")+'</small></span>'+
+     '<button type="button" class="btn xs outline" onclick="event.preventDefault();event.stopPropagation();copyShopeeLinkCode(\''+esc(p.id)+'\',\'Código do produto\')">Copiar</button>'+
+   '</label>';
+ }).join("");
+ const modal=document.createElement("div");
+ modal.id="shopeeLinkModal";
+ modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;";
+ modal.innerHTML=
+   '<div style="width:min(720px,96vw);max-height:88vh;overflow:auto;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.22);padding:20px;">'+
+     '<div style="display:flex;justify-content:space-between;gap:15px;align-items:flex-start;margin-bottom:12px;">'+
+       '<div><h3 style="margin:0 0 5px;">Vincular anúncio da Shopee</h3><div style="color:#666;font-size:13px;">'+esc(name||"Anúncio")+" • Item ID <b>"+esc(itemId)+"</b>"+(sku?" • SKU "+esc(sku):"")+'</div></div>'+
+       '<button type="button" class="btn xs outline" onclick="closeShopeeLinkModal()">✕</button>'+
+     '</div>'+
+     '<div style="display:flex;gap:8px;margin:10px 0 14px;">'+
+       '<input id="shopeeLinkSearch" type="search" placeholder="Buscar produto pelo nome, código ou SKU" style="flex:1;">'+
+       '<button type="button" class="btn xs outline" onclick="copyShopeeLinkCode(\''+String(itemId).replace(/'/g,"\\'")+'\',\'Item ID Shopee\')">Copiar Item ID</button>'+
+     '</div>'+
+     '<div id="shopeeLinkChoices">'+rows+'</div>'+
+     '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:15px;">'+
+       '<button type="button" class="btn outline" onclick="closeShopeeLinkModal()">Cancelar</button>'+
+       '<button type="button" class="btn" id="shopeeLinkConfirm">Vincular selecionado</button>'+
+     '</div>'+
+   '</div>';
+ document.body.appendChild(modal);
+ const search=document.getElementById("shopeeLinkSearch");
+ if(search)search.addEventListener("input",function(){
+   const q=String(search.value||"").toLowerCase().trim();
+   document.querySelectorAll("#shopeeLinkChoices .shopee-link-choice").forEach(function(row){
+     row.style.display=!q||String(row.dataset.search||"").toLowerCase().includes(q)?"flex":"none";
+   });
+ });
+ const confirmBtn=document.getElementById("shopeeLinkConfirm");
+ if(confirmBtn)confirmBtn.onclick=function(){
+   const selected=document.querySelector('input[name="shopeeLinkProduct"]:checked');
+   const p=products.find(function(x){return String(x.id)===String(selected?.value||"");});
+   if(!p){alert("Selecione um produto interno.");return;}
+   p.shopeeItemId=String(itemId);
+   if(!p.shopeeName)p.shopeeName=name||"";
+   if(!p.shopeeSku)p.shopeeSku=sku||"";
+   save();
+   closeShopeeLinkModal();
+   alert("Vínculo salvo com sucesso.");
+   syncShopeeProducts();
+ };
 }
 function renderShopeeStock(){
  const t=document.getElementById("shopeeStockTable"); if(!t)return;
