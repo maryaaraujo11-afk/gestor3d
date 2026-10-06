@@ -167,22 +167,52 @@ function authUrl(store){
 }
 async function shopee(pathname, method, s, query={}, body=null){
   if(!PARTNER_ID||!PARTNER_KEY) throw new Error("Credenciais Shopee ausentes.");
-  const timestamp=Math.floor(Date.now()/1000);
-  const sid=String(s.shop_id);
-  const sg=sign(pathname,timestamp,s.access_token,sid);
-  const u=new URL(API_BASE+pathname);
-  u.searchParams.set("partner_id",PARTNER_ID);
-  u.searchParams.set("timestamp",String(timestamp));
-  u.searchParams.set("access_token",s.access_token);
-  u.searchParams.set("shop_id",sid);
-  u.searchParams.set("sign",sg);
-  Object.entries(query||{}).forEach(([k,v])=>{ if(v!==undefined&&v!==null) u.searchParams.set(k,String(v)); });
-  const r=await fetch(u,{method,headers:{"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined});
-  const t=await r.text(); let data; try{data=JSON.parse(t)}catch{data={raw:t}};
-  if(!r.ok || data.error) {
-    const e=new Error(data.message || data.error || `Shopee HTTP ${r.status}`); e.data=data; throw e;
+  const buildSignature=(timestamp,token,shopId,mode,key)=>{
+    const base=
+      mode==="partner_path_ts" ? String(PARTNER_ID)+pathname+String(timestamp) :
+      mode==="partner_path_ts_token" ? String(PARTNER_ID)+pathname+String(timestamp)+String(token) :
+      String(PARTNER_ID)+pathname+String(timestamp)+String(token)+String(shopId);
+    return crypto.createHmac("sha256",key).update(base).digest("hex");
+  };
+  const attempt=async(mode,key)=>{
+    const timestamp=Math.floor(Date.now()/1000);
+    const u=new URL(API_BASE+pathname);
+    u.searchParams.set("partner_id",PARTNER_ID);
+    u.searchParams.set("timestamp",String(timestamp));
+    u.searchParams.set("access_token",String(s.access_token));
+    u.searchParams.set("shop_id",String(s.shop_id));
+    u.searchParams.set("sign",buildSignature(timestamp,s.access_token,s.shop_id,mode,key));
+    Object.entries(query||{}).forEach(([k,v])=>{
+      if(v===undefined||v===null)return;
+      if(Array.isArray(v))v=v.join(",");
+      u.searchParams.set(k,String(v));
+    });
+    const r=await fetch(u,{method,headers:{"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined});
+    const t=await r.text();
+    let data; try{data=JSON.parse(t)}catch{data={raw:t}};
+    return {r,data,mode};
+  };
+
+  const key=String(PARTNER_KEY);
+  const modes=SHOPEE_ENV==="sandbox"
+    ? ["partner_path_ts_token_shop","partner_path_ts_token","partner_path_ts"]
+    : ["partner_path_ts_token_shop"];
+
+  let last=null;
+  for(const mode of modes){
+    const out=await attempt(mode,key);
+    last=out;
+    if(out.r.ok && !out.data?.error)return out.data;
+    if(String(out.data?.error||"").toLowerCase()!=="error_sign")break;
   }
-  return data;
+
+  const data=last?.data||{};
+  const e=new Error(
+    (data.message||data.error||`Shopee HTTP ${last?.r?.status||0}`) +
+    ` | request_id=${data.request_id||"—"} | env=${SHOPEE_ENV} | partner_id=${PARTNER_ID} | host=${new URL(API_BASE).host} | path=${pathname} | signature_mode=${last?.mode||"—"}`
+  );
+  e.data=data;
+  throw e;
 }
 async function exchangeCode(code, shopId){
   const pathname="/api/v2/auth/token/get";
@@ -365,7 +395,7 @@ const server=http.createServer(async(req,res)=>{
       if(!requireSupabase(res))return;
       const user=await getAuthUser(req);
       if(!user)return json(res,401,{ok:false,error:"Sessão do Gestor 3D não autenticada."});
-      const data=await withRefresh(user.id,store,s=>shopee("/api/v2/product/get_item_list","GET",s,{offset:0,page_size:100,need_total_count:true,})); 
+      const data=await withRefresh(user.id,store,s=>shopee("/api/v2/product/get_item_list","GET",s,{offset:0,page_size:100,need_total_count:true,item_status:"NORMAL"})); 
       return json(res,200,{ok:true,data});
     }
     const stock=u.pathname.match(/^\/api\/shopee\/stock\/([12])$/);
