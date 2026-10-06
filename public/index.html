@@ -1836,12 +1836,25 @@ function flattenOrderDetails(details){
  const seen=new Set();
  (details||[]).forEach(d=>{
   const x=d.response||d; const order=x.order_list?.[0]||x;
+  const ctx=d.order_context||{};
   const items=x.item_list||order.item_list||[];
   items.forEach(i=>{
-   const key=[order.order_sn||"",i.item_id||"",i.model_id||i.modelId||"",i.item_sku||"",i.model_quantity_purchased||i.quantity||1].join("|");
+   const key=[order.order_sn||ctx.order_sn||"",i.item_id||"",i.model_id||i.modelId||"",i.item_sku||"",i.model_quantity_purchased||i.quantity||1].join("|");
    if(seen.has(key))return;
    seen.add(key);
-   out.push({...i,order_sn:order.order_sn,status:order.order_status,total_amount:order.total_amount});
+   out.push({
+     ...i,
+     order_sn:order.order_sn||ctx.order_sn,
+     status:order.order_status||ctx.order_status,
+     total_amount:order.total_amount??ctx.total_amount,
+     buyer_username:order.buyer_username||ctx.buyer_username,
+     recipient_address:order.recipient_address||ctx.recipient_address,
+     create_time:order.create_time||ctx.create_time,
+     ship_by_date:order.ship_by_date||ctx.ship_by_date,
+     pay_time:order.pay_time||ctx.pay_time,
+     payment_method:order.payment_method||ctx.payment_method,
+     shipping_carrier:order.shipping_carrier||ctx.shipping_carrier
+   });
   });
  });
  return out;
@@ -1877,12 +1890,44 @@ function findProductForShopee(item){
    (sku && p.shopeeSku && String(p.shopeeSku).trim()===sku)
  );
 }
+function epochPartsBR(ts){
+ const n=Number(ts)||0;
+ if(!n)return {dateISO:"",time:""};
+ const d=new Date(n*1000);
+ const dateISO=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(d);
+ const time=new Intl.DateTimeFormat("pt-BR",{timeZone:"America/Sao_Paulo",hour:"2-digit",minute:"2-digit",hour12:false}).format(d);
+ return {dateISO,time};
+}
+function shopeeSaleStatus(status){
+ const s=String(status||"").toUpperCase();
+ if(s==="SHIPPED")return "Enviado";
+ if(s==="COMPLETED")return "Entregue";
+ if(s==="CANCELLED"||s==="IN_CANCEL"||s==="TO_RETURN"||s==="RETURNED")return s==="CANCELLED"?"Cancelado":"Recebido";
+ if(s==="READY_TO_SHIP"||s==="PROCESSED")return "Recebido";
+ return "Recebido";
+}
+function orderDeadlineBR(item,dateISO){
+ const ship=Number(item?.ship_by_date)||0;
+ if(ship){
+   const p=epochPartsBR(ship);
+   if(p.dateISO)return p.dateISO;
+ }
+ return dateISO?addBusinessDays(dateISO,1):"";
+}
 function registerSaleFromShopee(item,store){
  const qty=+(item.model_quantity_purchased||item.quantity||1);
  const p=findProductForShopee(item);
  if(!p){alert(`Não encontrei produto vinculado ao Item ID ${item.item_id||"—"} / SKU ${item.item_sku||"—"}.\n\nVá em Produtos, preencha o Item ID Shopee e tente novamente.`);return;}
  if(db.sales?.some(s=>s.orderSn===item.order_sn&&String(s.productId)===String(p.id))){alert("Este item deste pedido já foi registrado.");return;}
- const unit=+suggested(p)||0, revenue=unit*qty;
+ const orderDate=epochPartsBR(item.create_time||item.pay_time);
+ const dueDate=orderDeadlineBR(item,orderDate.dateISO);
+ const customerName=String(item.recipient_address?.name||item.buyer_username||"").trim();
+ const state=String(item.recipient_address?.state||"").trim();
+ const gross=Number(item.total_amount)||0;
+ const feeRate=Math.max(0,Number(p.fee)||0)/100;
+ const net=Math.max(0,gross-(gross*feeRate));
+ const unit=qty>0?gross/qty:+suggested(p)||0;
+ const status=shopeeSaleStatus(item.status);
  p.stock=Math.max(0,(+p.stock||0)-qty);
  (p.materials||[]).forEach(r=>{
    const m=db.materials.find(x=>String(x.id)===String(r.materialId));
@@ -1893,9 +1938,40 @@ function registerSaleFromShopee(item,store){
    if(m){m.stock=Math.max(0,(+m.stock||0)-((+r.qty||0)*qty));}
  });
  db.sales=db.sales||[];
- db.sales.push({id:Date.now(),date:new Date().toISOString(),productId:p.id,product:p.name,qty,unitPrice:unit,total:revenue,fee:+p.fee||0,store:`Shopee Loja ${store}`,orderSn:item.order_sn,source:"Shopee"});
+ db.sales.push({
+   id:Date.now(),
+   date:new Date().toISOString(),
+   dateISO:orderDate.dateISO||todayISO(),
+   time:orderDate.time||new Date().toTimeString().slice(0,5),
+   customerName,
+   state,
+   dueDate,
+   postDays:1,
+   product:p.name,
+   productId:p.id,
+   variantId:"",
+   variantName:"",
+   colorId:"",
+   colorName:"",
+   items:[{itemId:String(Date.now()+Math.random()),productId:p.id,product:p.name,variantId:"",variantName:"",colorId:"",colorName:"",qty}],
+   store:store===2?"F4RM 3D":"F4R Studio 3D",
+   channel:"Shopee",
+   qty,
+   value:gross,
+   grossValue:gross,
+   netValue:net,
+   fee:Math.max(0,gross-net),
+   cost:saleProductionCost(p,qty,{variantId:""}),
+   status,
+   notes:item.order_sn?("Pedido Shopee "+item.order_sn):"",
+   orderSn:item.order_sn,
+   shopeeStatus:item.status||"",
+   paymentMethod:item.payment_method||"",
+   shippingCarrier:item.shipping_carrier||"",
+   source:"Shopee"
+ });
  save();
- alert(`Pedido ${item.order_sn} registrado.\nEstoque do produto e materiais da ficha técnica foram baixados.`);
+ alert(`Pedido ${item.order_sn} registrado com os dados da Shopee.\nCliente: ${customerName||"não informado"}\nEstado: ${state||"não informado"}\nValor: ${money(gross)}`);
 }
 function importShopeeOrder(orderSn,store){
  const data=shopeeCache.orders[store]; if(!data)return;
