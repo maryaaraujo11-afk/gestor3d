@@ -184,31 +184,49 @@ async function shopee(pathname, method, s, query={}, body=null){
 }
 async function exchangeCode(code, shopId){
   const pathname="/api/v2/auth/token/get";
-  const timestamp=Math.floor(Date.now()/1000);
-  const signValue=crypto.createHmac("sha256",PARTNER_KEY)
-    .update(String(PARTNER_ID)+pathname+String(timestamp))
-    .digest("hex");
-  const u=new URL(BASE+pathname);
-  u.searchParams.set("partner_id",String(PARTNER_ID));
-  u.searchParams.set("timestamp",String(timestamp));
-  u.searchParams.set("sign",signValue);
-  const body={code:String(code),partner_id:Number(PARTNER_ID)};
-  if(shopId)body.shop_id=Number(shopId);
-  const r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-  const data=await r.json().catch(()=>({}));
-  if(!r.ok || data.error){
-    const details=[
-      data?.message||data?.error||"Falha ao trocar code por token.",
-      data?.request_id?("request_id="+data.request_id):"",
-      "env="+SHOPEE_ENV,
-      "partner_id="+PARTNER_ID,
-      "host="+new URL(BASE).host,
-      "path="+pathname
-    ].filter(Boolean).join(" | ");
-    throw new Error(details);
+  const makeRequest=async(useShopIdInSignature)=>{
+    const timestamp=Math.floor(Date.now()/1000);
+    const base=String(PARTNER_ID)+pathname+String(timestamp)+(useShopIdInSignature?String(shopId):"");
+    const signValue=crypto.createHmac("sha256",PARTNER_KEY).update(base).digest("hex");
+    const u=new URL(BASE+pathname);
+    u.searchParams.set("partner_id",String(PARTNER_ID));
+    u.searchParams.set("timestamp",String(timestamp));
+    u.searchParams.set("sign",signValue);
+    if(useShopIdInSignature)u.searchParams.set("shop_id",String(shopId));
+    const body={code:String(code),partner_id:Number(PARTNER_ID)};
+    if(shopId)body.shop_id=Number(shopId);
+    const r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const data=await r.json().catch(()=>({}));
+    return {r,data,timestamp,useShopIdInSignature};
+  };
+
+  let attempt=await makeRequest(false);
+  if(attempt.r.ok && !attempt.data?.error){
+    if(!attempt.data.access_token || !attempt.data.refresh_token) throw new Error("A Shopee não retornou access_token/refresh_token após a autorização.");
+    return attempt.data;
   }
-  if(!data.access_token || !data.refresh_token) throw new Error("A Shopee não retornou access_token/refresh_token após a autorização.");
-  return data;
+
+  // Compatibilidade: alguns ambientes/versões do Sandbox ainda validam a assinatura
+  // do token/get incluindo o shop_id. Se a assinatura pública for rejeitada, tenta
+  // a variante legada uma única vez com o mesmo code.
+  if(String(attempt.data?.error||"").toLowerCase()==="error_sign"){
+    attempt=await makeRequest(true);
+    if(attempt.r.ok && !attempt.data?.error){
+      if(!attempt.data.access_token || !attempt.data.refresh_token) throw new Error("A Shopee não retornou access_token/refresh_token após a autorização.");
+      return attempt.data;
+    }
+  }
+
+  const details=[
+    attempt.data?.message||attempt.data?.error||("Falha HTTP "+attempt.r.status+" ao trocar code por token."),
+    attempt.data?.request_id?("request_id="+attempt.data.request_id):"",
+    "env="+SHOPEE_ENV,
+    "partner_id="+PARTNER_ID,
+    "host="+new URL(BASE).host,
+    "path="+pathname,
+    "signature_mode="+(attempt.useShopIdInSignature?"partner+path+timestamp+shop_id":"partner+path+timestamp")
+  ].filter(Boolean).join(" | ");
+  throw new Error(details);
 }
 async function refresh(userId,storeId){
   const s=await getStore(userId,storeId);
