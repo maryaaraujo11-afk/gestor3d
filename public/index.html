@@ -1043,24 +1043,20 @@ function variantForSale(p,variantId){
 }
 function saleRecipeMaterials(p,s){
  const base=Array.isArray(p?.materials)?p.materials:[];
- const v=variantForSale(p,s?.variantId);
- if(!v)return base;
- const variantMaterials=Array.isArray(v.materials)&&v.materials.length
-   ? v.materials
-   : (v.materialId ? [v] : []);
- if(!variantMaterials.length)return base;
- const mapped=variantMaterials.map(vm=>{
-   const m=(db.materials||[]).find(x=>String(x.id)===String(vm.materialId));
-   return {
-     materialId:vm.materialId,
-     name:vm.materialName||m?.name||v.name,
-     qty:+vm.qty||0,
-     unit:m?.unit||vm.unit||"",
-     unitCost:+(m?.unitCost??vm.unitCost)||0
-   };
+ const size=variantForSale(p,s?.variantId);
+ const colors=Array.isArray(p?.colors)?p.colors:[];
+ const color=colors.find(x=>String(x.id)===String(s?.colorId))||null;
+ if(!size)return base;
+ const sizeMaterials=Array.isArray(size.materials)&&size.materials.length?size.materials:(size.materialId?[size]:[]);
+ if(!sizeMaterials.length)return base;
+ const mapped=sizeMaterials.map(vm=>{
+   const swap=size.colorMaterialId&&String(size.colorMaterialId)===String(vm.materialId)&&color;
+   const chosenId=swap?color.materialId:vm.materialId;
+   const m=(db.materials||[]).find(x=>String(x.id)===String(chosenId));
+   return {materialId:chosenId,name:m?.name||vm.materialName||size.name,qty:+vm.qty||0,unit:m?.unit||vm.unit||"",unitCost:+(m?.unitCost??vm.unitCost)||0};
  });
- const variantIds=new Set(variantMaterials.map(vm=>String(vm.materialId)));
- const shared=base.filter(r=>!variantIds.has(String(r.materialId)));
+ const sizeIds=new Set(sizeMaterials.map(vm=>String(vm.materialId)));
+ const shared=base.filter(r=>!sizeIds.has(String(r.materialId)));
  return [...mapped,...shared];
 }
 function variantLabel(v){ return v?.name ? ` — ${v.name}` : ""; }
@@ -1100,7 +1096,8 @@ function addProduct(){
  const labor=laborBaseBeforeLabor*(laborPercent/100);
  const old=editingId?(db.products||[]).find(x=>String(x.id)===String(editingId)):null;
  const variants=collectProductVariants();
- let p={...(old||{}),id:editingId||Date.now(),name:pName.value.trim(),sku:pSku.value.trim(),store:pStore.value,shopeeSku:pShopeeSku.value.trim(),shopeeName:pShopeeName.value.trim(),materials,variants,
+ const colors=collectProductColors();
+ let p={...(old||{}),id:editingId||Date.now(),name:pName.value.trim(),sku:pSku.value.trim(),store:pStore.value,shopeeSku:pShopeeSku.value.trim(),shopeeName:pShopeeName.value.trim(),materials,variants,colors,
  filamentCost:materials.reduce((sum,m)=>sum+(+m.qty||0)*(+m.unitCost||0),0),pack,labor,laborPercent,other,machineWatts,machineKwh,machineValue,machineLife,machineWear,
  fee:+pFee.value||0,margin:+pMargin.value||0,stock:+pStock.value||0,printHours,productionBatchQty:batch?batchQty:1,productionBasis:batch?"batch":"unit",productionSourceHours:enteredHours,productionSourcePack:packEntered,productionSourceLabor:laborPercent,productionSourceOther:otherEntered,productionSourceMaterials:batch?materials.map(m=>({materialId:m.materialId,sourceQty:m.sourceQty})):null,stockManaged:old?.stockManaged||false};
  if(!p.name){alert("Informe o nome do produto.");return}
@@ -1117,6 +1114,7 @@ function addProduct(){
  const basis=document.getElementById("pBasis"); if(basis)basis.value="unit"; const bq=document.getElementById("pBatchQty"); if(bq)bq.value=1; updateProductBasisUI();
  document.getElementById("materialsList").innerHTML=""; addMaterialRow();
  const variantsList=document.getElementById("productVariantsList"); if(variantsList)variantsList.innerHTML="";
+ const colorsList=document.getElementById("productColorsList"); if(colorsList)colorsList.innerHTML="";
  render();
  alert(editingId?"Produto atualizado com sucesso.":(batch?`Produto salvo. Os dados do lote de ${batchQty} unidades foram convertidos para consumo e custos por unidade.`:"Produto salvo com sucesso."));
 }
@@ -1144,6 +1142,7 @@ function editProduct(id){
  });
  if(!(p.materials||[]).length)addMaterialRow();
  const variantsList=document.getElementById("productVariantsList"); if(variantsList){variantsList.innerHTML="";(p.variants||[]).forEach(v=>addProductVariantRow(v));}
+ const colorsList=document.getElementById("productColorsList"); if(colorsList){colorsList.innerHTML="";(p.colors||[]).forEach(c=>addProductColorRow(c));}
  updateProductBasisUI(); updateProductMaterialTotal();
  document.getElementById("products").scrollIntoView({behavior:"smooth",block:"start"});
 }
@@ -1153,6 +1152,7 @@ function cancelProductEdit(){
  document.getElementById("productFormTitle").textContent="Novo produto";
  document.getElementById("productSaveBtn").textContent="Salvar produto";
  const variantsList=document.getElementById("productVariantsList"); if(variantsList)variantsList.innerHTML="";
+ const colorsList=document.getElementById("productColorsList"); if(colorsList)colorsList.innerHTML="";
 }
 
 function inventoryTab(tab,btn){
