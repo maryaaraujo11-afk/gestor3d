@@ -1833,12 +1833,27 @@ function showShopeeMessage(msg){
 }
 function flattenOrderDetails(details){
  const out=[];
+ const seen=new Set();
  (details||[]).forEach(d=>{
   const x=d.response||d; const order=x.order_list?.[0]||x;
   const items=x.item_list||order.item_list||[];
-  items.forEach(i=>out.push({...i,order_sn:order.order_sn,status:order.order_status,total_amount:order.total_amount}));
+  items.forEach(i=>{
+   const key=[order.order_sn||"",i.item_id||"",i.model_id||i.modelId||"",i.item_sku||"",i.model_quantity_purchased||i.quantity||1].join("|");
+   if(seen.has(key))return;
+   seen.add(key);
+   out.push({...i,order_sn:order.order_sn,status:order.order_status,total_amount:order.total_amount});
+  });
  });
  return out;
+}
+function shopeeOrderStatusLabel(status){
+ const map={
+  UNPAID:"Aguardando pagamento",READY_TO_SHIP:"Pronto para envio",PROCESSED:"Processado",
+  SHIPPED:"Enviado",TO_CONFIRM_RECEIVE:"Aguardando confirmação",COMPLETED:"Concluído",
+  IN_CANCEL:"Em cancelamento",CANCELLED:"Cancelado",TO_RETURN:"Em devolução",
+  RETURNED:"Devolvido",INVOICE_PENDING:"Nota pendente"
+ };
+ return map[String(status||"").toUpperCase()]||status||"—";
 }
 async function syncShopeeOrders(){
  const store=+document.getElementById("orderStore").value;
@@ -1849,7 +1864,7 @@ async function syncShopeeOrders(){
   const items=flattenOrderDetails(d.details);
   document.getElementById("shopeeOrdersTable").innerHTML=items.length?items.map(i=>`<tr>
    <td><b>${i.order_sn||"—"}</b></td><td>Loja ${store}</td><td>${i.item_name||i.model_name||i.item_id||"—"}<div class="sub">${i.item_sku||""}</div></td>
-   <td>${i.model_quantity_purchased||i.quantity||1}</td><td>${i.status||"—"}</td><td>${money(i.total_amount||0)}</td>
+   <td>${i.model_quantity_purchased||i.quantity||1}</td><td>${shopeeOrderStatusLabel(i.status)}</td><td>${money(i.total_amount||0)}</td>
    <td><button class="btn secondary" onclick="importShopeeOrder('${String(i.order_sn||"").replace(/'/g,"")}','${store}')">Registrar</button></td></tr>`).join(""):'<tr><td colspan="7" class="sub">Nenhum pedido encontrado.</td></tr>';
   showShopeeMessage(`${d.orders?.length||0} pedido(s) encontrados. Os pedidos só devem ser registrados uma vez.`);
  }catch(e){showShopeeMessage("Erro: "+e.message);}
@@ -1866,7 +1881,7 @@ function registerSaleFromShopee(item,store){
  const qty=+(item.model_quantity_purchased||item.quantity||1);
  const p=findProductForShopee(item);
  if(!p){alert(`Não encontrei produto vinculado ao Item ID ${item.item_id||"—"} / SKU ${item.item_sku||"—"}.\n\nVá em Produtos, preencha o Item ID Shopee e tente novamente.`);return;}
- if(db.sales?.some(s=>s.orderSn===item.order_sn)){alert("Este pedido já foi registrado.");return;}
+ if(db.sales?.some(s=>s.orderSn===item.order_sn&&String(s.productId)===String(p.id))){alert("Este item deste pedido já foi registrado.");return;}
  const unit=+suggested(p)||0, revenue=unit*qty;
  p.stock=Math.max(0,(+p.stock||0)-qty);
  (p.materials||[]).forEach(r=>{
@@ -1886,9 +1901,12 @@ function importShopeeOrder(orderSn,store){
  const data=shopeeCache.orders[store]; if(!data)return;
  const items=flattenOrderDetails(data.details).filter(x=>x.order_sn===orderSn);
  if(!items.length){alert("Detalhes do pedido não encontrados.");return;}
- if(items.length>1){
-   items.forEach(i=>registerSaleFromShopee(i,store));
- }else registerSaleFromShopee(items[0],store);
+ const alreadyAll=items.every(i=>{
+   const p=findProductForShopee(i);
+   return p && db.sales?.some(s=>s.orderSn===i.order_sn&&String(s.productId)===String(p.id));
+ });
+ if(alreadyAll){alert("Todos os itens deste pedido já foram registrados.");return;}
+ items.forEach(i=>registerSaleFromShopee(i,store));
 }
 function shopeeItemStock(x){
  const s=x?.stock_info_v2;
