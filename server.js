@@ -387,9 +387,24 @@ const server=http.createServer(async(req,res)=>{
       for(const o of list.slice(0,50)){
         try{
           const d=await withRefresh(user.id,store,s=>shopee("/api/v2/order/get_order_detail","GET",s,{
-            order_sn_list:o.order_sn,response_optional_fields:"order_status,total_amount,item_list"
+            order_sn_list:o.order_sn,response_optional_fields:"buyer_user_id,buyer_username,estimated_shipping_fee,recipient_address,actual_shipping_fee,note,item_list,pay_time,shipping_carrier,payment_method,total_amount,invoice_data"
           }));
-          details.push(d);
+          const ox=d?.response?.order_list?.[0]||d?.order_list?.[0]||{};
+          details.push({
+            ...d,
+            order_context:{
+              order_sn:ox.order_sn||o.order_sn,
+              order_status:ox.order_status||"",
+              total_amount:ox.total_amount??null,
+              buyer_username:ox.buyer_username||"",
+              recipient_address:ox.recipient_address||null,
+              create_time:ox.create_time||null,
+              ship_by_date:ox.ship_by_date||null,
+              pay_time:ox.pay_time||null,
+              payment_method:ox.payment_method||"",
+              shipping_carrier:ox.shipping_carrier||""
+            }
+          });
         }catch(e){ details.push({order_sn:o.order_sn,error:e.message}); }
       }
       return json(res,200,{ok:true,store,orders:list,details});
