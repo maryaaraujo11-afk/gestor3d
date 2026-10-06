@@ -389,8 +389,23 @@ const server=http.createServer(async(req,res)=>{
       if(!requireSupabase(res))return;
       const user=await getAuthUser(req);
       if(!user)return json(res,401,{ok:false,error:"Sessão do Gestor 3D não autenticada."});
-      const data=await withRefresh(user.id,store,s=>shopee("/api/v2/product/get_item_list","GET",s,{offset:0,page_size:100,need_total_count:true,item_status:"NORMAL"})); 
-      return json(res,200,{ok:true,data});
+      const data=await withRefresh(user.id,store,s=>shopee("/api/v2/product/get_item_list","GET",s,{offset:0,page_size:100,need_total_count:true,item_status:"NORMAL"}));
+      const rawItems=data?.response?.item||data?.item||data?.response?.item_list||data?.item_list||[];
+      const itemIds=Array.isArray(rawItems)?rawItems.map(x=>Number(x?.item_id||x?.itemid||0)).filter(Boolean):[];
+      let items=Array.isArray(rawItems)?rawItems:[];
+      if(itemIds.length){
+        const base=await withRefresh(user.id,store,s=>shopee("/api/v2/product/get_item_base_info","GET",s,{
+          item_id_list:JSON.stringify(itemIds.slice(0,50)),
+          need_tax_info:false,
+          need_complaint_policy:false
+        }));
+        const detailed=base?.response?.item_list||base?.item_list||base?.response?.item||base?.item||[];
+        if(Array.isArray(detailed)&&detailed.length){
+          const byId=new Map(detailed.map(x=>[String(x.item_id),x]));
+          items=items.map(x=>({...x,...(byId.get(String(x.item_id||x.itemid))||{})}));
+        }
+      }
+      return json(res,200,{ok:true,data,items});
     }
     const stock=u.pathname.match(/^\/api\/shopee\/stock\/([12])$/);
     if(stock && req.method==="POST"){
