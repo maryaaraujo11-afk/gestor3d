@@ -656,7 +656,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 </div>
 
 <div id="shopeeProducts" class="hidden">
-<div class="sync-bar"><div><b>Produtos Shopee</b><div class="sub">Importe anúncios e use o Item ID para vincular ao produto interno.</div></div><div class="actions"><select id="productStore"><option value="1">F4R Studio 3D</option><option value="2">F4RM 3D</option></select><button class="btn secondary" onclick="syncShopeeProducts()">↓ Importar produtos</button></div></div>
+<div class="sync-bar"><div><b>Produtos Shopee</b><div class="sub">Importe anúncios e use o Item ID para vincular ao produto interno.</div></div><div class="actions"><select id="productStore"><option value="1">F4R Studio 3D</option><option value="2">F4RM 3D</option></select><button class="btn secondary" onclick="syncShopeeProducts()">↓ Importar produtos</button><button id="importAllShopeeBtn" class="btn secondary" style="display:none;margin-left:6px"></button></div></div>
 <div class="panel" style="margin-top:14px"><table><thead><tr><th>Item ID</th><th>SKU</th><th>Nome</th><th>Estoque Shopee</th><th>Vincular</th></tr></thead><tbody id="shopeeProductsTable"><tr><td colspan="5" class="sub">Nenhum produto importado.</td></tr></tbody></table></div>
 </div>
 
@@ -1890,23 +1890,92 @@ function importShopeeOrder(orderSn,store){
    items.forEach(i=>registerSaleFromShopee(i,store));
  }else registerSaleFromShopee(items[0],store);
 }
+function shopeeItemStock(x){
+ const s=x?.stock_info_v2;
+ if(s?.summary_info?.total_available_stock!=null)return Number(s.summary_info.total_available_stock)||0;
+ if(Array.isArray(s)&&s[0]?.summary_info?.total_available_stock!=null)return Number(s[0].summary_info.total_available_stock)||0;
+ if(s?.current_stock!=null)return Number(s.current_stock)||0;
+ if(x?.stock!=null)return Number(x.stock)||0;
+ return 0;
+}
+function shopeeItemSku(x){return String(x?.item_sku||x?.sku||"").trim();}
+function shopeeStoreName(store){return Number(store)===2?"F4RM 3D":"F4R Studio 3D";}
+function buildImportedShopeeProduct(item,store){
+ const itemId=String(item?.item_id||item?.itemid||"").trim();
+ const name=String(item?.item_name||"Produto Shopee").trim()||"Produto Shopee";
+ const sku=shopeeItemSku(item);
+ return {
+  id:Date.now()+Math.floor(Math.random()*10000),
+  name,sku,store:"",
+  stock:shopeeItemStock(item),stockManaged:false,
+  shopeeItemId:itemId,shopeeModelId:String(item?.model_id||item?.modelId||"0"),
+  shopeeSku:sku,shopeeName:name,shopeeStoreSlot:Number(store)||1,
+  shopeePrice:Number(item?.price_info?.[0]?.current_price||item?.price||0)||0,
+  fee:20,margin:30,pack:0,labor:0,other:0,
+  machineKwh:0.2,machineLife:5000,machineWear:0,machineValue:3000,machineWatts:200,
+  printHours:0,productionBasis:"unit",productionBatchQty:1,
+  productionSourceHours:0,productionSourcePack:0,productionSourceLabor:0,productionSourceOther:0,
+  productionSourceMaterials:[],materials:[],components:[],variants:[],colors:[],
+  importedFromShopee:true
+ };
+}
+function addShopeeProductToGestor(item,store,silent=false){
+ const itemId=String(item?.item_id||item?.itemid||"").trim();
+ if(!itemId)return null;
+ db.products=db.products||[];
+ const existing=db.products.find(p=>String(p.shopeeItemId||"")===itemId);
+ if(existing)return existing;
+ const p=buildImportedShopeeProduct(item,store);
+ db.products.push(p);
+ save();
+ if(!silent)alert("Produto adicionado ao Gestor 3D. Você pode completar a ficha técnica e os custos depois.");
+ return p;
+}
+function addAllShopeeProductsToGestor(store){
+ const items=Array.isArray(shopeeCache.products[store]?.items)?shopeeCache.products[store].items:[];
+ let added=0;
+ items.forEach(item=>{
+  const id=String(item?.item_id||item?.itemid||"").trim();
+  if(id && !(db.products||[]).some(p=>String(p.shopeeItemId||"")===id)){addShopeeProductToGestor(item,store,true);added++;}
+ });
+ if(added)save();
+ render();
+ alert(added?added+" produto(s) da Shopee foram adicionados ao Gestor 3D.\n\nAgora você pode completar custos e ficha técnica.":"Nenhum produto novo para adicionar.");
+}
 async function syncShopeeProducts(){
  const store=+document.getElementById("productStore").value;
  try{
-  const d=await api(`/api/shopee/products/${store}`); shopeeCache.products[store]=d;
+  const d=await api("/api/shopee/products/"+store);
+  shopeeCache.products[store]=d;
   const raw=d.items||d.data?.response?.item||d.data?.item||d.data?.response?.item_list||d.data?.item_list||[];
   const rows=Array.isArray(raw)?raw:[];
+  const newCount=rows.filter(x=>String(x?.item_id||x?.itemid||"").trim() && !(db.products||[]).some(p=>String(p.shopeeItemId||"")===String(x.item_id||x.itemid))).length;
+  const bulk=document.getElementById("importAllShopeeBtn");
+  if(bulk){
+   bulk.style.display=newCount?"inline-flex":"none";
+   bulk.textContent=newCount?"+ Adicionar "+newCount+" ao Gestor":"";
+   bulk.onclick=()=>addAllShopeeProductsToGestor(store);
+  }
   document.getElementById("shopeeProductsTable").innerHTML=rows.map(x=>{
-    const iid=x.item_id||x.itemid||"";
-    const p=(db.products||[]).find(z=>String(z.shopeeItemId||"")===String(iid));
-    const sku=x.item_sku||x.sku||"—";
-    const stockInfo=x.stock_info_v2;
-    const stock=stockInfo?.summary_info?.total_available_stock!=null?stockInfo.summary_info.total_available_stock:
-      (Array.isArray(stockInfo)&&stockInfo[0]?.summary_info?.total_available_stock!=null?stockInfo[0].summary_info.total_available_stock:
-      (stockInfo?.current_stock!=null?stockInfo.current_stock:(x.stock!=null?x.stock:"—")));
-    return `<tr><td><b>${iid}</b></td><td>${sku}</td><td>${x.item_name||"—"}</td><td>${stock}</td><td>${p?`✓ ${p.name}`:`<button class="btn secondary" onclick="linkShopeeItem('${iid}','${String(x.item_name||"").replace(/'/g,"")}','${String(sku==="—"?"":sku).replace(/'/g,"")}')">Vincular</button>`}</td></tr>`;
+   const iid=String(x.item_id||x.itemid||"");
+   const p=(db.products||[]).find(z=>String(z.shopeeItemId||"")===iid);
+   const sku=shopeeItemSku(x)||"—";
+   const stock=shopeeItemStock(x);
+   let action="";
+   if(p){
+    action='<span class="status-ok">✓ No Gestor</span>';
+   }else{
+    action='<button class="btn secondary" onclick="addShopeeProductByItem(\''+String(store)+'\',\''+iid+'\')">Adicionar ao Gestor</button> <button class="btn xs outline" onclick="linkShopeeItem(\''+iid+'\',\''+String(x.item_name||"").replace(/'/g,"\\'")+'\',\''+String(sku==="—"?"":sku).replace(/'/g,"\\'")+'\')">Vincular existente</button>';
+   }
+   return '<tr><td><b>'+iid+'</b></td><td>'+sku+'</td><td>'+String(x.item_name||"—")+'</td><td>'+stock+'</td><td>'+action+'</td></tr>';
   }).join("")||'<tr><td colspan="5" class="sub">Nenhum anúncio retornado.</td></tr>';
  }catch(e){alert("Erro ao importar produtos: "+e.message);}
+}
+function addShopeeProductByItem(store,itemId){
+ const item=(shopeeCache.products[store]?.items||[]).find(x=>String(x?.item_id||x?.itemid||"")===String(itemId));
+ if(!item){alert("Anúncio Shopee não encontrado. Clique em Importar produtos novamente.");return;}
+ addShopeeProductToGestor(item,store,false);
+ syncShopeeProducts();
 }
 async function copyShopeeLinkCode(text,label){
  try{
