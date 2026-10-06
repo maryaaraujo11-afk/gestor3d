@@ -897,8 +897,18 @@ function laborAmount(p){
  return base*((+p.laborPercent||20)/100);
 }
 function productionUnitCost(p){return materialCost(p)+componentCost(p)+machineUnitCost(p).total+laborAmount(p)+(+p.other||0)}
-function totalCost(p){return productionUnitCost(p)}
-function suggested(p){let cost=productionUnitCost(p), f=(+p.fee||0)/100,m=(+p.margin||0)/100;return (1-f-m)>0?cost/(1-f-m):0}
+function totalCost(p){
+ const base=productionUnitCost(p);
+ const variants=Array.isArray(p?.variants)?p.variants.filter(v=>v&&v.name&&(Array.isArray(v.materials)?v.materials.length:(v.materialId&&Number(v.qty)>0))):[];
+ if(base>0 || !variants.length)return base;
+ // Quando a receita fica cadastrada somente nas variações, usa o menor custo entre os tamanhos
+ // para que a tabela de produtos não fique mostrando R$ 0,00.
+ return Math.min(...variants.map(v=>saleProductionCost(p,1,{variantId:v.id})).filter(v=>Number.isFinite(v)&&v>0),0);
+}
+function suggested(p){
+ let cost=totalCost(p), f=(+p.fee||0)/100,m=(+p.margin||0)/100;
+ return (1-f-m)>0?cost/(1-f-m):0;
+}
 function addMaterialRow(materialId="",qty=""){
  const wrap=document.getElementById("materialsList");
  const row=document.createElement("div"); row.className="material-row";
