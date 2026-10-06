@@ -900,10 +900,13 @@ function productionUnitCost(p){return materialCost(p)+componentCost(p)+machineUn
 function totalCost(p){
  const base=productionUnitCost(p);
  const variants=Array.isArray(p?.variants)?p.variants.filter(v=>v&&v.name&&(Array.isArray(v.materials)?v.materials.length:(v.materialId&&Number(v.qty)>0))):[];
- if(base>0 || !variants.length)return base;
- // Quando a receita fica cadastrada somente nas variações, usa o menor custo entre os tamanhos
- // para que a tabela de produtos não fique mostrando R$ 0,00.
- return Math.min(...variants.map(v=>saleProductionCost(p,1,{variantId:v.id})).filter(v=>Number.isFinite(v)&&v>0),0);
+ if(!variants.length)return base;
+ // Quando existem tamanhos, cada variação tem seu próprio custo (incluindo materiais compartilhados).
+ // A tabela usa o menor custo como referência; os custos individuais continuam visíveis na ficha técnica.
+ const variantCosts=variants
+   .map(v=>saleProductionCost(p,1,{variantId:v.id}))
+   .filter(v=>Number.isFinite(v)&&v>0);
+ return variantCosts.length?Math.min(...variantCosts):base;
 }
 function suggested(p){
  let cost=totalCost(p), f=(+p.fee||0)/100,m=(+p.margin||0)/100;
@@ -1474,8 +1477,8 @@ function openTechModal(id){
      <div class="tech-box"><span>Loja</span><b>${p.store||"—"}</b></div>
      <div class="tech-box"><span>Tempo de impressão</span><b>${p.printHours||0} h</b></div>
      <div class="tech-box"><span>Estoque</span><b>${p.stock||0} un.</b></div>
-     <div class="tech-box"><span>Custo total</span><b>${money(total)}</b></div>
-     <div class="tech-box"><span>Preço sugerido</span><b>${money(price)}</b></div>
+     <div class="tech-box"><span>Custo a partir de</span><b>${money(total)}</b></div>
+     <div class="tech-box"><span>Preço sugerido a partir de</span><b>${money(price)}</b></div>
      <div class="tech-box"><span>Margem / taxa</span><b>${p.margin||0}% / ${p.fee||0}%</b></div>
    </div>
    <h3>Filamentos</h3>
