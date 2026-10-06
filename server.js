@@ -156,7 +156,7 @@ function authUrl(store){
   // O Console valida o domínio do redirect_uri; a URL nova usa /auth.
   const basePublic=process.env.PUBLIC_BASE_URL || ("http://localhost:"+PORT);
   const redirect=basePublic+"/api/shopee/callback/"+store;
-  const u=new URL(SHOPEE_ENV === "sandbox" ? "https://open.test-stable.shopee.com/auth" : "https://open.shopee.com/auth");
+  const u=new URL(SHOPEE_ENV === "sandbox" ? "https://open.sandbox.test-stable.shopee.com/auth" : "https://open.shopee.com/auth");
   u.searchParams.set("partner_id",PARTNER_ID);
   u.searchParams.set("auth_type","seller");
   u.searchParams.set("redirect_uri",redirect);
