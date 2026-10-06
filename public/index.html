@@ -1272,7 +1272,7 @@ function startEditSale(id){
  document.getElementById("sState").value=s.state||"";
  document.getElementById("sPostDays").value=String(s.postDays||1);
  document.getElementById("saleItemsList").innerHTML="";
- (Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,variantId:s.variantId,qty:s.qty}]).forEach(item=>addSaleItemRow(item));
+ (Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,variantId:s.variantId,colorId:s.colorId,qty:s.qty}]).forEach(item=>addSaleItemRow(item));
  document.getElementById("sStore").value=s.store||"F4R Studio 3D"; document.getElementById("sChannel").value=s.channel||"Shopee";
  document.getElementById("sQty").value=s.qty||1;
  document.getElementById("sGross").value=Number(s.grossValue??s.value??0).toFixed(2);
@@ -1361,8 +1361,8 @@ function saveSaleForm(){
  try{
   const storeEl=document.getElementById("sStore"),dateEl=document.getElementById("sDate"),timeEl=document.getElementById("sTime"),customerNameEl=document.getElementById("sCustomerName"),stateEl=document.getElementById("sState"),daysEl=document.getElementById("sPostDays"),grossEl=document.getElementById("sGross"),netEl=document.getElementById("sNet"),statusEl=document.getElementById("sStatus"),notesEl=document.getElementById("sNotes"); const channelEl=document.getElementById("sChannel"),channel=channelEl?.value||"Shopee";
   const items=collectSaleItems(); if(!items.length){alert("Adicione pelo menos um produto ao pedido.");return;}
-  const invalid=items.find(item=>Array.isArray(db.products.find(p=>String(p.id)===String(item.productId))?.variants)&&db.products.find(p=>String(p.id)===String(item.productId)).variants.length&&!item.variantId);
-  if(invalid){alert("Selecione a cor / variação de todos os produtos que possuem variações.");return;}
+  const invalid=items.find(item=>{const p=db.products.find(p=>String(p.id)===String(item.productId));return (Array.isArray(p?.variants)&&p.variants.length&&!item.variantId)||(Array.isArray(p?.colors)&&p.colors.length&&!item.colorId);});
+  if(invalid){alert("Selecione o tamanho e a cor de todos os produtos que possuem essas opções.");return;}
   const dateISO=dateEl.value||todayISO(),time=timeEl?.value||new Date().toTimeString().slice(0,5),postDays=Math.min(5,Math.max(1,Number(daysEl?.value)||1)),dueDate=addBusinessDays(dateISO,postDays);
   const packaging=saleItemsPackaging(items),cost=saleItemsCost(items)+packaging;
   const suggestedGross=items.reduce((sum,item)=>{const p=db.products.find(x=>String(x.id)===String(item.productId)); const unit=channel==="Direta" ? ((saleProductionCost(p,1,{variantId:item.variantId||""})/Math.max(0.0001,1-(Number(p?.margin)||0)/100))) : Number(suggestedForSale(p,{variantId:item.variantId||""})); return sum+(Number(unit)||0)*item.qty;},0)+packaging;
@@ -1372,7 +1372,7 @@ function saveSaleForm(){
   const net=netRaw!==""?Number(netRaw):defaultNet;if(!Number.isFinite(net)||net<0){alert("Informe um valor líquido recebido válido.");return;}
   const fee=Math.max(0,gross-net),old=editingSaleId!=null?db.sales.find(x=>String(x.id)===String(editingSaleId)):null;
   if(old&&old.status!=="Cancelado")adjustStockForSale(old,1,`Estorno para edição: ${old.product||"Venda"}`);
-  const first=items[0],sale={id:old?old.id:Date.now(),manualKey:old?.manualKey,dateISO,time,customerName:customerNameEl?.value.trim()||"",state:stateEl?.value||"",dueDate,postDays,date:formatDateISO(dateISO),product:items.length===1?first.product:`${first.product} + ${items.length-1} outro${items.length-1===1?"":"s"}`,productId:first.productId,variantId:first.variantId||"",variantName:first.variantName||"",items,store:storeEl.value,channel,value:gross,grossValue:gross,netValue:net,qty:items.reduce((a,i)=>a+i.qty,0),status:statusEl.value,cost,fee:channel==="Direta"?0:fee,packaging,notes:notesEl?.value.trim()||""};
+  const first=items[0],sale={id:old?old.id:Date.now(),manualKey:old?.manualKey,dateISO,time,customerName:customerNameEl?.value.trim()||"",state:stateEl?.value||"",dueDate,postDays,date:formatDateISO(dateISO),product:items.length===1?first.product:`${first.product} + ${items.length-1} outro${items.length-1===1?"":"s"}`,productId:first.productId,variantId:first.variantId||"",variantName:first.variantName||"",colorId:first.colorId||"",colorName:first.colorName||"",items,store:storeEl.value,channel,value:gross,grossValue:gross,netValue:net,qty:items.reduce((a,i)=>a+i.qty,0),status:statusEl.value,cost,fee:channel==="Direta"?0:fee,packaging,notes:notesEl?.value.trim()||""};
   if(old)Object.assign(old,sale);else{db.sales=db.sales||[];db.sales.unshift(sale);}
   syncCustomersFromSales();
   if(sale.status!=="Cancelado")adjustStockForSale(sale,-1,`${old?"Edição":"Venda"}: ${sale.product}`);
