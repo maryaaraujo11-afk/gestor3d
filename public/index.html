@@ -1899,7 +1899,12 @@ async function syncShopeeProducts(){
   document.getElementById("shopeeProductsTable").innerHTML=rows.map(x=>{
     const iid=x.item_id||x.itemid||"";
     const p=(db.products||[]).find(z=>String(z.shopeeItemId||"")===String(iid));
-    return `<tr><td><b>${iid}</b></td><td>${x.item_sku||x.item_sku_list?.[0]||"—"}</td><td>${x.item_name||"—"}</td><td>${x.stock_info_v2?.[0]?.current_stock??x.stock??"—"}</td><td>${p?`✓ ${p.name}`:`<button class="btn secondary" onclick="linkShopeeItem('${iid}','${String(x.item_name||"").replace(/'/g,"")}','${String(x.item_sku||"").replace(/'/g,"")}')">Vincular</button>`}</td></tr>`;
+    const sku=x.item_sku||x.sku||"—";
+    const stockInfo=x.stock_info_v2;
+    const stock=stockInfo?.summary_info?.total_available_stock!=null?stockInfo.summary_info.total_available_stock:
+      (Array.isArray(stockInfo)&&stockInfo[0]?.summary_info?.total_available_stock!=null?stockInfo[0].summary_info.total_available_stock:
+      (stockInfo?.current_stock!=null?stockInfo.current_stock:(x.stock!=null?x.stock:"—")));
+    return `<tr><td><b>${iid}</b></td><td>${sku}</td><td>${x.item_name||"—"}</td><td>${stock}</td><td>${p?`✓ ${p.name}`:`<button class="btn secondary" onclick="linkShopeeItem('${iid}','${String(x.item_name||"").replace(/'/g,"")}','${String(sku==="—"?"":sku).replace(/'/g,"")}')">Vincular</button>`}</td></tr>`;
   }).join("")||'<tr><td colspan="5" class="sub">Nenhum anúncio retornado.</td></tr>';
  }catch(e){alert("Erro ao importar produtos: "+e.message);}
 }
