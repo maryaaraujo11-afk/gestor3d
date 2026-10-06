@@ -1308,42 +1308,33 @@ function renderSalesTable(){
 }
 function addSaleItemRow(item={}){
  const wrap=document.getElementById("saleItemsList"); if(!wrap)return;
- const row=document.createElement("div"); row.className="panel sale-item-row"; row.style.cssText="padding:12px;margin:8px 0;background:#faf8f6";
- row.dataset.itemId=item.itemId||String(Date.now()+Math.random());
+ const row=document.createElement("div"); row.className="panel sale-item-row"; row.style.cssText="padding:12px;margin:8px 0;background:#faf8f6"; row.dataset.itemId=item.itemId||String(Date.now()+Math.random());
  const products=(db.products||[]);
- row.innerHTML=`<div class="formgrid" style="grid-template-columns:2fr 1.2fr .7fr auto;gap:8px">
+ row.innerHTML=`<div class="formgrid" style="grid-template-columns:2fr 1fr 1fr .7fr auto;gap:8px">
  <div><label>Produto</label><select class="sale-item-product" onchange="populateSaleItemVariants(this);updateSalePreview()"><option value="">Selecione</option>${products.map(p=>`<option value="${p.id}" ${String(p.id)===String(item.productId||"")?"selected":""}>${p.name}${p.sku?" — "+p.sku:""}</option>`).join("")}</select></div>
- <div class="sale-item-variant-field"><label>Cor / variação</label><select class="sale-item-variant" onchange="updateSalePreview()"><option value="">Produto sem variação</option></select></div>
+ <div class="sale-item-variant-field"><label>Tamanho</label><select class="sale-item-variant" onchange="updateSalePreview()"><option value="">Produto sem tamanho</option></select></div>
+ <div class="sale-item-color-field"><label>Cor</label><select class="sale-item-color" onchange="updateSalePreview()"><option value="">Produto sem cor</option></select></div>
  <div><label>Quantidade</label><input class="sale-item-qty" type="number" min="1" value="${Math.max(1,Number(item.qty)||1)}" oninput="updateSalePreview()"></div>
- <div><button type="button" class="remove-material" onclick="this.closest('.sale-item-row').remove();updateSalePreview()">Remover</button></div>
- </div>
+ <div><button type="button" class="remove-material" onclick="this.closest('.sale-item-row').remove();updateSalePreview()">Remover</button></div></div>
  <div class="sub sale-item-cost" style="margin-top:7px"></div>`;
- wrap.appendChild(row);
- populateSaleItemVariants(row.querySelector(".sale-item-product"),item.variantId||"");
+ wrap.appendChild(row); populateSaleItemVariants(row.querySelector(".sale-item-product"),item.variantId||"",item.colorId||"");
 }
-function populateSaleItemVariants(productEl,selectedId=""){
+function populateSaleItemVariants(productEl,selectedId="",selectedColorId=""){
  const row=productEl?.closest(".sale-item-row"); if(!row)return;
- const vEl=row.querySelector(".sale-item-variant"), field=row.querySelector(".sale-item-variant-field");
- if(!vEl||!field)return;
- const p=(db.products||[]).find(x=>String(x.id)===String(productEl.value));
- // Aceita tanto o formato atual quanto registros antigos que possam ter usado "variations".
- const rawVariants=Array.isArray(p?.variants)?p.variants:(Array.isArray(p?.variations)?p.variations:[]);
- const variants=rawVariants.filter(v=>v&&v.id!=null&&String(v.name||"").trim());
- vEl.innerHTML=variants.length
-   ? '<option value="">Selecione a cor / variação</option>'+variants.map(v=>`<option value="${v.id}">${v.name}</option>`).join("")
-   : '<option value="">Nenhuma variação cadastrada</option>';
- if(selectedId&&variants.some(v=>String(v.id)===String(selectedId)))vEl.value=String(selectedId);
- field.style.display="block";
- field.querySelector("label").textContent=variants.length?"Cor / variação":"Cor / variação";
- vEl.disabled=!variants.length;
+ const vEl=row.querySelector(".sale-item-variant"),cEl=row.querySelector(".sale-item-color"),vf=row.querySelector(".sale-item-variant-field"),cf=row.querySelector(".sale-item-color-field");
+ const p=(db.products||[]).find(x=>String(x.id)===String(productEl.value)); const variants=Array.isArray(p?.variants)?p.variants:[]; const colors=Array.isArray(p?.colors)?p.colors:[];
+ vEl.innerHTML=variants.length?'<option value="">Selecione o tamanho</option>'+variants.map(v=>`<option value="${v.id}">${v.name}</option>`).join(""):'<option value="">Produto sem tamanho</option>';
+ cEl.innerHTML=colors.length?'<option value="">Selecione a cor</option>'+colors.map(v=>`<option value="${v.id}">${v.name}</option>`).join(""):'<option value="">Produto sem cor</option>';
+ if(selectedId)vEl.value=String(selectedId); if(selectedColorId)cEl.value=String(selectedColorId);
+ vf.style.display=variants.length?"block":"none"; cf.style.display=colors.length?"block":"none"; vEl.disabled=!variants.length;cEl.disabled=!colors.length;
 }
 function collectSaleItems(){
  return [...document.querySelectorAll("#saleItemsList .sale-item-row")].map(row=>{
   const p=(db.products||[]).find(x=>String(x.id)===String(row.querySelector(".sale-item-product")?.value||""));
-  const variantId=row.querySelector(".sale-item-variant")?.value||"";
-  const variant=variantForSale(p,variantId);
+  const variantId=row.querySelector(".sale-item-variant")?.value||"",colorId=row.querySelector(".sale-item-color")?.value||"";
+  const variant=variantForSale(p,variantId),color=(p?.colors||[]).find(x=>String(x.id)===String(colorId));
   const qty=Math.max(1,Number(row.querySelector(".sale-item-qty")?.value)||1);
-  return p?{itemId:row.dataset.itemId||String(Date.now()+Math.random()),productId:p.id,product:p.name,variantId:variant?.id||"",variantName:variant?.name||"",qty}:null;
+  return p?{itemId:row.dataset.itemId||String(Date.now()+Math.random()),productId:p.id,product:p.name,variantId:variant?.id||"",variantName:variant?.name||"",colorId:color?.id||"",colorName:color?.name||"",qty}:null;
  }).filter(Boolean);
 }
 function saleItemCost(item){
