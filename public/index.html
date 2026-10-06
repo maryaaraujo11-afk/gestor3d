@@ -1348,11 +1348,18 @@ function addSaleItemRow(item={}){
 function populateSaleItemVariants(productEl,selectedId=""){
  const row=productEl?.closest(".sale-item-row"); if(!row)return;
  const vEl=row.querySelector(".sale-item-variant"), field=row.querySelector(".sale-item-variant-field");
+ if(!vEl||!field)return;
  const p=(db.products||[]).find(x=>String(x.id)===String(productEl.value));
- const variants=Array.isArray(p?.variants)?p.variants:[];
- vEl.innerHTML=variants.length?'<option value="">Selecione a cor</option>'+variants.map(v=>`<option value="${v.id}">${v.name}</option>`).join(""):'<option value="">Produto sem variação</option>';
- if(selectedId)vEl.value=String(selectedId);
- field.style.display=variants.length?"block":"none";
+ // Aceita tanto o formato atual quanto registros antigos que possam ter usado "variations".
+ const rawVariants=Array.isArray(p?.variants)?p.variants:(Array.isArray(p?.variations)?p.variations:[]);
+ const variants=rawVariants.filter(v=>v&&v.id!=null&&String(v.name||"").trim());
+ vEl.innerHTML=variants.length
+   ? '<option value="">Selecione a cor / variação</option>'+variants.map(v=>`<option value="${v.id}">${v.name}</option>`).join("")
+   : '<option value="">Nenhuma variação cadastrada</option>';
+ if(selectedId&&variants.some(v=>String(v.id)===String(selectedId)))vEl.value=String(selectedId);
+ field.style.display="block";
+ field.querySelector("label").textContent=variants.length?"Cor / variação":"Cor / variação";
+ vEl.disabled=!variants.length;
 }
 function collectSaleItems(){
  return [...document.querySelectorAll("#saleItemsList .sale-item-row")].map(row=>{
