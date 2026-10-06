@@ -152,14 +152,15 @@ function clearOAuthCookie(res,store){
 }
 
 function authUrl(store){
-  const pathname="/api/v2/shop/auth_partner";
-  const ts=Math.floor(Date.now()/1000);
-  const redirect=`${process.env.PUBLIC_BASE_URL || `http://localhost:${PORT}`}/api/shopee/callback/${store}`;
-  const u=new URL(BASE+pathname);
+  // Fluxo de autorização atual da Shopee Open Platform.
+  // O Console valida o domínio do redirect_uri; a URL nova usa /auth.
+  const basePublic=process.env.PUBLIC_BASE_URL || ("http://localhost:"+PORT);
+  const redirect=basePublic+"/api/shopee/callback/"+store;
+  const u=new URL(SHOPEE_ENV === "sandbox" ? "https://open.test-stable.shopee.com/auth" : "https://open.shopee.com/auth");
   u.searchParams.set("partner_id",PARTNER_ID);
-  u.searchParams.set("timestamp",String(ts));
-  u.searchParams.set("sign",authSign(pathname,ts));
-  u.searchParams.set("redirect",redirect);
+  u.searchParams.set("auth_type","seller");
+  u.searchParams.set("redirect_uri",redirect);
+  u.searchParams.set("response_type","code");
   return u.toString();
 }
 async function shopee(pathname, method, s, query={}, body=null){
