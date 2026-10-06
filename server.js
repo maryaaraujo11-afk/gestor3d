@@ -60,6 +60,13 @@ function requireCreds(res){
 function shop(id){
   return db().shops[String(id)] || null;
 }
+function startOfBrazilDayEpoch(){
+  const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+  const y=parts.find(x=>x.type==="year")?.value;
+  const m=parts.find(x=>x.type==="month")?.value;
+  const d=parts.find(x=>x.type==="day")?.value;
+  return Math.floor(new Date(String(y)+"-"+String(m)+"-"+String(d)+"T00:00:00-03:00").getTime()/1000);
+}
 function getBearer(req){
   const h=String(req.headers.authorization||"");
   return h.startsWith("Bearer ")?h.slice(7).trim():"";
@@ -367,8 +374,12 @@ const server=http.createServer(async(req,res)=>{
       if(!requireSupabase(res))return;
       const user=await getAuthUser(req);
       if(!user)return json(res,401,{ok:false,error:"Sessão do Gestor 3D não autenticada."});
+      const timeFrom=startOfBrazilDayEpoch();
+      const timeTo=Math.floor(Date.now()/1000);
       const orders=await withRefresh(user.id,store,s=>shopee("/api/v2/order/get_order_list","GET",s,{
-        time_range_field:"update_time",time_from:Math.floor(Date.now()/1000)-7*86400,time_to:Math.floor(Date.now()/1000),
+        // A sincronização comercial começa somente nos pedidos criados hoje,
+        // evitando trazer novamente pedidos antigos que já foram lançados manualmente.
+        time_range_field:"create_time",time_from:timeFrom,time_to:timeTo,
         page_size:100,response_optional_fields:"order_status","cursor":""
       }));
       const list=orders.response?.order_list||orders.order_list||[];
