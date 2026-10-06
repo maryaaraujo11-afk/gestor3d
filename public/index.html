@@ -1209,7 +1209,7 @@ function updatePostDate(){
  dueEl.value=addBusinessDays(dateEl.value||todayISO(), Number(daysEl.value)||1);
 }
 function formatDateISO(v){ if(!v)return "—"; const parts=String(v).split("-"); return parts.length===3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : v; }
-function isLate(s){ return s.status!=="Entregue" && s.status!=="Cancelado" && s.dueDate && s.dueDate < todayISO(); }
+function isLate(s){ return s.status!=="Enviado" && s.status!=="Entregue" && s.status!=="Cancelado" && s.dueDate && s.dueDate < todayISO(); }
 function postingDateClass(s){
  const d=s?.dueDate||"";
  if(!d)return "";
