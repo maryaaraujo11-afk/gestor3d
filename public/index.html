@@ -1938,7 +1938,20 @@ function migrateStoreNames(){
 migrateStoreNames();
 function migrateKitChaveirosVariations(){
  const p=(db.products||[]).find(x=>String(x.name||"").toLowerCase().includes("kit chaveiros outubro rosa"));
- if(!p || (Array.isArray(p.variants)&&p.variants.length) || p.__kitChaveirosVariationMigration==="v1")return false;
+ if(!p || p.__kitChaveirosVariationMigration==="v2")return false;
+ if(p.__kitChaveirosVariationMigration==="v1" && Array.isArray(p.variants)&&p.variants.length){
+   const batchQty=Math.max(1,Number(p.productionBatchQty)||35);
+   const targetQty=59.66/batchQty;
+   p.variants.forEach(v=>{
+     v.printHours=Number(p.printHours)||4.55/batchQty;
+     if(Array.isArray(v.materials)&&v.materials.length){
+       v.materials[0].qty=targetQty;
+       v.colorMaterialId=v.materials[0].materialId;
+     }
+   });
+   p.__kitChaveirosVariationMigration="v2";
+   return true;
+ }
  const colors=Array.isArray(p.colors)?p.colors:[];
  if(colors.length<3)return false;
  const mats=Array.isArray(p.materials)?p.materials:[];
@@ -1948,8 +1961,7 @@ function migrateKitChaveirosVariations(){
  if(!white||!ring||!bag)return false;
  const batchQty=Math.max(1,Number(p.productionBatchQty)||35);
  const pink=mats.find(m=>String(m.name||"").toLowerCase().includes("rosa"));
- const dominantSource=Number(pink?.sourceQty);
- const dominantPerUnit=(Number.isFinite(dominantSource)&&dominantSource>0?dominantSource:59.66)/batchQty;
+ const dominantPerUnit=59.66/batchQty;
  const whitePerUnit=(Number(white.sourceQty)>0?Number(white.sourceQty):Number(white.qty||0)*batchQty)/batchQty;
  const printHours=Number(p.printHours)||0;
  const variants=colors.map(color=>{
@@ -1970,10 +1982,10 @@ function migrateKitChaveirosVariations(){
  }).filter(Boolean);
  if(variants.length!==colors.length)return false;
  p.variants=variants;
- p.__kitChaveirosVariationMigration="v1";
+ p.__kitChaveirosVariationMigration="v2";
  return true;
 }
-migrateKitChaveirosVariations();
+if(migrateKitChaveirosVariations()) localStorage.setItem(KEY,JSON.stringify(db));
 function populateSaleProducts(){
  const el=document.getElementById("sProduct");
  if(!el) return;
