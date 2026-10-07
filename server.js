@@ -368,7 +368,7 @@ const server=http.createServer(async(req,res)=>{
       }
       return json(res,200,{ok:true,stores:out});
     }
-    const sync=u.pathname.match(/^\\/api\\/shopee\\/sync\\/([12])$/);
+    const sync=u.pathname.match(/^\/api\/shopee\/sync\/([12])$/);
     if(sync && req.method==="POST"){
       const store=sync[1];
       if(!requireSupabase(res))return;
