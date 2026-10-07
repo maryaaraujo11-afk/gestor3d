@@ -399,7 +399,7 @@ const server=http.createServer(async(req,res)=>{
         time_range_field:"create_time",
         time_from:todayStart,
         time_to:now,
-        response_optional_fields:"order_status,create_time,update_time"
+        response_optional_fields:"order_status"
       });
 
       // 2) Todos os pedidos ainda aguardando processamento de envio,
@@ -409,7 +409,7 @@ const server=http.createServer(async(req,res)=>{
         time_from:pendingFrom,
         time_to:now,
         order_status:"READY_TO_SHIP",
-        response_optional_fields:"order_status,create_time,update_time"
+        response_optional_fields:"order_status"
       });
 
       const bySn=new Map();
