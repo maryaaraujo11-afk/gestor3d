@@ -181,7 +181,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 </div>
 </section>
 <section id="products" class="hidden">
-<div class="top"><div><h1>Produtos</h1><div class="sub">Cadastre a ficha técnica, receita, custos e vínculo com a Shopee</div></div><button class="btn" onclick="toggle('productForm')">+ Novo produto</button></div>
+<div class="top"><div><h1>Produtos</h1><div class="sub">Cadastre a ficha técnica, receita, custos e vínculo com a Shopee</div></div><div class="actions"><button class="btn secondary" type="button" onclick="openMergeProducts()">🔗 Mesclar produtos</button><button class="btn" onclick="toggle('productForm')">+ Novo produto</button></div></div>
 <div id="productForm" class="panel hidden"><h2 id="productFormTitle">Novo produto</h2><div class="formgrid">
 <div class="field"><label>Nome</label><input id="pName"></div><div class="field"><label>SKU</label><input id="pSku"></div><div class="field"><label>Loja (opcional)</label><select id="pStore"><option value="">Sem loja definida</option><option value="F4R Studio 3D">F4R Studio 3D</option><option value="F4RM 3D">F4RM 3D</option></select><div class="sub">Os mesmos produtos podem ser vendidos nas duas lojas. A loja é escolhida no momento da venda.</div></div>
 <div class="field"><label>SKU Shopee</label><input id="pShopeeSku" placeholder="Ex.: MINI-JESUS-01"></div>
@@ -219,7 +219,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <div class="field" style="display:none"><label>Desgaste por hora (R$)</label><input id="pMachineWear" type="number" min="0" step=".01" value="0.20"></div>
 <div class="field" style="display:none"><label>Taxa marketplace (%)</label><input id="pFee" type="number" step=".1" value="20"></div><div class="field"><label>Margem desejada (%)</label><input id="pMargin" type="number" step=".1" value="30"></div><div class="field"><label>Estoque inicial</label><input id="pStock" type="number" value="0"></div>
 </div><br><button class="btn" id="productSaveBtn" onclick="addProduct()">Salvar produto</button> <button type="button" class="btn secondary" onclick="cancelProductEdit()">Cancelar</button></div>
-<div class="panel"><table><thead><tr><th>Produto</th><th>SKU</th><th>Loja</th><th>Materiais da receita</th><th>Custo / un.</th><th>Preço sugerido / un.</th><th>Estoque</th><th>Ficha técnica</th><th>Ações</th></tr></thead><tbody id="productsTable"></tbody></table></div>
+<div class="panel"><div class="notice" style="margin-bottom:12px">Para unir cadastros duplicados, use <b>Mesclar produtos</b>. O produto principal permanece e vendas/vínculos do outro cadastro passam para ele.</div><table><thead><tr><th>Sel.</th><th>Produto</th><th>SKU</th><th>Loja</th><th>Materiais da receita</th><th>Custo / un.</th><th>Preço sugerido / un.</th><th>Estoque</th><th>Ficha técnica</th><th>Ações</th></tr></thead><tbody id="productsTable"></tbody></table></div>
 </section>
 
 
@@ -1961,6 +1961,7 @@ function findProductForShopee(item){
  const sku=String(item.item_sku||"").trim();
  return (db.products||[]).find(p=>
    (p.shopeeItemId&&String(p.shopeeItemId)===iid) ||
+   (Array.isArray(p.shopeeLinks)&&p.shopeeLinks.some(x=>String(x?.itemId||"")===iid)) ||
    (sku && p.shopeeSku && String(p.shopeeSku).trim()===sku)
  );
 }
@@ -2455,6 +2456,83 @@ function renderCustomers(){syncCustomersFromSales();const rows=(db.customers||[]
 function openCustomerHistory(id){const c=(db.customers||[]).find(x=>String(x.id)===String(id));if(!c)return;const sales=customerSales(c).sort((a,b)=>String(b.dateISO||"").localeCompare(String(a.dateISO||"")));document.getElementById("customerHistoryTitle").textContent=`Histórico — ${c.name}`;const t=document.getElementById("customerHistoryTable");if(t)t.innerHTML=sales.map(s=>`<tr><td>${formatDateISO(s.dateISO||"")}</td><td>${s.product||"—"}</td><td>${s.variantName||"—"}</td><td>${s.store||"—"}</td><td>${s.qty||0}</td><td>${money(Number(s.grossValue??s.value)||0)}</td><td><span class="status-pill status-pill-${saleStatusKey(s.status)}">${s.status||"Recebido"}</span></td></tr>`).join("")||'<tr><td colspan="7">Nenhum pedido encontrado.</td></tr>';document.getElementById("customerHistoryPanel").classList.remove("hidden");document.getElementById("customerHistoryPanel").scrollIntoView({behavior:"smooth",block:"start"});}
 function closeCustomerHistory(){document.getElementById("customerHistoryPanel")?.classList.add("hidden");}
 
+function productById(id){return (db.products||[]).find(p=>String(p.id)===String(id));}
+function mergeShopeeLinksIntoTarget(target,source){
+ target.shopeeLinks=Array.isArray(target.shopeeLinks)?target.shopeeLinks:[];
+ const links=Array.isArray(source.shopeeLinks)?source.shopeeLinks:[];
+ if(source.shopeeItemId){
+   links.push({itemId:String(source.shopeeItemId),modelId:String(source.shopeeModelId||"0"),sku:String(source.shopeeSku||""),name:String(source.shopeeName||source.name||"")});
+ }
+ const existingIds=new Set(target.shopeeLinks.map(x=>String(x.itemId)));
+ links.forEach(x=>{if(x?.itemId&&!existingIds.has(String(x.itemId))){target.shopeeLinks.push(x);existingIds.add(String(x.itemId));}});
+ if(!target.shopeeItemId && target.shopeeLinks.length){
+   const first=target.shopeeLinks[0];
+   target.shopeeItemId=String(first.itemId);
+   target.shopeeModelId=String(first.modelId||"0");
+   target.shopeeSku=String(first.sku||"");
+   target.shopeeName=String(first.name||target.shopeeName||"");
+ }
+}
+function mergeProductRecords(target,source){
+ if(!target||!source||String(target.id)===String(source.id))return;
+ // Preserva a ficha do principal; se ela estiver vazia, aproveita a ficha do outro cadastro.
+ const targetHasRecipe=(Array.isArray(target.materials)&&target.materials.length)||(Array.isArray(target.variants)&&target.variants.length)||(Array.isArray(target.components)&&target.components.length);
+ const sourceHasRecipe=(Array.isArray(source.materials)&&source.materials.length)||(Array.isArray(source.variants)&&source.variants.length)||(Array.isArray(source.components)&&source.components.length);
+ if(!targetHasRecipe&&sourceHasRecipe){
+   ["materials","variants","components","colors","printHours","productionBasis","productionBatchQty","productionSourceHours","productionSourcePack","productionSourceLabor","productionSourceOther","productionSourceMaterials","pack","labor","other","fee","margin","machineWatts","machineKwh","machineValue","machineLife","machineWear","stockManaged"].forEach(k=>{if(source[k]!==undefined)target[k]=source[k];});
+ }
+ if(!target.sku&&source.sku)target.sku=source.sku;
+ if(!target.store&&source.store)target.store=source.store;
+ mergeShopeeLinksIntoTarget(target,source);
+ // Soma estoque para evitar perder saldo de um cadastro duplicado.
+ if(Number.isFinite(Number(source.stock)))target.stock=(Number(target.stock)||0)+(Number(source.stock)||0);
+ // Redireciona vendas e itens históricos para o produto principal.
+ (db.sales||[]).forEach(s=>{
+   let changed=false;
+   if(String(s.productId)===String(source.id)){s.productId=target.id;s.product=target.name;changed=true;}
+   if(Array.isArray(s.items))s.items.forEach(it=>{if(String(it.productId)===String(source.id)){it.productId=target.id;it.product=target.name;changed=true;}});
+   if(changed&&String(s.status||"")!=="Pendente")s.product=target.name;
+ });
+ // Redireciona orçamentos que apontavam para o produto removido.
+ (db.quotes||[]).forEach(q=>{if(String(q.productId)===String(source.id))q.productId=target.id;});
+ db.products=(db.products||[]).filter(p=>String(p.id)!==String(source.id));
+}
+function openMergeProducts(){
+ const products=Array.isArray(db.products)?db.products:[];
+ if(products.length<2){alert("É preciso ter pelo menos 2 produtos cadastrados para mesclar.");return;}
+ const selectedIds=[...document.querySelectorAll(".merge-product-check:checked")].map(x=>String(x.value));
+ const esc=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",\"":"&quot;","'":"&#39;"}[ch]));
+ const rows=products.map(p=>'<label class="merge-prod-row" data-search="'+esc((p.name||"")+" "+(p.sku||"")+" "+p.id)+'" style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #eadfd8;border-radius:9px;margin-bottom:7px;background:#fff;">'+
+   '<input type="checkbox" class="merge-pick" value="'+esc(p.id)+'" '+(selectedIds.includes(String(p.id))?"checked":"")+'> '+
+   '<span style="flex:1"><b>'+esc(p.name||"Produto sem nome")+'</b><small class="sub" style="display:block">Código: '+esc(p.id)+(p.sku?" • SKU: "+esc(p.sku):"")+(p.shopeeItemId?" • Shopee: "+esc(p.shopeeItemId):"")+'</small></span>'+
+   '</label>').join("");
+ const modal=document.createElement("div");modal.id="mergeProductsModal";modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;";
+ modal.innerHTML='<div style="width:min(760px,96vw);max-height:90vh;overflow:auto;background:#fff;border-radius:16px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.22)">'+
+ '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div><h3 style="margin:0 0 5px">Mesclar produtos</h3><div class="sub">Selecione 2 ou mais cadastros e escolha qual será o produto principal.</div></div><button type="button" class="btn xs outline" onclick="document.getElementById(\'mergeProductsModal\')?.remove()">✕</button></div>'+
+ '<input id="mergeProductsSearch" type="search" placeholder="Buscar por nome, SKU ou código" style="width:100%;margin:12px 0">'+
+ '<div id="mergeProductsList">'+rows+'</div>'+
+ '<div class="field" style="margin-top:14px"><label><b>Produto principal</b></label><select id="mergeTargetProduct" style="width:100%"><option value="">Selecione</option>'+products.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name||"Produto sem nome")+'</option>').join("")+'</select></div>'+
+ '<div class="notice" style="margin-top:12px">O produto principal permanece. Os demais serão removidos após transferir as vendas, orçamentos, estoque e vínculos Shopee. A ficha técnica do principal é preservada; se estiver vazia, a ficha do outro cadastro pode ser aproveitada.</div>'+
+ '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px"><button type="button" class="btn outline" onclick="document.getElementById(\'mergeProductsModal\')?.remove()">Cancelar</button><button type="button" class="btn" onclick="confirmMergeProducts()">Mesclar produtos</button></div></div>';
+ document.body.appendChild(modal);
+ document.getElementById("mergeProductsSearch")?.addEventListener("input",function(){
+   const q=String(this.value||"").toLowerCase().trim();
+   document.querySelectorAll("#mergeProductsList .merge-prod-row").forEach(row=>row.style.display=!q||String(row.dataset.search||"").toLowerCase().includes(q)?"flex":"none");
+ });
+}
+function confirmMergeProducts(){
+ const ids=[...document.querySelectorAll("#mergeProductsModal .merge-pick:checked")].map(x=>String(x.value));
+ const targetId=String(document.getElementById("mergeTargetProduct")?.value||"");
+ if(ids.length<2){alert("Selecione pelo menos 2 produtos.");return;}
+ if(!targetId||!ids.includes(targetId)){alert("Escolha como principal um dos produtos selecionados.");return;}
+ const target=productById(targetId);
+ const sources=ids.filter(id=>id!==targetId).map(productById).filter(Boolean);
+ if(!target||!sources.length)return;
+ const names=sources.map(p=>p.name).join("\n• ");
+ if(!confirm("Mesclar estes produtos em '"+target.name+"'?\n\n• "+names+"\n\nOs produtos secundários serão removidos do cadastro, e o histórico será direcionado ao produto principal."))return;
+ sources.forEach(source=>mergeProductRecords(target,source));
+ save();document.getElementById("mergeProductsModal")?.remove();render();alert("Produtos mesclados com sucesso. O cadastro principal foi mantido.");
+}
 function render(){
  db.materials=db.materials||[]; db.movements=db.movements||[]; db.quotes=db.quotes||[]; db.purchases=db.purchases||[]; db.sales=db.sales||[]; db.products=db.products||[]; db.customers=db.customers||[];
  const dashboardPeriod=populateDashboardPeriods();
@@ -2503,7 +2581,7 @@ db.products.forEach(p=>{
  const activeSales=reportSales().filter(s=>s.status!=="Cancelado");
  let revenue=activeSales.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0), netRevenue=activeSales.reduce((a,s)=>{const gross=Number(s.grossValue??s.value)||0; const fee=Number(s.fee); const net=Number(s.netValue); return a+(Number.isFinite(net)&&net>0?net:Math.max(0,gross-(Number.isFinite(fee)?fee:0)));},0), totalProductCosts=activeSales.reduce((a,s)=>a+(Number(s.cost)||0),0), fees=activeSales.reduce((a,s)=>a+(Number(s.fee)||0),0);
  const ds=document.getElementById("dashStock"); if(ds)ds.textContent=db.products.reduce((a,p)=>a+(+p.stock||0),0)+(db.materials||[]).length; renderDashboardSummary(dashboardPeriod); renderStateMap(dashboardPeriod);
- const productsTable=document.getElementById("productsTable"); if(productsTable) productsTable.innerHTML=db.products.map(p=>`<tr><td><b>${p.name}</b></td><td>${p.sku||"-"}</td><td>${p.store||"—"}</td><td>${(p.materials||[]).map(m=>`${m.name} (${Number(m.qty||m.grams||0).toLocaleString("pt-BR",{maximumFractionDigits:4})} ${m.unit||"un."})`).join(", ")||"—"}</td><td>${money(totalCost(p))}</td><td>${money(suggested(p))}</td><td>${p.stock||0}</td><td><button class="btn secondary" onclick="openTechModal('${p.id}')">Ver ficha</button></td><td><button class="btn secondary" onclick="editProduct('${p.id}')">✏️ Editar</button></td></tr>`).join('')||'<tr><td colspan="9">Nenhum produto cadastrado.</td></tr>';
+ const productsTable=document.getElementById("productsTable"); if(productsTable) productsTable.innerHTML=db.products.map(p=>`<tr><td><input type="checkbox" class="merge-product-check" value="${p.id}" aria-label="Selecionar ${String(p.name||"produto").replace(/"/g,"&quot;")}"></td><td><b>${p.name}</b></td><td>${p.sku||"-"}</td><td>${p.store||"—"}</td><td>${(p.materials||[]).map(m=>`${m.name} (${Number(m.qty||m.grams||0).toLocaleString("pt-BR",{maximumFractionDigits:4})} ${m.unit||"un."})`).join(", ")||"—"}</td><td>${money(totalCost(p))}</td><td>${money(suggested(p))}</td><td>${p.stock||0}</td><td><button class="btn secondary" onclick="openTechModal('${p.id}')">Ver ficha</button></td><td><button class="btn secondary" onclick="editProduct('${p.id}')">✏️ Editar</button></td></tr>`).join('')||'<tr><td colspan="10">Nenhum produto cadastrado.</td></tr>';
  const stockTable=document.getElementById("stockTable"); if(stockTable) stockTable.innerHTML=[...(db.materials||[]).map(m=>`<tr><td>${m.name}</td><td>${m.category}</td><td>${m.stock} ${m.unit}</td><td>${m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td></tr>`),...db.products.map(p=>`<tr><td>${p.name}</td><td>Produto acabado</td><td>${p.stock||0} un.</td><td>${(p.stock||0)<=2?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td></tr>`)].join('')||'<tr><td colspan="4">Nenhum item.</td></tr>';
  const lowStock=document.getElementById("lowStock"); if(lowStock){const lp=db.products.filter(p=>(+p.stock||0)<=2).map(p=>`<div style="padding:9px 0;border-bottom:1px solid #eee">${p.name} <span class="tag warn">${p.stock||0} un.</span></div>`);const lm=db.materials.filter(m=>(+m.stock||0)<=m.minStock).map(m=>`<div style="padding:9px 0;border-bottom:1px solid #eee">${m.name} <span class="tag warn">${m.stock} ${m.unit}</span></div>`);lowStock.innerHTML=[...lp,...lm].join('')||'<div class="sub">Nenhum estoque crítico.</div>'; }
  const dashSales=document.getElementById("dashSales"); if(dashSales){ const recentReportSales=[...reportSales()].sort((a,b)=>`${b.dateISO||""}T${b.time||"00:00"}`.localeCompare(`${a.dateISO||""}T${a.time||"00:00"}`)).slice(0,6); dashSales.innerHTML=recentReportSales.map(s=>`<div style="padding:9px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between"><span>${s.customerName?s.customerName+" • ":""}${s.product}<small class="sub">${s.date||formatDateISO(s.dateISO)} ${s.time||""} • ${s.store||"—"}</small></span><b>${money(Number(s.grossValue??s.value)||0)}</b></div>`).join('')||'<div class="sub">Nenhuma venda registrada neste período.</div>'; }
