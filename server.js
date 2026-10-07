@@ -368,44 +368,98 @@ const server=http.createServer(async(req,res)=>{
       }
       return json(res,200,{ok:true,stores:out});
     }
-    const sync=u.pathname.match(/^\/api\/shopee\/sync\/([12])$/);
+    const sync=u.pathname.match(/^\\/api\\/shopee\\/sync\\/([12])$/);
     if(sync && req.method==="POST"){
       const store=sync[1];
       if(!requireSupabase(res))return;
       const user=await getAuthUser(req);
       if(!user)return json(res,401,{ok:false,error:"Sessão do Gestor 3D não autenticada."});
-      const timeFrom=startOfBrazilDayEpoch();
-      const timeTo=Math.floor(Date.now()/1000);
-      const orders=await withRefresh(user.id,store,s=>shopee("/api/v2/order/get_order_list","GET",s,{
-        // A sincronização comercial começa somente nos pedidos criados hoje,
-        // evitando trazer novamente pedidos antigos que já foram lançados manualmente.
-        time_range_field:"create_time",time_from:timeFrom,time_to:timeTo,
-        page_size:100,response_optional_fields:"order_status","cursor":""
-      }));
-      const list=orders.response?.order_list||orders.order_list||[];
+
+      const now=Math.floor(Date.now()/1000);
+      const todayStart=startOfBrazilDayEpoch();
+      const pendingFrom=now-15*86400;
+      const fetchOrders=async(params)=>{
+        const all=[];
+        let cursor="";
+        for(let page=0;page<5;page++){
+          const q={...params,page_size:100,cursor};
+          const r=await withRefresh(user.id,store,s=>shopee("/api/v2/order/get_order_list","GET",s,q));
+          const list=r?.response?.order_list||r?.order_list||[];
+          all.push(...(Array.isArray(list)?list:[]));
+          const more=Boolean(r?.response?.more||r?.more);
+          const next=r?.response?.next_cursor||r?.next_cursor||"";
+          if(!more||!next)break;
+          cursor=next;
+        }
+        return all;
+      };
+
+      // 1) Todos os pedidos criados hoje.
+      const currentOrders=await fetchOrders({
+        time_range_field:"create_time",
+        time_from:todayStart,
+        time_to:now,
+        response_optional_fields:"order_status,create_time,update_time"
+      });
+
+      // 2) Todos os pedidos ainda aguardando processamento de envio,
+      // incluindo pedidos de ontem à noite e atrasados dos últimos 15 dias.
+      const shippingOrders=await fetchOrders({
+        time_range_field:"update_time",
+        time_from:pendingFrom,
+        time_to:now,
+        order_status:"READY_TO_SHIP",
+        response_optional_fields:"order_status,create_time,update_time"
+      });
+
+      const bySn=new Map();
+      [...currentOrders,...shippingOrders].forEach(o=>{
+        const sn=String(o?.order_sn||"").trim();
+        if(sn)bySn.set(sn,o);
+      });
+      const list=[...bySn.values()];
+
       const details=[];
-      for(const o of list.slice(0,50)){
+      for(let offset=0;offset<list.length;offset+=50){
+        const batch=list.slice(offset,offset+50);
         try{
           const d=await withRefresh(user.id,store,s=>shopee("/api/v2/order/get_order_detail","GET",s,{
-            order_sn_list:o.order_sn,response_optional_fields:"buyer_user_id,buyer_username,estimated_shipping_fee,recipient_address,actual_shipping_fee,note,item_list,pay_time,shipping_carrier,payment_method,total_amount,invoice_data"
+            order_sn_list:batch.map(o=>o.order_sn),
+            response_optional_fields:"buyer_user_id,buyer_username,estimated_shipping_fee,recipient_address,actual_shipping_fee,note,item_list,pay_time,shipping_carrier,payment_method,total_amount,invoice_data,order_status,create_time,update_time,ship_by_date"
           }));
-          const ox=d?.response?.order_list?.[0]||d?.order_list?.[0]||{};
-          details.push({
-            ...d,
-            order_context:{
-              order_sn:ox.order_sn||o.order_sn,
-              order_status:ox.order_status||"",
-              total_amount:ox.total_amount??null,
-              buyer_username:ox.buyer_username||"",
-              recipient_address:ox.recipient_address||null,
-              create_time:ox.create_time||null,
-              ship_by_date:ox.ship_by_date||null,
-              pay_time:ox.pay_time||null,
-              payment_method:ox.payment_method||"",
-              shipping_carrier:ox.shipping_carrier||""
-            }
-          });
-        }catch(e){ details.push({order_sn:o.order_sn,error:e.message}); }
+          const detailedOrders=d?.response?.order_list||d?.order_list||[];
+          if(Array.isArray(detailedOrders)&&detailedOrders.length){
+            const known=new Map(detailedOrders.map(x=>[String(x.order_sn),x]));
+            batch.forEach(o=>{
+              const ox=known.get(String(o.order_sn))||{};
+              details.push({
+                response:{order_list:[{
+                  ...ox,
+                  order_sn:ox.order_sn||o.order_sn,
+                  order_status:ox.order_status||o.order_status||"",
+                  create_time:ox.create_time||o.create_time||null,
+                  update_time:ox.update_time||o.update_time||null
+                }]},
+                order_context:{
+                  order_sn:ox.order_sn||o.order_sn,
+                  order_status:ox.order_status||o.order_status||"",
+                  total_amount:ox.total_amount??null,
+                  buyer_username:ox.buyer_username||"",
+                  recipient_address:ox.recipient_address||null,
+                  create_time:ox.create_time||o.create_time||null,
+                  ship_by_date:ox.ship_by_date||null,
+                  pay_time:ox.pay_time||null,
+                  payment_method:ox.payment_method||"",
+                  shipping_carrier:ox.shipping_carrier||""
+                }
+              });
+            });
+          }else{
+            batch.forEach(o=>details.push({order_context:{order_sn:o.order_sn,order_status:o.order_status||"",create_time:o.create_time||null,update_time:o.update_time||null}}));
+          }
+        }catch(e){
+          batch.forEach(o=>details.push({order_sn:o.order_sn,error:e.message}));
+        }
       }
       return json(res,200,{ok:true,store,orders:list,details});
     }
