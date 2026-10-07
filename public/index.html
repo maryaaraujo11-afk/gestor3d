@@ -2501,7 +2501,7 @@ function openMergeProducts(){
  const products=Array.isArray(db.products)?db.products:[];
  if(products.length<2){alert("É preciso ter pelo menos 2 produtos cadastrados para mesclar.");return;}
  const selectedIds=[...document.querySelectorAll(".merge-product-check:checked")].map(x=>String(x.value));
- const esc=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",\"":"&quot;","'":"&#39;"}[ch]));
+ const esc=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
  const rows=products.map(p=>'<label class="merge-prod-row" data-search="'+esc((p.name||"")+" "+(p.sku||"")+" "+p.id)+'" style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #eadfd8;border-radius:9px;margin-bottom:7px;background:#fff;">'+
    '<input type="checkbox" class="merge-pick" value="'+esc(p.id)+'" '+(selectedIds.includes(String(p.id))?"checked":"")+'> '+
    '<span style="flex:1"><b>'+esc(p.name||"Produto sem nome")+'</b><small class="sub" style="display:block">Código: '+esc(p.id)+(p.sku?" • SKU: "+esc(p.sku):"")+(p.shopeeItemId?" • Shopee: "+esc(p.shopeeItemId):"")+'</small></span>'+
