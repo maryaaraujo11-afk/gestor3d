@@ -657,7 +657,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 
 <div id="shopeeProducts" class="hidden">
 <div class="sync-bar"><div><b>Produtos Shopee</b><div class="sub">Importe anúncios e use o Item ID para vincular ao produto interno.</div></div><div class="actions"><select id="productStore"><option value="1">F4R Studio 3D</option><option value="2">F4RM 3D</option></select><button class="btn secondary" onclick="syncShopeeProducts()">↓ Importar produtos</button><button id="importAllShopeeBtn" class="btn secondary" style="display:none;margin-left:6px"></button></div></div>
-<div class="panel" style="margin-top:14px"><table><thead><tr><th>Item ID</th><th>SKU</th><th>Nome</th><th>Estoque Shopee</th><th>Vincular</th></tr></thead><tbody id="shopeeProductsTable"><tr><td colspan="5" class="sub">Nenhum produto importado.</td></tr></tbody></table></div>
+<div class="panel" style="margin-top:14px"><table><thead><tr><th>Foto</th><th>Item ID</th><th>SKU</th><th>Nome</th><th>Estoque Shopee</th><th>Vincular</th></tr></thead><tbody id="shopeeProductsTable"><tr><td colspan="5" class="sub">Nenhum produto importado.</td></tr></tbody></table></div>
 </div>
 
 <div id="shopeeStock" class="hidden">
@@ -2127,11 +2127,21 @@ function shopeeItemStock(x){
  return 0;
 }
 function shopeeItemSku(x){return String(x?.item_sku||x?.sku||"").trim();}
+function shopeeItemImages(x){
+ const direct=Array.isArray(x?.image_url_list)?x.image_url_list:[];
+ const nested=Array.isArray(x?.image?.image_url_list)?x.image.image_url_list:[];
+ const nestedImages=Array.isArray(x?.images?.image_url_list)?x.images.image_url_list:[];
+ const list=[...direct,...nested,...nestedImages].map(v=>String(v||"").trim()).filter(Boolean);
+ return [...new Set(list)];
+}
+function shopeeItemImage(x){return shopeeItemImages(x)[0]||"";}
 function shopeeStoreName(store){return Number(store)===2?"F4RM 3D":"F4R Studio 3D";}
 function buildImportedShopeeProduct(item,store){
  const itemId=String(item?.item_id||item?.itemid||"").trim();
  const name=String(item?.item_name||"Produto Shopee").trim()||"Produto Shopee";
  const sku=shopeeItemSku(item);
+ const shopeeImages=shopeeItemImages(item);
+ const shopeeImageUrl=shopeeImages[0]||"";
  return {
   id:Date.now()+Math.floor(Math.random()*10000),
   name,sku,store:"",
@@ -2139,7 +2149,7 @@ function buildImportedShopeeProduct(item,store){
   shopeeItemId:itemId,shopeeModelId:String(item?.model_id||item?.modelId||"0"),
   shopeeSku:sku,shopeeName:name,shopeeStoreSlot:Number(store)||1,
   shopeePrice:Number(item?.price_info?.[0]?.current_price||item?.price||0)||0,
-  fee:20,margin:30,pack:0,labor:0,other:0,
+  shopeeImageUrl,shopeeImages,fee:20,margin:30,pack:0,labor:0,other:0,
   machineKwh:0.2,machineLife:5000,machineWear:0,machineValue:3000,machineWatts:200,
   printHours:0,productionBasis:"unit",productionBatchQty:1,
   productionSourceHours:0,productionSourcePack:0,productionSourceLabor:0,productionSourceOther:0,
@@ -2178,6 +2188,19 @@ async function syncShopeeProducts(){
   shopeeCache.products[store]=d;
   const raw=d.items||d.data?.response?.item||d.data?.item||d.data?.response?.item_list||d.data?.item_list||[];
   const rows=Array.isArray(raw)?raw:[];
+  let imageChanged=false;
+  rows.forEach(x=>{
+   const iid=String(x?.item_id||x?.itemid||"").trim();
+   if(!iid)return;
+   const p=(db.products||[]).find(z=>String(z.shopeeItemId||"")===iid);
+   const images=shopeeItemImages(x);
+   if(p && images.length && (p.shopeeImageUrl!==images[0] || JSON.stringify(p.shopeeImages||[])!==JSON.stringify(images))){
+    p.shopeeImageUrl=images[0];
+    p.shopeeImages=images;
+    imageChanged=true;
+   }
+  });
+  if(imageChanged)save();
   const newCount=rows.filter(x=>String(x?.item_id||x?.itemid||"").trim() && !(db.products||[]).some(p=>String(p.shopeeItemId||"")===String(x.item_id||x.itemid))).length;
   const bulk=document.getElementById("importAllShopeeBtn");
   if(bulk){
@@ -2196,8 +2219,10 @@ async function syncShopeeProducts(){
    }else{
     action='<button class="btn secondary" onclick="addShopeeProductByItem(\''+String(store)+'\',\''+iid+'\')">Adicionar ao Gestor</button> <button class="btn xs outline" onclick="linkShopeeItem(\''+iid+'\',\''+String(x.item_name||"").replace(/'/g,"\\'")+'\',\''+String(sku==="—"?"":sku).replace(/'/g,"\\'")+'\')">Vincular existente</button>';
    }
-   return '<tr><td><b>'+iid+'</b></td><td>'+sku+'</td><td>'+String(x.item_name||"—")+'</td><td>'+stock+'</td><td>'+action+'</td></tr>';
-  }).join("")||'<tr><td colspan="5" class="sub">Nenhum anúncio retornado.</td></tr>';
+   const image=shopeeItemImage(x);
+   const imageCell=image?'<img src="'+image+'" alt="" loading="lazy" style="width:58px;height:58px;object-fit:cover;border-radius:10px;border:1px solid #eadfd8;background:#fff;">':'<span class="sub">Sem foto</span>';
+   return '<tr><td>'+imageCell+'</td><td><b>'+iid+'</b></td><td>'+sku+'</td><td>'+String(x.item_name||"—")+'</td><td>'+stock+'</td><td>'+action+'</td></tr>';
+  }).join("")||'<tr><td colspan="6" class="sub">Nenhum anúncio retornado.</td></tr>';
  }catch(e){alert("Erro ao importar produtos: "+e.message);}
 }
 function addShopeeProductByItem(store,itemId){
@@ -2605,7 +2630,9 @@ function renderProductsTable(){
  table.innerHTML=rows.map(p=>{
    const productName=String(p.name||"Produto sem nome");
    const materialsText=(p.materials||[]).map(m=>String(m.name||"")+" ("+Number(m.qty||m.grams||0).toLocaleString("pt-BR",{maximumFractionDigits:4})+" "+String(m.unit||"un.")+")").join(", ")||"—";
-   return '<tr><td><input type="checkbox" class="merge-product-check" value="'+String(p.id)+'"></td><td><b>'+productName+'</b></td><td>'+String(p.sku||"-")+'</td><td>'+String(p.store||"—")+'</td><td>'+materialsText+'</td><td>'+money(totalCost(p))+'</td><td>'+money(suggested(p))+'</td><td>'+String(p.stock||0)+'</td><td><button class="btn secondary" onclick="openTechModal('+String(p.id)+')">Ver ficha</button></td><td><button class="btn secondary" onclick="editProduct('+String(p.id)+')">✏️ Editar</button></td></tr>';
+   const productImage=String(p.shopeeImageUrl||"").trim();
+   const productNameCell=productImage?'<div style="display:flex;align-items:center;gap:10px"><img src="'+productImage+'" alt="" loading="lazy" style="width:46px;height:46px;object-fit:cover;border-radius:9px;border:1px solid #eadfd8;background:#fff;"><b>'+productName+'</b></div>':'<b>'+productName+'</b>';
+   return '<tr><td><input type="checkbox" class="merge-product-check" value="'+String(p.id)+'"></td><td>'+productNameCell+'</td><td>'+String(p.sku||"-")+'</td><td>'+String(p.store||"—")+'</td><td>'+materialsText+'</td><td>'+money(totalCost(p))+'</td><td>'+money(suggested(p))+'</td><td>'+String(p.stock||0)+'</td><td><button class="btn secondary" onclick="openTechModal('+String(p.id)+')">Ver ficha</button></td><td><button class="btn secondary" onclick="editProduct('+String(p.id)+')">✏️ Editar</button></td></tr>';
  }).join("")||'<tr><td colspan="10">Nenhum produto encontrado.</td></tr>';
 }
 function renderMaterialsTable(){
