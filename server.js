@@ -320,9 +320,10 @@ function serveStatic(req,res){
     ".ico":"image/x-icon"
   };
 
+  const noStore = [".html",".js",".json",".webmanifest"].includes(ext);
   res.writeHead(200,{
     "Content-Type":types[ext]||"application/octet-stream",
-    "Cache-Control":"no-cache"
+    "Cache-Control": noStore ? "no-store, no-cache, must-revalidate, max-age=0" : "public, max-age=31536000, immutable"
   });
 
   fs.createReadStream(file).pipe(res);
