@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Atualizando Gestor 3D…</title>
+<style>body{font-family:Arial,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;background:#faf7f4;color:#4b3328;text-align:center}div{padding:24px}b{font-size:22px}p{color:#76665e}</style>
+</head>
+<body>
+<div><b>Atualizando o Gestor 3D…</b><p>Não feche esta tela. Seus dados não serão apagados.</p></div>
+<script>
+(async()=>{
+  try{
+    const regs=await navigator.serviceWorker?.getRegistrations?.()||[];
+    await Promise.all(regs.map(r=>r.unregister()));
+    const names=await caches?.keys?.()||[];
+    await Promise.all(names.map(n=>caches.delete(n)));
+  }catch(e){}
+  localStorage.setItem('gestor3d_app_version','78');
+  location.replace('/?v=78&t='+Date.now());
+})();
+</script>
+</body>
+</html>
