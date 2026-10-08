@@ -1192,16 +1192,27 @@ function addMovement(){
  mvQty.value="";mvNote.value="";save();
 }
 
-function todayISO(){ return new Date().toISOString().slice(0,10); }
+function todayISO(){
+ const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+ const y=parts.find(x=>x.type==="year")?.value;
+ const m=parts.find(x=>x.type==="month")?.value;
+ const d=parts.find(x=>x.type==="day")?.value;
+ return `${y}-${m}-${d}`;
+}
 function addBusinessDays(dateISO, days){
- const d=new Date(String(dateISO||todayISO())+'T12:00:00');
+ const raw=String(dateISO||todayISO()).slice(0,10);
+ const parts=raw.split("-").map(Number);
+ const d=new Date(Date.UTC(parts[0]||new Date().getFullYear(),(parts[1]||1)-1,parts[2]||1,12,0,0));
  let remaining=Math.max(0,Number(days)||0);
  while(remaining>0){
-  d.setDate(d.getDate()+1);
-  const day=d.getDay();
-  if(day!==0 && day!==6) remaining--;
+   d.setUTCDate(d.getUTCDate()+1);
+   const day=d.getUTCDay();
+   if(day!==0 && day!==6) remaining--;
  }
- return d.toISOString().slice(0,10);
+ const y=d.getUTCFullYear();
+ const m=String(d.getUTCMonth()+1).padStart(2,"0");
+ const day=String(d.getUTCDate()).padStart(2,"0");
+ return `${y}-${m}-${day}`;
 }
 function updatePostDate(){
  const dateEl=document.getElementById("sDate"), daysEl=document.getElementById("sPostDays"), dueEl=document.getElementById("sDueDate");
@@ -2596,7 +2607,7 @@ db.products.forEach(p=>{
  renderCustomers(); renderSalesTable();
  const sd=document.getElementById("sDate"), st=document.getElementById("sTime"), days=document.getElementById("sPostDays"), due=document.getElementById("sDueDate"); if(sd&&!sd.value)sd.value=todayISO(); if(st&&!st.value)st.value=new Date().toTimeString().slice(0,5); if(days&&!days.value)days.value="1"; updatePostDate();
  const allSales=db.sales||[]; const totalOrders=allSales.length, prodCount=allSales.filter(s=>s.status==="Em produção").length, readyCount=allSales.filter(s=>s.status==="Pronto").length, lateCount=allSales.filter(isLate).length, deliveredCount=allSales.filter(s=>s.status==="Entregue").length; ["salesTotal","salesInProduction","salesReady","salesLate","salesDelivered"].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=[totalOrders,prodCount,readyCount,lateCount,deliveredCount][i];});
- const saleDateEl=document.getElementById("sDate"); if(saleDateEl)saleDateEl.onchange=updatePostDate; const saleDaysEl=document.getElementById("sPostDays"); if(saleDaysEl)saleDaysEl.onchange=updatePostDate; const saleProductEl=document.getElementById("sProduct"); if(saleProductEl)saleProductEl.onchange=updateSalePreview; const saleQtyEl=document.getElementById("sQty"); if(saleQtyEl)saleQtyEl.oninput=updateSalePreview;
+ const saleDateEl=document.getElementById("sDate"); if(saleDateEl)saleDateEl.onchange=updatePostDate; const saleDaysEl=document.getElementById("sPostDays"); if(saleDaysEl){saleDaysEl.onchange=updatePostDate;saleDaysEl.oninput=updatePostDate;} const saleProductEl=document.getElementById("sProduct"); if(saleProductEl)saleProductEl.onchange=updateSalePreview; const saleQtyEl=document.getElementById("sQty"); if(saleQtyEl)saleQtyEl.oninput=updateSalePreview;
  const saleGrossEl=document.getElementById("sGross"); if(saleGrossEl)saleGrossEl.oninput=()=>{saleGrossEl.dataset.manual="1";}; const saleNetEl=document.getElementById("sNet"); if(saleNetEl)saleNetEl.oninput=()=>{saleNetEl.dataset.manual="1";};
  populateCalcProductSelect(); updateSalePreview();
  const finRevenue=document.getElementById("finRevenue"),finCost=document.getElementById("finCost"),finFees=document.getElementById("finFees"),finProfit=document.getElementById("finProfit"); if(finRevenue)finRevenue.textContent=money(revenue);if(finCost)finCost.textContent=money(totalProductCosts);if(finFees)finFees.textContent=money(fees);if(finProfit)finProfit.textContent=money(revenue-totalProductCosts-fees); calc();
