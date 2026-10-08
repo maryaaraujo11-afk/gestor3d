@@ -589,7 +589,19 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <div class="field"><label>Status do pedido</label><select id="sStatus"><option>Recebido</option><option>Em produção</option><option>Pronto</option><option>Enviado</option><option>Entregue</option><option>Cancelado</option></select></div>
 <div class="field" style="grid-column:1/-1"><label>Observações</label><input id="sNotes" placeholder="Ex.: personalização, nome, cor, envio..."></div>
 </div><br><button id="saleSubmitBtn" class="btn" onclick="saveSaleForm()">Registrar pedido</button> <button id="saleCancelEditBtn" class="btn outline hidden" type="button" onclick="cancelEditSale()">Cancelar edição</button></div>
-<div class="panel"><div class="top" style="margin-bottom:12px"><div><h2>Pedidos</h2><div class="sub">Pesquise pelo nome do cliente e use o filtro de status.</div></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><div class="search-box" style="min-width:280px"><input id="salesSearch" type="search" placeholder="🔎 Pesquisar cliente..." oninput="renderSalesTable()"></div><select id="salesFilter" onchange="renderSalesTable()" style="max-width:220px"><option value="todos">Todos</option><option value="Pendente">Pendentes</option><option value="Recebido">Recebidos</option><option value="Em produção">Em produção</option><option value="Pronto">Prontos</option><option value="Enviado">Enviados</option><option value="Entregue">Entregues</option><option value="Cancelado">Cancelados</option><option value="atrasados">Atrasados</option></select></div><div style="overflow:auto"><table><thead><tr><th>Compra</th><th>Cliente</th><th>Estado</th><th>Produto</th><th>Loja</th><th>Canal</th><th>Qtd.</th><th>Postagem até</th><th>Venda / Líquido</th><th>Lucro estimado</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="salesTable"></tbody></table></div></div>
+<div class="panel" style="margin-top:0">
+<div class="top" style="margin-bottom:12px">
+  <div><h2>Pesquisar pedidos</h2><div class="sub">Pesquise pelo nome do cliente ou filtre pelo status.</div></div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+    <div class="search-box" style="min-width:280px;flex:1"><input id="salesSearch" type="search" placeholder="🔎 Pesquisar cliente..." oninput="renderSalesTable()"></div>
+    <select id="salesFilter" onchange="renderSalesTable()" style="max-width:220px"><option value="todos">Todos</option><option value="Pendente">Pendentes</option><option value="Recebido">Recebidos</option><option value="Em produção">Em produção</option><option value="Pronto">Prontos</option><option value="Enviado">Enviados</option><option value="Entregue">Entregues</option><option value="Cancelado">Cancelados</option><option value="atrasados">Atrasados</option></select>
+  </div>
+</div>
+</div>
+<div class="panel">
+<div class="top" style="margin-bottom:12px"><div><h2>Pedidos</h2><div class="sub">Pedidos registrados e acompanhamento do status.</div></div></div>
+<div style="overflow:auto"><table><thead><tr><th>Compra</th><th>Cliente</th><th>Estado</th><th>Produto</th><th>Loja</th><th>Canal</th><th>Qtd.</th><th>Postagem até</th><th>Venda / Líquido</th><th>Lucro estimado</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="salesTable"></tbody></table></div>
+</div>
 </section>
 
 <section id="customers" class="hidden">
