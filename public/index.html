@@ -2722,8 +2722,38 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
+const GESTOR_APP_VERSION = '77';
+async function checkGestorVersion(){
+  try{
+    const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) return;
+    const data=await r.json();
+    const remote=String(data.version||'');
+    const seen=localStorage.getItem('gestor3d_app_version')||'';
+    if(remote && seen && remote!==GESTOR_APP_VERSION && remote!==seen && !sessionStorage.getItem('gestor3d_version_reload')){
+      sessionStorage.setItem('gestor3d_version_reload','1');
+      localStorage.setItem('gestor3d_app_version',remote);
+      location.reload();
+      return;
+    }
+    localStorage.setItem('gestor3d_app_version',GESTOR_APP_VERSION);
+    sessionStorage.removeItem('gestor3d_version_reload');
+  }catch(e){}
+}
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(console.error));
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!sessionStorage.getItem('gestor3d_sw_reload')) {
+      sessionStorage.setItem('gestor3d_sw_reload','1');
+      location.reload();
+    }
+  });
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('/sw.js');
+      await reg.update();
+    } catch(e) {}
+    checkGestorVersion();
+  });
 }
 </script>
 
