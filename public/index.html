@@ -142,11 +142,11 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 </div>
 
 <div class="cards dashboard-cards dashboard-summary-cards">
-<div class="card"><div class="dash-card-icon">⌁</div><div><div class="label" id="dashRevenueLabel">Total de vendas</div><div class="value" id="dashRevenue">R$ 0,00</div><div class="card-foot" id="dashRevenueFoot">Todos os períodos</div></div></div>
 <div class="card"><div class="dash-card-icon">◷</div><div><div class="label">Vendas de hoje</div><div class="value" id="dashDailyRevenue">R$ 0,00</div><div class="card-foot" id="dashDailyFoot">Hoje</div></div></div>
+<div class="card"><div class="dash-card-icon">⌁</div><div><div class="label" id="dashRevenueLabel">Total de vendas</div><div class="value" id="dashRevenue">R$ 0,00</div><div class="card-foot" id="dashRevenueFoot">Todos os períodos</div></div></div>
 <div class="card"><div class="dash-card-icon">▥</div><div><div class="label">Vendas líquidas</div><div class="value" id="dashNetRevenue">R$ 0,00</div><div class="card-foot" id="dashNetFoot">Após taxas + mão de obra</div></div></div>
+<div class="card"><div class="dash-card-icon">◎</div><div><div class="label">Lucro estimado</div><div class="value good" id="dashProfit">R$ 0,00</div><div class="card-foot" id="dashProfitFoot">Após custos, taxas + mão de obra</div></div></div>
 <div class="card"><div class="dash-card-icon">▢</div><div><div class="label">Pedidos</div><div class="value" id="dashOrders">0</div><div class="card-foot" id="dashOrdersFoot">Pedidos registrados</div></div></div>
-<div class="card"><div class="dash-card-icon">◎</div><div><div class="label">Lucro estimado</div><div class="value good" id="dashProfit">R$ 0,00</div><div class="card-foot" id="dashProfitFoot">Sem descontar sua mão de obra</div></div></div>
 </div>
 
 <div class="panel state-map-panel dashboard-map-panel">
@@ -2532,13 +2532,13 @@ function renderDashboardSummary(period){
  if(dr)dr.textContent=money(revenue);
  if(dd)dd.textContent=money(dailyRevenue);
  if(dn)dn.textContent=money(net);
- if(dp)dp.textContent=money(net-costs);
+ if(dp)dp.textContent=money(net-costs+labor);
  if(do_)do_.textContent=sales.length;
  const a=document.getElementById("dashRevenueFoot"),ad=document.getElementById("dashDailyFoot"),b=document.getElementById("dashNetFoot"),c=document.getElementById("dashProfitFoot"),d=document.getElementById("dashOrdersFoot");
  if(a)a.textContent=label;
  if(ad)ad.textContent="Hoje • "+dailyLabel;
  if(b)b.textContent="Após taxas + mão de obra";
- if(c)c.textContent="Mão de obra fica para você";
+ if(c)c.textContent="Inclui sua mão de obra";
  if(d)d.textContent=label;
 }
 function renderStateMap(period){const box=document.getElementById("stateMapCounts");if(!box)return;const p=period||document.getElementById("stateMapPeriod")?.value||"total";const sales=dashboardSales(p);const counts=Object.fromEntries(STATE_ORDER.map(uf=>[uf,0]));sales.forEach(s=>{const uf=saleStateCode(s);if(uf)counts[uf]++;});box.innerHTML=STATE_ORDER.map(uf=>{const pos=STATE_POS[uf]||[50,50],count=counts[uf];return `<div class="map-label ${count===0?'zero':''} ${uf==='SP'?'dark-state':''}" title="${STATE_NAMES[uf]}: ${count} ${count===1?'venda':'vendas'}" style="left:${pos[0]}%;top:${pos[1]}%"><span>${count}</span></div>`;}).join("");const total=sales.length,withSales=STATE_ORDER.filter(uf=>counts[uf]>0).length;const totalEl=document.getElementById("stateMapTotal");if(totalEl)totalEl.textContent=`${total} ${total===1?'pedido':'pedidos'} no período • ${withSales} estado${withSales===1?'':'s'} com vendas`;const totalOrders=document.getElementById("stateMapTotalOrders"),stateCount=document.getElementById("stateMapStatesWithSales");if(totalOrders)totalOrders.textContent=total;if(stateCount)stateCount.textContent=withSales;const ranking=document.getElementById("stateRanking");if(ranking){const ranked=STATE_ORDER.map(uf=>({uf,count:counts[uf]})).filter(x=>x.count>0).sort((a,b)=>b.count-a.count||a.uf.localeCompare(b.uf));if(!ranked.length)ranking.innerHTML='<div class="ranking-empty">Nenhuma venda encontrada neste período.</div>';else{const max=ranked[0].count;ranking.innerHTML=ranked.slice(0,8).map((x,i)=>`<div class="ranking-row"><span class="ranking-rank">${i+1}</span><span class="ranking-uf">${x.uf}</span><div class="ranking-bar"><i style="width:${Math.max(6,Math.round(x.count/max*100))}%"></i></div><span class="ranking-value">${x.count}</span></div>`).join("");}}}
@@ -2799,7 +2799,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '80';
+const GESTOR_APP_VERSION = '81';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
