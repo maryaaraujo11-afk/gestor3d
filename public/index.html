@@ -77,10 +77,10 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 .state-map-panel{margin-top:18px}.state-map-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.state-map-head h2{margin:0}.state-map-filter{display:flex;align-items:center;gap:8px}.state-map-filter label{font-size:12px;font-weight:800;color:#6f625c}.state-map-filter select{padding:9px 12px;border:1px solid #ddd1ca;border-radius:9px;background:#fff;font-weight:700}.brazil-map{position:relative;width:100%;max-width:1120px;margin:8px auto 0;aspect-ratio:1400/788;overflow:hidden;border-radius:12px;background:#f7f3ee}.brazil-map img{width:100%;height:100%;display:block;object-fit:cover}.map-count{position:absolute;transform:translate(-50%,-50%);min-width:30px;height:30px;padding:0 7px;border-radius:999px;background:#fff;color:#2d2926;border:2px solid #8b5e4a;box-shadow:0 3px 10px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;line-height:1;z-index:2}.map-count.zero{opacity:.42}.map-legend{font-size:11px;color:#8a7d75;margin-top:8px}.map-total{font-size:12px;font-weight:800;color:#6b5d55}.map-state-tooltip{position:absolute;pointer-events:none;z-index:3;background:#2f2926;color:#fff;padding:5px 8px;border-radius:7px;font-size:11px;font-weight:800;display:none}.map-count:hover+.map-state-tooltip{display:block}
 @media(max-width:700px){.map-count{min-width:24px;height:24px;font-size:10px;padding:0 5px;border-width:1.5px}}
 
-.dashboard-summary-cards{grid-template-columns:repeat(4,1fr)}
+.dashboard-summary-cards{grid-template-columns:repeat(5,1fr)}
 .dashboard-summary-cards .card{display:flex;align-items:center;gap:12px;min-height:112px}.dash-card-icon{width:42px;height:42px;border-radius:50%;background:#f7ebe4;color:#8b5e4a;display:grid;place-items:center;font-size:20px;font-weight:800;flex:0 0 auto}.dashboard-summary-cards .value{font-size:24px}.dashboard-map-panel{padding:20px}.state-map-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.8fr);gap:20px;align-items:stretch;margin-top:12px}.map-area{min-width:0}.brazil-map{position:relative;width:min(100%,720px);height:520px;margin:8px auto 0;overflow:hidden;border-radius:16px;background:#fbf8f5}.brazil-map img{width:100%;height:100%;display:block;object-fit:contain;opacity:.72;filter:saturate(.55) brightness(1.04)}.brazil-map:after{content:"";position:absolute;inset:0;background:rgba(255,250,246,.14);pointer-events:none;z-index:1}.map-count{position:absolute;transform:translate(-50%,-50%);min-width:31px;height:31px;padding:0 7px;border-radius:50%;background:#fff;color:#5b463c;border:1px solid #d8c5ba;box-shadow:0 2px 7px rgba(60,45,35,.10);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;line-height:1;z-index:2}.map-count.zero{opacity:.38}.map-total{font-size:12px;font-weight:800;color:#75675f;margin:2px 0 4px}.map-legend{font-size:11px;color:#93867e;margin-top:6px}.legend-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#c99476;margin-right:5px}.state-ranking-panel{border:1px solid #eee4df;border-radius:14px;padding:16px;background:#fff;display:flex;flex-direction:column;min-height:100%}.ranking-title{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#342e2a;margin-bottom:10px}.ranking-title:first-letter{color:#9a624b}.ranking-row{display:grid;grid-template-columns:24px 34px 1fr 46px;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0ebe8;font-size:12px}.ranking-row:last-child{border-bottom:0}.ranking-rank{color:#a19791}.ranking-uf{font-weight:800}.ranking-bar{height:8px;background:#f0ece9;border-radius:99px;overflow:hidden}.ranking-bar i{display:block;height:100%;background:#c99476;border-radius:99px}.ranking-value{text-align:right;font-weight:800}.product-ranking-row{grid-template-columns:24px 190px minmax(35px,1fr) 42px;align-items:center;gap:6px}.product-ranking-name{font-weight:800;line-height:1.25;white-space:normal;overflow-wrap:normal;word-break:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.ranking-empty{padding:22px 0;color:#978b84;font-size:12px;text-align:center}.ranking-summary{margin-top:12px;padding-top:14px;border-top:1px solid #eee4df;display:grid;grid-template-columns:1fr 1fr;gap:12px}.ranking-summary div{padding:10px;border-radius:10px;background:#faf6f3}.ranking-summary span{display:block;color:#91857d;font-size:10px}.ranking-summary b{display:block;margin-top:4px;font-size:20px;color:#342e2a}
 @media(max-width:1050px){.state-map-layout{grid-template-columns:1fr}.state-ranking-panel{min-height:260px}.brazil-map{height:500px}}
-@media(max-width:900px){.dashboard-summary-cards{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:1100px){.dashboard-summary-cards{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.dashboard-summary-cards{grid-template-columns:1fr}.brazil-map{height:390px}}
 
 /* V54 — mapa exatamente no modelo de referência enviado, mantendo as cores */
@@ -143,9 +143,10 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 
 <div class="cards dashboard-cards dashboard-summary-cards">
 <div class="card"><div class="dash-card-icon">⌁</div><div><div class="label" id="dashRevenueLabel">Total de vendas</div><div class="value" id="dashRevenue">R$ 0,00</div><div class="card-foot" id="dashRevenueFoot">Todos os períodos</div></div></div>
-<div class="card"><div class="dash-card-icon">▥</div><div><div class="label">Vendas líquidas</div><div class="value" id="dashNetRevenue">R$ 0,00</div><div class="card-foot" id="dashNetFoot">Após descontos e taxas</div></div></div>
+<div class="card"><div class="dash-card-icon">◷</div><div><div class="label">Vendas de hoje</div><div class="value" id="dashDailyRevenue">R$ 0,00</div><div class="card-foot" id="dashDailyFoot">Hoje</div></div></div>
+<div class="card"><div class="dash-card-icon">▥</div><div><div class="label">Vendas líquidas</div><div class="value" id="dashNetRevenue">R$ 0,00</div><div class="card-foot" id="dashNetFoot">Após taxas + mão de obra</div></div></div>
 <div class="card"><div class="dash-card-icon">▢</div><div><div class="label">Pedidos</div><div class="value" id="dashOrders">0</div><div class="card-foot" id="dashOrdersFoot">Pedidos registrados</div></div></div>
-<div class="card"><div class="dash-card-icon">◎</div><div><div class="label">Lucro estimado</div><div class="value good" id="dashProfit">R$ 0,00</div><div class="card-foot" id="dashProfitFoot">Após custos e taxas</div></div></div>
+<div class="card"><div class="dash-card-icon">◎</div><div><div class="label">Lucro estimado</div><div class="value good" id="dashProfit">R$ 0,00</div><div class="card-foot" id="dashProfitFoot">Sem descontar sua mão de obra</div></div></div>
 </div>
 
 <div class="panel state-map-panel dashboard-map-panel">
@@ -1324,7 +1325,8 @@ function saleProductionCost(p, orderQty=1, sale=null){
 function saleEstimatedProfit(s){
  const net=Number(s?.netValue??0)||0;
  const cost=Number(s?.cost??0)||0;
- return net-cost;
+ const labor=saleLaborAmount(s);
+ return net-(cost-labor);
 }
 function adjustStockForSale(s, direction, note){
  const p=saleProduct(s); if(!p)return;
@@ -2499,7 +2501,46 @@ function mapMonthLabel(k){if(!k)return"Total geral";const[y,m]=k.split("-");retu
 function dashboardPeriods(){return[...new Set((db.sales||[]).map(mapMonthKey).filter(Boolean))].sort().reverse();}
 function populateDashboardPeriods(selected){const months=dashboardPeriods();const current=selected||document.getElementById("dashboardPeriod")?.value||"total";["dashboardPeriod","stateMapPeriod"].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.innerHTML='<option value="total">Total geral</option>'+months.map(k=>`<option value="${k}">${mapMonthLabel(k)}</option>`).join("");el.value=current==="total"||months.includes(current)?current:"total";});return document.getElementById("dashboardPeriod")?.value||"total";}
 function dashboardSales(period){return(db.sales||[]).filter(s=>s.status!=="Cancelado"&&s.status!=="Pendente"&&(period==="total"||mapMonthKey(s)===period));}
-function renderDashboardSummary(period){const p=period||document.getElementById("dashboardPeriod")?.value||"total";const sales=dashboardSales(p);const revenue=sales.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0);const net=sales.reduce((a,s)=>{const gross=Number(s.grossValue??s.value)||0;const fee=Number(s.fee)||0;const nv=Number(s.netValue);return a+(Number.isFinite(nv)&&nv>0?nv:Math.max(0,gross-fee));},0);const costs=sales.reduce((a,s)=>a+(Number(s.cost)||0),0);const fees=sales.reduce((a,s)=>a+(Number(s.fee)||0),0);const label=p==="total"?"Todos os períodos":mapMonthLabel(p);const dr=document.getElementById("dashRevenue"),dn=document.getElementById("dashNetRevenue"),dp=document.getElementById("dashProfit"),do_=document.getElementById("dashOrders");if(dr)dr.textContent=money(revenue);if(dn)dn.textContent=money(net);if(dp)dp.textContent=money(revenue-costs-fees);if(do_)do_.textContent=sales.length;const a=document.getElementById("dashRevenueFoot"),b=document.getElementById("dashNetFoot"),c=document.getElementById("dashProfitFoot"),d=document.getElementById("dashOrdersFoot");if(a)a.textContent=label;if(b)b.textContent="Após descontos e taxas";if(c)c.textContent="Após custos e taxas";if(d)d.textContent=label;}
+function saleLaborAmount(s){
+ try{
+  const items=Array.isArray(s?.items)&&s.items.length?s.items:[{productId:s?.productId,variantId:s?.variantId,colorId:s?.colorId,qty:s?.qty}];
+  return items.reduce((sum,item)=>{
+   const p=(db.products||[]).find(x=>String(x.id)===String(item.productId));
+   const q=Math.max(0,Number(item.qty)||0);
+   if(!p||!q)return sum;
+   const production=saleProductionCost(p,q,{...s,...item,variantId:item.variantId||s?.variantId,colorId:item.colorId||s?.colorId});
+   const pct=Math.max(0,Number(p.laborPercent??20))/100;
+   return sum+production*(pct/(1+pct));
+  },0);
+ }catch(e){return 0;}
+}
+function renderDashboardSummary(period){
+ const p=period||document.getElementById("dashboardPeriod")?.value||"total";
+ const sales=dashboardSales(p);
+ const revenue=sales.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0);
+ const netBase=sales.reduce((a,s)=>{const gross=Number(s.grossValue??s.value)||0;const fee=Number(s.fee)||0;const nv=Number(s.netValue);return a+(Number.isFinite(nv)&&nv>0?nv:Math.max(0,gross-fee));},0);
+ const labor=sales.reduce((a,s)=>a+saleLaborAmount(s),0);
+ const net=netBase+labor;
+ const costs=sales.reduce((a,s)=>a+(Number(s.cost)||0),0);
+ const fees=sales.reduce((a,s)=>a+(Number(s.fee)||0),0);
+ const today=todayISO();
+ const dailySales=(db.sales||[]).filter(s=>s.status!=="Cancelado"&&s.status!=="Pendente"&&String(s.dateISO||"")===today);
+ const dailyRevenue=dailySales.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0);
+ const label=p==="total"?"Todos os períodos":mapMonthLabel(p);
+ const dailyLabel=new Date().toLocaleDateString("pt-BR");
+ const dr=document.getElementById("dashRevenue"),dd=document.getElementById("dashDailyRevenue"),dn=document.getElementById("dashNetRevenue"),dp=document.getElementById("dashProfit"),do_=document.getElementById("dashOrders");
+ if(dr)dr.textContent=money(revenue);
+ if(dd)dd.textContent=money(dailyRevenue);
+ if(dn)dn.textContent=money(net);
+ if(dp)dp.textContent=money(net-costs);
+ if(do_)do_.textContent=sales.length;
+ const a=document.getElementById("dashRevenueFoot"),ad=document.getElementById("dashDailyFoot"),b=document.getElementById("dashNetFoot"),c=document.getElementById("dashProfitFoot"),d=document.getElementById("dashOrdersFoot");
+ if(a)a.textContent=label;
+ if(ad)ad.textContent="Hoje • "+dailyLabel;
+ if(b)b.textContent="Após taxas + mão de obra";
+ if(c)c.textContent="Mão de obra fica para você";
+ if(d)d.textContent=label;
+}
 function renderStateMap(period){const box=document.getElementById("stateMapCounts");if(!box)return;const p=period||document.getElementById("stateMapPeriod")?.value||"total";const sales=dashboardSales(p);const counts=Object.fromEntries(STATE_ORDER.map(uf=>[uf,0]));sales.forEach(s=>{const uf=saleStateCode(s);if(uf)counts[uf]++;});box.innerHTML=STATE_ORDER.map(uf=>{const pos=STATE_POS[uf]||[50,50],count=counts[uf];return `<div class="map-label ${count===0?'zero':''} ${uf==='SP'?'dark-state':''}" title="${STATE_NAMES[uf]}: ${count} ${count===1?'venda':'vendas'}" style="left:${pos[0]}%;top:${pos[1]}%"><span>${count}</span></div>`;}).join("");const total=sales.length,withSales=STATE_ORDER.filter(uf=>counts[uf]>0).length;const totalEl=document.getElementById("stateMapTotal");if(totalEl)totalEl.textContent=`${total} ${total===1?'pedido':'pedidos'} no período • ${withSales} estado${withSales===1?'':'s'} com vendas`;const totalOrders=document.getElementById("stateMapTotalOrders"),stateCount=document.getElementById("stateMapStatesWithSales");if(totalOrders)totalOrders.textContent=total;if(stateCount)stateCount.textContent=withSales;const ranking=document.getElementById("stateRanking");if(ranking){const ranked=STATE_ORDER.map(uf=>({uf,count:counts[uf]})).filter(x=>x.count>0).sort((a,b)=>b.count-a.count||a.uf.localeCompare(b.uf));if(!ranked.length)ranking.innerHTML='<div class="ranking-empty">Nenhuma venda encontrada neste período.</div>';else{const max=ranked[0].count;ranking.innerHTML=ranked.slice(0,8).map((x,i)=>`<div class="ranking-row"><span class="ranking-rank">${i+1}</span><span class="ranking-uf">${x.uf}</span><div class="ranking-bar"><i style="width:${Math.max(6,Math.round(x.count/max*100))}%"></i></div><span class="ranking-value">${x.count}</span></div>`).join("");}}}
 function renderProductsRanking(period){
  const box=document.getElementById("productsRanking"); if(!box)return;
@@ -2713,7 +2754,7 @@ db.products.forEach(p=>{
  const saleDateEl=document.getElementById("sDate"); if(saleDateEl)saleDateEl.onchange=updatePostDate; const saleDaysEl=document.getElementById("sPostDays"); if(saleDaysEl){saleDaysEl.onchange=updatePostDate;saleDaysEl.oninput=updatePostDate;} const saleProductEl=document.getElementById("sProduct"); if(saleProductEl)saleProductEl.onchange=updateSalePreview; const saleQtyEl=document.getElementById("sQty"); if(saleQtyEl)saleQtyEl.oninput=updateSalePreview;
  const saleGrossEl=document.getElementById("sGross"); if(saleGrossEl)saleGrossEl.oninput=()=>{saleGrossEl.dataset.manual="1";}; const saleNetEl=document.getElementById("sNet"); if(saleNetEl)saleNetEl.oninput=()=>{saleNetEl.dataset.manual="1";};
  populateCalcProductSelect(); updateSalePreview();
- const finRevenue=document.getElementById("finRevenue"),finCost=document.getElementById("finCost"),finFees=document.getElementById("finFees"),finProfit=document.getElementById("finProfit"); if(finRevenue)finRevenue.textContent=money(revenue);if(finCost)finCost.textContent=money(totalProductCosts);if(finFees)finFees.textContent=money(fees);if(finProfit)finProfit.textContent=money(revenue-totalProductCosts-fees); calc();
+ const finRevenue=document.getElementById("finRevenue"),finCost=document.getElementById("finCost"),finFees=document.getElementById("finFees"),finProfit=document.getElementById("finProfit"); if(finRevenue)finRevenue.textContent=money(revenue);if(finCost)finCost.textContent=money(totalProductCosts);if(finFees)finFees.textContent=money(fees);if(finProfit)finProfit.textContent=money(netRevenue-totalProductCosts+activeSales.reduce((a,s)=>a+saleLaborAmount(s),0)); calc();
 }function calc(){runCalc();}
 addMaterialRow();
 addCalcMaterial();
@@ -2734,7 +2775,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '78';
+const GESTOR_APP_VERSION = '79';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
