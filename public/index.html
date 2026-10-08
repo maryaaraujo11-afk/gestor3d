@@ -1303,7 +1303,8 @@ function startEditSale(id){
  document.getElementById("sNet").value=Number(s.netValue??0).toFixed(2);
  document.getElementById("sStatus").value=s.status||"Recebido";
  document.getElementById("sNotes").value=s.notes||"";
- updatePostDate();
+ const savedDue=document.getElementById("sDueDate");
+ if(savedDue)savedDue.value=s.dueDate||addBusinessDays(s.dateISO||todayISO(),Number(s.postDays)||1);
  document.getElementById("saleFormTitle").scrollIntoView({behavior:"smooth",block:"start"});
 }
 function cancelEditSale(){
@@ -1910,7 +1911,7 @@ function upsertPendingShopeeSales(items,store){
    const p=findProductForShopee(item);
    const op=shopeeEpochParts(item.create_time||item.pay_time);
    const gross=(Number(item.model_discounted_price||item.model_original_price||0)*qty)||Number(item.total_amount)||0;
-   const due=item.ship_by_date?shopeeEpochParts(item.ship_by_date).dateISO:(op.dateISO?addBusinessDays(op.dateISO,1):"");
+   const due=op.dateISO?addBusinessDays(op.dateISO,1):"";
    const state=String(item.recipient_address?.state||"").trim();
    const customerName=String(item.recipient_address?.name||item.buyer_username||"").trim();
    let existing=db.sales.find(s=>String(s.orderSn||"")===orderSn&&((p&&String(s.productId||"")===String(p.id))||String(s.shopeeItemId||"")===iid));
@@ -1924,7 +1925,7 @@ function upsertPendingShopeeSales(items,store){
      if(existing.pendingShopee||existing.status==="Pendente"){
        existing.productId=p?.id||existing.productId||"";
        existing.product=p?.name||existing.product||item.item_name||"Produto Shopee";
-       existing.qty=qty; existing.dateISO=op.dateISO||existing.dateISO; existing.time=op.time||existing.time; existing.dueDate=due||existing.dueDate;
+       existing.qty=qty; existing.dateISO=op.dateISO||existing.dateISO; existing.time=op.time||existing.time; existing.postDays=existing.postDays||1; existing.dueDate=due||existing.dueDate;
        existing.customerName=customerName||existing.customerName||""; existing.state=state||existing.state||"";
        existing.grossValue=gross||existing.grossValue||0; existing.value=existing.grossValue; existing.status="Pendente"; existing.pendingShopee=true;
        existing.notes="Pedido Shopee "+orderSn+" • Envio a processar • Pendente de revisão";
@@ -1993,11 +1994,8 @@ function shopeeSaleStatus(status){
  return "Recebido";
 }
 function orderDeadlineBR(item,dateISO){
- const ship=Number(item?.ship_by_date)||0;
- if(ship){
-   const p=epochPartsBR(ship);
-   if(p.dateISO)return p.dateISO;
- }
+ // Para o Gestor 3D, o prazo comercial continua sendo contado em dias úteis
+ // a partir da data da compra, e não do ship_by_date interno da Shopee.
  return dateISO?addBusinessDays(dateISO,1):"";
 }
 function registerSaleFromShopee(item,store){
