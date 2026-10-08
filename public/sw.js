@@ -1,4 +1,4 @@
-const CACHE = 'gestor3d-v76';
+const CACHE = 'gestor3d-v77';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -25,7 +25,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   // Sempre busca a interface mais recente no servidor; usa cache apenas se estiver offline.
-  if (req.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html' || url.pathname === '/sw.js' || url.pathname === '/manifest.webmanifest') {
+  if (req.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html' || url.pathname === '/sw.js' || url.pathname === '/manifest.webmanifest' || url.pathname === '/version.json') {
     event.respondWith(fetch(req, {cache:'no-store'}).then(res => {
       if (res.ok && req.method === 'GET') caches.open(CACHE).then(c => c.put(req, res.clone()));
       return res;
