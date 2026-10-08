@@ -740,6 +740,16 @@ function seedPedidoEmAndamento(){
  localStorage.setItem(KEY,JSON.stringify(db));
 }
 seedPedidoEmAndamento();
+function normalizeSavedSaleDueDates(){
+ let changed=false;
+ (db.sales||[]).forEach(s=>{
+   if(!s.dateISO||!Number(s.postDays))return;
+   const corrected=addBusinessDays(s.dateISO,Number(s.postDays)||1);
+   if(corrected&&String(s.dueDate||"")!==corrected){s.dueDate=corrected;changed=true;}
+ });
+ if(changed)localStorage.setItem(KEY,JSON.stringify(db));
+}
+normalizeSavedSaleDueDates();
 let editingSaleId=null;
 
 const money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -1199,20 +1209,55 @@ function todayISO(){
  const d=parts.find(x=>x.type==="day")?.value;
  return `${y}-${m}-${d}`;
 }
+function easterSundayISO(year){
+ const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3);
+ const h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451);
+ const month=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;
+ return `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+}
+function isoDateParts(dateISO){
+ const p=String(dateISO||"").slice(0,10).split("-").map(Number);
+ return {y:p[0]||0,m:p[1]||0,d:p[2]||0};
+}
+function addISODate(dateISO,days){
+ const p=isoDateParts(dateISO);
+ const d=new Date(Date.UTC(p.y,p.m-1,p.d,12,0,0));
+ d.setUTCDate(d.getUTCDate()+Number(days||0));
+ return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}-${String(d.getUTCDate()).padStart(2,"0")}`;
+}
+function isBrazilNationalHoliday(dateISO){
+ const {y,m,d}=isoDateParts(dateISO);
+ if(!y)return false;
+ const fixed=new Set([
+   `${y}-01-01`, // Ano Novo
+   `${y}-04-21`, // Tiradentes
+   `${y}-05-01`, // Dia do Trabalho
+   `${y}-09-07`, // Independência
+   `${y}-10-12`, // Nossa Senhora Aparecida
+   `${y}-11-02`, // Finados
+   `${y}-11-15`, // Proclamação da República
+   `${y}-11-20`, // Consciência Negra
+   `${y}-12-25`  // Natal
+ ]);
+ if(fixed.has(dateISO))return true;
+ const goodFriday=addISODate(easterSundayISO(y),-2);
+ return dateISO===goodFriday;
+}
+function isBusinessDay(dateISO){
+ const p=isoDateParts(dateISO);
+ const d=new Date(Date.UTC(p.y,p.m-1,p.d,12,0,0));
+ const day=d.getUTCDay();
+ return day!==0&&day!==6&&!isBrazilNationalHoliday(dateISO);
+}
 function addBusinessDays(dateISO, days){
  const raw=String(dateISO||todayISO()).slice(0,10);
- const parts=raw.split("-").map(Number);
- const d=new Date(Date.UTC(parts[0]||new Date().getFullYear(),(parts[1]||1)-1,parts[2]||1,12,0,0));
+ let current=raw;
  let remaining=Math.max(0,Number(days)||0);
  while(remaining>0){
-   d.setUTCDate(d.getUTCDate()+1);
-   const day=d.getUTCDay();
-   if(day!==0 && day!==6) remaining--;
+   current=addISODate(current,1);
+   if(isBusinessDay(current))remaining--;
  }
- const y=d.getUTCFullYear();
- const m=String(d.getUTCMonth()+1).padStart(2,"0");
- const day=String(d.getUTCDate()).padStart(2,"0");
- return `${y}-${m}-${day}`;
+ return current;
 }
 function updatePostDate(){
  const dateEl=document.getElementById("sDate"), daysEl=document.getElementById("sPostDays"), dueEl=document.getElementById("sDueDate");
