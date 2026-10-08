@@ -2589,7 +2589,31 @@ function normalizeCustomerName(name){return String(name||"").trim().replace(/\s+
 function customerKey(name){return normalizeCustomerName(name).toLocaleLowerCase("pt-BR");}
 function syncCustomersFromSales(){db.customers=Array.isArray(db.customers)?db.customers:[];(db.sales||[]).forEach(s=>{const name=normalizeCustomerName(s.customerName);if(!name)return;let c=db.customers.find(x=>customerKey(x.name)===customerKey(name));if(!c){c={id:String(Date.now()+Math.random()),name,state:s.state||"",createdAt:todayISO()};db.customers.push(c);}if(s.state)c.state=s.state;c.updatedAt=s.dateISO||todayISO();});}
 function customerSales(c){const k=customerKey(c.name);return(db.sales||[]).filter(s=>customerKey(s.customerName)===k);}
-function renderCustomers(){syncCustomersFromSales();const rows=(db.customers||[]).map(c=>{const sales=customerSales(c),active=sales.filter(s=>s.status!=="Cancelado"),total=active.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0),last=[...sales].sort((a,b)=>String(b.dateISO||"").localeCompare(String(a.dateISO||"")))[0];return `<tr><td><b>${c.name}</b></td><td>${c.state||"—"}</td><td>${sales.length}</td><td>${money(total)}</td><td>${last?formatDateISO(last.dateISO||last.date):"—"}</td><td><button class="btn xs outline" onclick="openCustomerHistory('${c.id}')">Ver histórico</button></td></tr>`;}).join("");const t=document.getElementById("customersTable");if(t)t.innerHTML=rows||'<tr><td colspan="6">Nenhum cliente cadastrado. Os clientes serão criados automaticamente ao registrar pedidos com nome.</td></tr>';const total=document.getElementById("customersTotal"),active=document.getElementById("customersActive"),orders=document.getElementById("customersOrders");if(total)total.textContent=(db.customers||[]).length;if(active)active.textContent=(db.customers||[]).filter(c=>customerSales(c).some(s=>s.status!=="Cancelado")).length;if(orders)orders.textContent=(db.sales||[]).filter(s=>s.customerName).length;}
+function renderCustomers(){
+ syncCustomersFromSales();
+ const sorted=[...(db.customers||[])].sort((a,b)=>normalizeCustomerName(a.name).localeCompare(normalizeCustomerName(b.name),"pt-BR",{sensitivity:"base"}));
+ const rows=sorted.map(c=>{
+   const sales=customerSales(c),active=sales.filter(s=>s.status!=="Cancelado"),total=active.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0),last=[...sales].sort((a,b)=>String(b.dateISO||"").localeCompare(String(a.dateISO||"")))[0];
+   return `<tr><td><b>${c.name}</b></td><td>${c.state||"—"}</td><td>${sales.length}</td><td>${money(total)}</td><td>${last?formatDateISO(last.dateISO||last.date):"—"}</td><td style="white-space:nowrap"><button class="btn xs outline" onclick="editCustomer('${c.id}')">Editar</button> <button class="btn xs outline" onclick="openCustomerHistory('${c.id}')">Ver histórico</button></td></tr>`;
+ }).join("");
+ const t=document.getElementById("customersTable");if(t)t.innerHTML=rows||'<tr><td colspan="6">Nenhum cliente cadastrado. Os clientes serão criados automaticamente ao registrar pedidos com nome.</td></tr>';
+ const total=document.getElementById("customersTotal"),active=document.getElementById("customersActive"),orders=document.getElementById("customersOrders");if(total)total.textContent=(db.customers||[]).length;if(active)active.textContent=(db.customers||[]).filter(c=>customerSales(c).some(s=>s.status!=="Cancelado")).length;if(orders)orders.textContent=(db.sales||[]).filter(s=>s.customerName).length;
+}
+function editCustomer(id){
+ const c=(db.customers||[]).find(x=>String(x.id)===String(id));if(!c)return;
+ const oldName=c.name||"",oldState=c.state||"";
+ const name=prompt("Nome do cliente:",oldName);if(name===null)return;
+ const normalized=normalizeCustomerName(name);if(!normalized){alert("Informe um nome válido.");return;}
+ const state=prompt("UF do cliente (opcional):",oldState);if(state===null)return;
+ const uf=String(state||"").trim().toUpperCase();
+ if(uf&&!/^[A-Z]{2}$/.test(uf)){alert("Informe uma UF válida com 2 letras, por exemplo GO.");return;}
+ const duplicate=(db.customers||[]).find(x=>String(x.id)!==String(c.id)&&customerKey(x.name)===customerKey(normalized));
+ if(duplicate){alert("Já existe outro cliente com esse nome. Escolha outro nome.");return;}
+ c.name=normalized;c.state=uf;
+ (db.sales||[]).forEach(s=>{if(customerKey(s.customerName)===customerKey(oldName)){s.customerName=normalized;if(uf)s.state=uf;}});
+ save();
+ renderCustomers();
+}
 function openCustomerHistory(id){const c=(db.customers||[]).find(x=>String(x.id)===String(id));if(!c)return;const sales=customerSales(c).sort((a,b)=>String(b.dateISO||"").localeCompare(String(a.dateISO||"")));document.getElementById("customerHistoryTitle").textContent=`Histórico — ${c.name}`;const t=document.getElementById("customerHistoryTable");if(t)t.innerHTML=sales.map(s=>`<tr><td>${formatDateISO(s.dateISO||"")}</td><td>${s.product||"—"}</td><td>${s.variantName||"—"}</td><td>${s.store||"—"}</td><td>${s.qty||0}</td><td>${money(Number(s.grossValue??s.value)||0)}</td><td><span class="status-pill status-pill-${saleStatusKey(s.status)}">${s.status||"Recebido"}</span></td></tr>`).join("")||'<tr><td colspan="7">Nenhum pedido encontrado.</td></tr>';document.getElementById("customerHistoryPanel").classList.remove("hidden");document.getElementById("customerHistoryPanel").scrollIntoView({behavior:"smooth",block:"start"});}
 function closeCustomerHistory(){document.getElementById("customerHistoryPanel")?.classList.add("hidden");}
 
@@ -2775,7 +2799,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '79';
+const GESTOR_APP_VERSION = '80';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
