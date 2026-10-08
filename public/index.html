@@ -219,7 +219,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <div class="field" style="display:none"><label>Desgaste por hora (R$)</label><input id="pMachineWear" type="number" min="0" step=".01" value="0.20"></div>
 <div class="field" style="display:none"><label>Taxa marketplace (%)</label><input id="pFee" type="number" step=".1" value="20"></div><div class="field"><label>Margem desejada (%)</label><input id="pMargin" type="number" step=".1" value="30"></div><div class="field"><label>Estoque inicial</label><input id="pStock" type="number" value="0"></div>
 </div><br><button class="btn" id="productSaveBtn" onclick="addProduct()">Salvar produto</button> <button type="button" class="btn secondary" onclick="cancelProductEdit()">Cancelar</button></div>
-<div class="panel"><div class="notice" style="margin-bottom:12px">Para unir cadastros duplicados, use <b>Mesclar produtos</b>. O produto principal permanece e vendas/vínculos do outro cadastro passam para ele.</div><table><thead><tr><th>Sel.</th><th>Produto</th><th>SKU</th><th>Loja</th><th>Materiais da receita</th><th>Custo / un.</th><th>Preço sugerido / un.</th><th>Estoque</th><th>Ficha técnica</th><th>Ações</th></tr></thead><tbody id="productsTable"></tbody></table></div>
+<div class="panel"><div class="top" style="margin-bottom:12px"><div><h2>Produtos cadastrados</h2><div class="sub">Pesquise pelo nome do produto ou SKU.</div></div><div class="search-box" style="min-width:300px;max-width:420px;flex:1"><input id="productsSearch" type="search" placeholder="🔎 Pesquisar produto..." oninput="renderProductsTable()"></div></div><div class="notice" style="margin-bottom:12px">Para unir cadastros duplicados, use <b>Mesclar produtos</b>. O produto principal permanece e vendas/vínculos do outro cadastro passam para ele.</div><table><thead><tr><th>Sel.</th><th>Produto</th><th>SKU</th><th>Loja</th><th>Materiais da receita</th><th>Custo / un.</th><th>Preço sugerido / un.</th><th>Estoque</th><th>Ficha técnica</th><th>Ações</th></tr></thead><tbody id="productsTable"></tbody></table></div>
 </section>
 
 
@@ -314,7 +314,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 </div>
 
 <div class="panel">
-  <h2>Materiais cadastrados</h2>
+  <div class="top" style="margin-bottom:12px"><div><h2>Materiais cadastrados</h2><div class="sub">Pesquise por nome, categoria, marca ou tipo.</div></div><div class="search-box" style="min-width:300px;max-width:420px;flex:1"><input id="materialsSearch" type="search" placeholder="🔎 Pesquisar material..." oninput="renderMaterialsTable()"></div></div>
   <table>
     <thead><tr><th>Material</th><th>Categoria</th><th>Marca / tipo</th><th>Unidade</th><th>Custo unitário</th><th>Estoque</th><th>Status</th><th>Ações</th></tr></thead>
     <tbody id="materialsTable"></tbody>
@@ -589,7 +589,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <div class="field"><label>Status do pedido</label><select id="sStatus"><option>Recebido</option><option>Em produção</option><option>Pronto</option><option>Enviado</option><option>Entregue</option><option>Cancelado</option></select></div>
 <div class="field" style="grid-column:1/-1"><label>Observações</label><input id="sNotes" placeholder="Ex.: personalização, nome, cor, envio..."></div>
 </div><br><button id="saleSubmitBtn" class="btn" onclick="saveSaleForm()">Registrar pedido</button> <button id="saleCancelEditBtn" class="btn outline hidden" type="button" onclick="cancelEditSale()">Cancelar edição</button></div>
-<div class="panel"><div class="top" style="margin-bottom:12px"><h2>Pedidos</h2><select id="salesFilter" onchange="renderSalesTable()" style="max-width:220px"><option value="todos">Todos</option><option value="Pendente">Pendentes</option><option value="Recebido">Recebidos</option><option value="Em produção">Em produção</option><option value="Pronto">Prontos</option><option value="Enviado">Enviados</option><option value="Entregue">Entregues</option><option value="Cancelado">Cancelados</option><option value="atrasados">Atrasados</option></select></div><div style="overflow:auto"><table><thead><tr><th>Compra</th><th>Cliente</th><th>Estado</th><th>Produto</th><th>Loja</th><th>Canal</th><th>Qtd.</th><th>Postagem até</th><th>Venda / Líquido</th><th>Lucro estimado</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="salesTable"></tbody></table></div></div>
+<div class="panel"><div class="top" style="margin-bottom:12px"><div><h2>Pedidos</h2><div class="sub">Pesquise pelo nome do cliente e use o filtro de status.</div></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><div class="search-box" style="min-width:280px"><input id="salesSearch" type="search" placeholder="🔎 Pesquisar cliente..." oninput="renderSalesTable()"></div><select id="salesFilter" onchange="renderSalesTable()" style="max-width:220px"><option value="todos">Todos</option><option value="Pendente">Pendentes</option><option value="Recebido">Recebidos</option><option value="Em produção">Em produção</option><option value="Pronto">Prontos</option><option value="Enviado">Enviados</option><option value="Entregue">Entregues</option><option value="Cancelado">Cancelados</option><option value="atrasados">Atrasados</option></select></div><div style="overflow:auto"><table><thead><tr><th>Compra</th><th>Cliente</th><th>Estado</th><th>Produto</th><th>Loja</th><th>Canal</th><th>Qtd.</th><th>Postagem até</th><th>Venda / Líquido</th><th>Lucro estimado</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="salesTable"></tbody></table></div></div>
 </section>
 
 <section id="customers" class="hidden">
@@ -1372,7 +1372,12 @@ function deleteSale(id){
 function renderSalesTable(){
  const table=document.getElementById("salesTable"); if(!table)return;
  const filter=document.getElementById("salesFilter")?.value||"todos";
- let rows=(db.sales||[]).filter(s=>filter==="todos" ? true : filter==="atrasados" ? isLate(s) : s.status===filter);
+ const search=normalizeSearchText(document.getElementById("salesSearch")?.value||"");
+ let rows=(db.sales||[]).filter(s=>{
+   const statusOk=filter==="todos" ? true : filter==="atrasados" ? isLate(s) : s.status===filter;
+   const customerOk=!search || normalizeSearchText(s.customerName).includes(search);
+   return statusOk&&customerOk;
+ });
  rows.sort((a,b)=>{
    const pa=a.status==="Pendente"?0:1,pb=b.status==="Pendente"?0:1;
    if(pa!==pb)return pa-pb;
@@ -2587,6 +2592,31 @@ function confirmMergeProducts(){
  sources.forEach(source=>mergeProductRecords(target,source));
  save();document.getElementById("mergeProductsModal")?.remove();render();alert("Produtos mesclados com sucesso. O cadastro principal foi mantido.");
 }
+function normalizeSearchText(value){
+ return String(value||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLocaleLowerCase("pt-BR").trim();
+}
+function renderProductsTable(){
+ const table=document.getElementById("productsTable"); if(!table)return;
+ const query=normalizeSearchText(document.getElementById("productsSearch")?.value||"");
+ const rows=[...(db.products||[])].filter(p=>{
+   if(!query)return true;
+   return normalizeSearchText(p.name).includes(query)||normalizeSearchText(p.sku).includes(query)||normalizeSearchText(p.shopeeName).includes(query);
+ }).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR"));
+ table.innerHTML=rows.map(p=>{
+   const productName=String(p.name||"Produto sem nome");
+   const materialsText=(p.materials||[]).map(m=>String(m.name||"")+" ("+Number(m.qty||m.grams||0).toLocaleString("pt-BR",{maximumFractionDigits:4})+" "+String(m.unit||"un.")+")").join(", ")||"—";
+   return '<tr><td><input type="checkbox" class="merge-product-check" value="'+String(p.id)+'"></td><td><b>'+productName+'</b></td><td>'+String(p.sku||"-")+'</td><td>'+String(p.store||"—")+'</td><td>'+materialsText+'</td><td>'+money(totalCost(p))+'</td><td>'+money(suggested(p))+'</td><td>'+String(p.stock||0)+'</td><td><button class="btn secondary" onclick="openTechModal('+String(p.id)+')">Ver ficha</button></td><td><button class="btn secondary" onclick="editProduct('+String(p.id)+')">✏️ Editar</button></td></tr>';
+ }).join("")||'<tr><td colspan="10">Nenhum produto encontrado.</td></tr>';
+}
+function renderMaterialsTable(){
+ const table=document.getElementById("materialsTable"); if(!table)return;
+ const query=normalizeSearchText(document.getElementById("materialsSearch")?.value||"");
+ const rows=[...(db.materials||[])].filter(m=>{
+   if(!query)return true;
+   return [m.name,m.category,m.brand,m.type,m.color].some(v=>normalizeSearchText(v).includes(query));
+ }).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR"));
+ table.innerHTML=rows.map(m=>`<tr><td><b>${m.name}</b>${m.color?`<div class="sub">${m.color}</div>`:""}</td><td>${categoryBadge(m.category)}</td><td>${[m.brand,m.type].filter(Boolean).join(" • ")||"—"}</td><td>${m.unit}</td><td>${money(m.unitCost)}</td><td>${m.stock}</td><td>${m.stock<=0?'<span class="tag warn">Sem estoque</span>':m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td><td><div class="row-actions"><button class="btn xs outline" onclick="editMaterial('${m.id}')">Editar</button><button class="btn xs danger" onclick="deleteMaterial('${m.id}')">Excluir</button></div></td></tr>`).join("")||'<tr><td colspan="8">Nenhum material encontrado.</td></tr>';
+}
 function render(){
  db.materials=db.materials||[]; db.movements=db.movements||[]; db.quotes=db.quotes||[]; db.purchases=db.purchases||[]; db.sales=db.sales||[]; db.products=db.products||[]; db.customers=db.customers||[];
  const dashboardPeriod=populateDashboardPeriods();
@@ -2605,8 +2635,7 @@ db.products.forEach(p=>{
  }
 });
 
- const materialsTable=document.getElementById("materialsTable");
- if(materialsTable) materialsTable.innerHTML=db.materials.map(m=>`<tr><td><b>${m.name}</b>${m.color?`<div class="sub">${m.color}</div>`:""}</td><td>${categoryBadge(m.category)}</td><td>${[m.brand,m.type].filter(Boolean).join(" • ")||"—"}</td><td>${m.unit}</td><td>${money(m.unitCost)}</td><td>${m.stock}</td><td>${m.stock<=0?'<span class="tag warn">Sem estoque</span>':m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td><td><div class="row-actions"><button class="btn xs outline" onclick="editMaterial('${m.id}')">Editar</button><button class="btn xs danger" onclick="deleteMaterial('${m.id}')">Excluir</button></div></td></tr>`).join('')||'<tr><td colspan="8">Nenhum material cadastrado.</td></tr>';
+ renderMaterialsTable();
  const smt=document.getElementById("stockMaterialsTable"); if(smt) smt.innerHTML=db.materials.map(m=>`<tr><td><b>${m.name}</b><div class="sub">${m.color||""}</div></td><td>${categoryBadge(m.category)}</td><td>${[m.brand,m.type].filter(Boolean).join(" • ")||"—"}</td><td>${money(m.unitCost)}</td><td>${m.stock} ${m.unit}</td><td>${m.minStock||0}</td><td>${m.stock<=0?'<span class="tag warn">Sem estoque</span>':m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td><td><div class="row-actions"><button class="btn xs outline" onclick="editMaterial('${m.id}')">Editar</button><button class="btn xs danger" onclick="deleteMaterial('${m.id}')">Excluir</button></div></td></tr>`).join('')||'<tr><td colspan="8">Nenhum material cadastrado.</td></tr>';
  const ft=document.getElementById("finishedTable"); if(ft) ft.innerHTML=db.products.map(p=>`<tr><td><b>${p.name}</b></td><td>${p.sku||"—"}</td><td>${p.store||"—"}</td><td>${p.stock}</td><td>${money(suggested(p))}</td><td>${money(totalCost(p))}</td></tr>`).join('')||'<tr><td colspan="6">Nenhum produto cadastrado.</td></tr>';
  const pt=document.getElementById("projectsTable"); if(pt) pt.innerHTML=(db.quotes||[]).map(q=>`<tr><td>${q.date}</td><td>${q.name}</td><td>${q.qty}</td><td>${money(q.finalTotal??q.totalPrice??(q.price*q.qty))}</td><td><span class="tag">${q.status}</span></td><td><button class="btn xs outline" onclick="editQuote('${q.id}')">✎ Editar</button><button class="btn xs outline" onclick="printQuote('${q.id}')">🖨 Imprimir</button></td></tr>`).join('')||'<tr><td colspan="6">Nenhum orçamento salvo.</td></tr>';
@@ -2635,15 +2664,7 @@ db.products.forEach(p=>{
  const activeSales=reportSales().filter(s=>s.status!=="Cancelado");
  let revenue=activeSales.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0), netRevenue=activeSales.reduce((a,s)=>{const gross=Number(s.grossValue??s.value)||0; const fee=Number(s.fee); const net=Number(s.netValue); return a+(Number.isFinite(net)&&net>0?net:Math.max(0,gross-(Number.isFinite(fee)?fee:0)));},0), totalProductCosts=activeSales.reduce((a,s)=>a+(Number(s.cost)||0),0), fees=activeSales.reduce((a,s)=>a+(Number(s.fee)||0),0);
  const ds=document.getElementById("dashStock"); if(ds)ds.textContent=db.products.reduce((a,p)=>a+(+p.stock||0),0)+(db.materials||[]).length; renderDashboardSummary(dashboardPeriod); renderStateMap(dashboardPeriod);
- const productsTable=document.getElementById("productsTable");
- if(productsTable){
-   const sortedProducts=[...(db.products||[])].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR"));
-   productsTable.innerHTML=sortedProducts.map(p=>{
-     const productName=String(p.name||"Produto sem nome");
-     const materialsText=(p.materials||[]).map(m=>String(m.name||"")+" ("+Number(m.qty||m.grams||0).toLocaleString("pt-BR",{maximumFractionDigits:4})+" "+String(m.unit||"un.")+")").join(", ")||"—";
-     return '<tr><td><input type="checkbox" class="merge-product-check" value="'+String(p.id)+'"></td><td><b>'+productName+'</b></td><td>'+String(p.sku||"-")+'</td><td>'+String(p.store||"—")+'</td><td>'+materialsText+'</td><td>'+money(totalCost(p))+'</td><td>'+money(suggested(p))+'</td><td>'+String(p.stock||0)+'</td><td><button class="btn secondary" onclick="openTechModal('+String(p.id)+')">Ver ficha</button></td><td><button class="btn secondary" onclick="editProduct('+String(p.id)+')">✏️ Editar</button></td></tr>';
-   }).join("")||'<tr><td colspan="10">Nenhum produto cadastrado.</td></tr>';
- }
+ renderProductsTable();
  const stockTable=document.getElementById("stockTable"); if(stockTable) stockTable.innerHTML=[...(db.materials||[]).map(m=>`<tr><td>${m.name}</td><td>${m.category}</td><td>${m.stock} ${m.unit}</td><td>${m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td></tr>`),...db.products.map(p=>`<tr><td>${p.name}</td><td>Produto acabado</td><td>${p.stock||0} un.</td><td>${(p.stock||0)<=2?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td></tr>`)].join('')||'<tr><td colspan="4">Nenhum item.</td></tr>';
  const lowStock=document.getElementById("lowStock"); if(lowStock){const lp=db.products.filter(p=>(+p.stock||0)<=2).map(p=>`<div style="padding:9px 0;border-bottom:1px solid #eee">${p.name} <span class="tag warn">${p.stock||0} un.</span></div>`);const lm=db.materials.filter(m=>(+m.stock||0)<=m.minStock).map(m=>`<div style="padding:9px 0;border-bottom:1px solid #eee">${m.name} <span class="tag warn">${m.stock} ${m.unit}</span></div>`);lowStock.innerHTML=[...lp,...lm].join('')||'<div class="sub">Nenhum estoque crítico.</div>'; }
  const dashSales=document.getElementById("dashSales"); if(dashSales){ const recentReportSales=[...reportSales()].sort((a,b)=>`${b.dateISO||""}T${b.time||"00:00"}`.localeCompare(`${a.dateISO||""}T${a.time||"00:00"}`)).slice(0,6); dashSales.innerHTML=recentReportSales.map(s=>`<div style="padding:9px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between"><span>${s.customerName?s.customerName+" • ":""}${s.product}<small class="sub">${s.date||formatDateISO(s.dateISO)} ${s.time||""} • ${s.store||"—"}</small></span><b>${money(Number(s.grossValue??s.value)||0)}</b></div>`).join('')||'<div class="sub">Nenhuma venda registrada neste período.</div>'; }
