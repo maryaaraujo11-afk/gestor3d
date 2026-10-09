@@ -88,6 +88,9 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 @media(max-width:1050px){.state-map-layout{grid-template-columns:1fr}.state-ranking-panel{min-height:320px}.brazil-map{height:620px}}
 
 .auth-gate{position:fixed;inset:0;z-index:100000;background:linear-gradient(135deg,#f8f4f1,#fff);display:flex;align-items:center;justify-content:center;padding:20px}.auth-gate.hidden{display:none}.auth-card{width:min(430px,100%);background:#fff;border:1px solid #eadfd8;border-radius:22px;padding:30px;box-shadow:0 18px 60px rgba(60,45,35,.12)}.auth-brand{text-align:center;font-size:28px;font-weight:900;color:#342e2a}.auth-brand small{display:block;margin-top:5px;font-size:12px;color:#9b8c83;font-weight:600}.auth-card h1{font-size:21px;margin:25px 0 6px;color:#342e2a}.auth-sub{font-size:13px;color:#81766f;margin-bottom:20px}.auth-field{margin-bottom:12px}.auth-field label{display:block;font-size:12px;font-weight:700;color:#665d57;margin-bottom:6px}.auth-field input{width:100%;padding:12px 13px;border:1px solid #ddd1ca;border-radius:10px;background:#fff;font-size:14px;outline:0}.auth-field input:focus{border-color:#b58d78;box-shadow:0 0 0 3px rgba(139,94,74,.10)}.auth-submit{width:100%;margin-top:8px;padding:12px;border:0;border-radius:10px;background:#8b5e4a;color:#fff;font-weight:800;cursor:pointer}.auth-submit:disabled{opacity:.65;cursor:wait}.auth-message{min-height:20px;margin:12px 0;font-size:12px;text-align:center}.auth-message.error{color:#b54b4b}.auth-message.success{color:#2f7d57}.auth-message.loading{color:#8b5e4a}.auth-link{border:0;background:none;color:#8b5e4a;font-weight:700;cursor:pointer;font-size:12px;padding:8px}.auth-footer{text-align:center;margin-top:10px}.auth-logout{margin:18px 8px 0;width:calc(100% - 16px);border:1px solid #e4d9d2;background:#fff;color:#8b5e4a;border-radius:9px;padding:9px;font-weight:700;cursor:pointer}.auth-user{font-size:10px;color:#9b8c83;padding:8px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.app.app-locked{display:none}
+
+.finance-cards{grid-template-columns:repeat(4,minmax(0,1fr))}.finance-cards .card{min-height:116px}.finance-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,.85fr);gap:16px;align-items:start}.finance-main-panel,.finance-expense-panel{min-width:0}.finance-section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.finance-section-head h2{margin-bottom:4px}.finance-mini-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.finance-mini-summary>div{padding:13px;border-radius:10px;background:#faf6f3;border:1px solid #eee4df}.finance-mini-summary span{display:block;font-size:11px;color:#91857d}.finance-mini-summary b{display:block;font-size:19px;margin-top:5px}.finance-category-block{border-top:1px solid #eee7e3;padding:14px 0;margin-bottom:8px}.finance-category-block h3{font-size:13px;margin:0 0 12px}.finance-category-row{display:grid;grid-template-columns:minmax(90px,140px) minmax(50px,1fr) 90px;gap:9px;align-items:center;margin:9px 0;font-size:11px}.finance-category-name{overflow-wrap:anywhere}.finance-category-track{height:9px;background:#f0ece9;border-radius:99px;overflow:hidden}.finance-category-track i{display:block;height:100%;background:#c99476;border-radius:99px}.finance-category-value{text-align:right;font-weight:800}.finance-table td{vertical-align:middle}.finance-type{display:inline-block;border-radius:99px;padding:4px 8px;font-size:10px;font-weight:800}.finance-type.in{background:#e4f5eb;color:#23774c}.finance-type.out{background:#fff0e8;color:#a84e2d}.finance-expense-form{grid-template-columns:1fr 1fr}.finance-expense-form input,.finance-expense-form select{width:100%;min-width:0;padding:10px;border:1px solid #ddd1ca;border-radius:8px;background:#fff}@media(max-width:1100px){.finance-layout{grid-template-columns:1fr}.finance-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.finance-cards{grid-template-columns:1fr}.finance-expense-form{grid-template-columns:1fr}.finance-section-head{align-items:flex-start;flex-direction:column}.finance-mini-summary{grid-template-columns:1fr 1fr}}
+
 </style>
 <!-- Gestor 3D V58 — trigger de publicação -->
 </head>
@@ -617,12 +620,34 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 </section>
 
 <section id="finance" class="hidden">
-<div class="top"><div><h1>Financeiro</h1><div class="sub">Resultado consolidado das vendas registradas</div></div><div class="report-period"><label for="financeMonth">Período:</label><input id="financeMonth" type="month" onchange="setReportMonth(this.value)"></div></div>
-<div class="cards">
-<div class="card"><div class="label">Receita</div><div class="value" id="finRevenue">R$ 0,00</div></div>
-<div class="card"><div class="label">Custo dos produtos</div><div class="value" id="finCost">R$ 0,00</div></div>
-<div class="card"><div class="label">Taxas estimadas</div><div class="value" id="finFees">R$ 0,00</div></div>
-<div class="card"><div class="label">Lucro estimado</div><div class="value good" id="finProfit">R$ 0,00</div></div>
+<div class="top"><div><h1>Financeiro</h1><div class="sub">Fluxo de caixa, despesas e resultado operacional.</div></div><div class="report-period"><label for="financeMonth">Período:</label><input id="financeMonth" type="month" onchange="setReportMonth(this.value)"></div></div>
+<div class="cards finance-cards">
+ <div class="card"><div class="label">Entradas de vendas</div><div class="value good" id="finCashIn">R$ 0,00</div><div class="card-foot">Líquido registrado/estimado</div></div>
+ <div class="card"><div class="label">Compras de materiais</div><div class="value" id="finMaterialOut">R$ 0,00</div><div class="card-foot">Compras cadastradas no mês</div></div>
+ <div class="card"><div class="label">Outras despesas</div><div class="value" id="finExpenseOut">R$ 0,00</div><div class="card-foot">Lançamentos manuais</div></div>
+ <div class="card"><div class="label">Saldo de caixa registrado</div><div class="value" id="finCashBalance">R$ 0,00</div><div class="card-foot">Entradas menos saídas lançadas</div></div>
+</div>
+<div class="finance-layout">
+ <div class="panel finance-main-panel">
+  <div class="finance-section-head"><div><h2>Movimentações do período</h2><div class="sub">Vendas, compras de materiais e despesas.</div></div><button class="btn secondary" onclick="exportFinanceCsv()">Exportar CSV</button></div>
+  <div class="finance-mini-summary"><div><span>Saídas registradas</span><b id="finTotalOut">R$ 0,00</b></div><div><span>Resultado operacional estimado</span><b id="finOperatingResult">R$ 0,00</b></div></div>
+  <div class="finance-category-block"><h3>Despesas por categoria</h3><div id="financeCategoryChart" class="finance-category-chart"></div></div>
+  <div style="overflow:auto"><table class="finance-table"><thead><tr><th>Data</th><th>Movimentação</th><th>Categoria</th><th>Tipo</th><th>Valor</th></tr></thead><tbody id="financeTransactions"></tbody></table></div>
+  <div class="sub" style="margin-top:10px">O saldo considera apenas entradas e saídas registradas aqui. O resultado operacional é uma estimativa e pode diferir do saldo de caixa.</div>
+ </div>
+ <div class="panel finance-expense-panel">
+  <h2>Registrar despesa</h2><div class="sub" style="margin-bottom:14px">Registre gastos que ainda não constam como compra de material.</div>
+  <div class="formgrid finance-expense-form">
+   <div class="field"><label>Descrição</label><input id="finExpenseName" placeholder="Ex.: embalagem, internet"></div>
+   <div class="field"><label>Categoria</label><select id="finExpenseCategory"><option>Embalagens</option><option>Frete e postagem</option><option>Energia elétrica</option><option>Manutenção</option><option>Equipamentos</option><option>Marketing</option><option>Taxas e tarifas</option><option>Impostos</option><option>Outros</option></select></div>
+   <div class="field"><label>Valor (R$)</label><input id="finExpenseValue" type="number" min="0.01" step="0.01" placeholder="0,00"></div>
+   <div class="field"><label>Data da saída</label><input id="finExpenseDate" type="date"></div>
+   <div class="field"><label>Forma de pagamento</label><select id="finExpenseMethod"><option>Pix</option><option>Cartão</option><option>Dinheiro</option><option>Boleto</option><option>Débito automático</option><option>Outro</option></select></div>
+   <div class="field"><label>Observação (opcional)</label><input id="finExpenseNote" placeholder="Detalhes adicionais"></div>
+  </div>
+  <button class="btn" style="margin-top:14px" onclick="addFinanceExpense()">+ Registrar saída</button>
+  <div class="sub" style="margin-top:10px">Não registre aqui uma compra de material que já foi cadastrada no estoque, para evitar duplicidade.</div>
+ </div>
 </div>
 </section>
 
@@ -2721,8 +2746,72 @@ function renderMaterialsTable(){
  }).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR"));
  table.innerHTML=rows.map(m=>`<tr><td><b>${m.name}</b>${m.color?`<div class="sub">${m.color}</div>`:""}</td><td>${categoryBadge(m.category)}</td><td>${[m.brand,m.type].filter(Boolean).join(" • ")||"—"}</td><td>${m.unit}</td><td>${money(m.unitCost)}</td><td>${m.stock}</td><td>${m.stock<=0?'<span class="tag warn">Sem estoque</span>':m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td><td><div class="row-actions"><button class="btn xs outline" onclick="editMaterial('${m.id}')">Editar</button><button class="btn xs danger" onclick="deleteMaterial('${m.id}')">Excluir</button></div></td></tr>`).join("")||'<tr><td colspan="8">Nenhum material encontrado.</td></tr>';
 }
+
+function financeISODate(value){
+ const raw=String(value||"").trim();
+ if(/^\d{4}-\d{2}-\d{2}/.test(raw))return raw.slice(0,10);
+ const m=raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+ return m?m[3]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[1]).padStart(2,"0"):"";
+}
+function financeAmount(s){
+ const gross=Number(s.grossValue??s.value)||0, net=Number(s.netValue), fee=Number(s.fee)||0;
+ return Number.isFinite(net)&&net>0?net:Math.max(0,gross-fee);
+}
+function addFinanceExpense(){
+ const name=document.getElementById("finExpenseName")?.value.trim()||"";
+ const value=Number(document.getElementById("finExpenseValue")?.value)||0;
+ const date=document.getElementById("finExpenseDate")?.value||todayISO();
+ if(!name){alert("Informe a descrição da despesa.");return;}
+ if(value<=0){alert("Informe um valor maior que zero.");return;}
+ db.expenses=Array.isArray(db.expenses)?db.expenses:[];
+ db.expenses.unshift({id:"exp-"+Date.now(),name,category:document.getElementById("finExpenseCategory")?.value||"Outros",value,dateISO:date,method:document.getElementById("finExpenseMethod")?.value||"Outro",note:document.getElementById("finExpenseNote")?.value.trim()||"",createdAt:new Date().toISOString()});
+ ["finExpenseName","finExpenseValue","finExpenseNote"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+ save();
+}
+function financeRows(){
+ const month=getReportMonth(), rows=[];
+ (db.sales||[]).filter(s=>s.status!=="Cancelado"&&s.status!=="Pendente"&&reportMonthFromSale(s)===month).forEach(s=>{
+  rows.push({date:financeISODate(s.dateISO||s.date),name:"Venda"+(s.customerName?" • "+s.customerName:"")+" — "+(s.product||"Pedido"),category:s.store||"Venda",type:"Entrada",value:financeAmount(s),id:"sale"});
+ });
+ (db.purchases||[]).forEach(p=>{
+  const date=financeISODate(p.dateISO||p.date);
+  if(date.slice(0,7)!==month)return;
+  rows.push({date,name:"Compra de material — "+(p.material||"Material"),category:p.supplier||"Materiais",type:"Saída",value:Number(p.value)||0,id:"purchase"});
+ });
+ (db.expenses||[]).filter(e=>String(e.dateISO||"").slice(0,7)===month).forEach(e=>{
+  rows.push({date:e.dateISO,name:e.name||"Despesa",category:e.category||"Outros",type:"Saída",value:Number(e.value)||0,id:"expense"});
+ });
+ return rows.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+}
+function renderFinancePanel(){
+ const rows=financeRows();
+ const inflow=rows.filter(r=>r.type==="Entrada").reduce((a,r)=>a+r.value,0);
+ const materialOut=rows.filter(r=>r.id==="purchase").reduce((a,r)=>a+r.value,0);
+ const expenseOut=rows.filter(r=>r.id==="expense").reduce((a,r)=>a+r.value,0);
+ const out=materialOut+expenseOut, balance=inflow-out;
+ const activeSales=reportSales().filter(s=>s.status!=="Cancelado"&&s.status!=="Pendente");
+ const production=activeSales.reduce((a,s)=>a+(Number(s.cost)||0),0);
+ const labor=activeSales.reduce((a,s)=>a+saleLaborAmount(s),0);
+ const operating=inflow-production+labor-expenseOut;
+ const put=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=money(val);};
+ put("finCashIn",inflow);put("finMaterialOut",materialOut);put("finExpenseOut",expenseOut);put("finCashBalance",balance);put("finTotalOut",out);put("finOperatingResult",operating);
+ const balanceEl=document.getElementById("finCashBalance");if(balanceEl)balanceEl.style.color=balance<0?"#b54b4b":"#2f7d57";
+ const table=document.getElementById("financeTransactions");
+ if(table)table.innerHTML=rows.map(r=>'<tr><td>'+(r.date?formatDateISO(r.date):"—")+'</td><td><b>'+String(r.name).replace(/</g,"&lt;")+'</b></td><td>'+String(r.category).replace(/</g,"&lt;")+'</td><td><span class="finance-type '+(r.type==="Entrada"?"in":"out")+'">'+r.type+'</span></td><td style="font-weight:800;color:'+(r.type==="Entrada"?"#23774c":"#a84e2d")+'">'+(r.type==="Entrada"?"+ ":"− ")+money(r.value)+'</td></tr>').join("")||'<tr><td colspan="5">Nenhuma movimentação registrada neste período.</td></tr>';
+ const grouped={};rows.filter(r=>r.type==="Saída").forEach(r=>{const key=r.id==="purchase"?"Materiais":r.category||"Outros";grouped[key]=(grouped[key]||0)+r.value;});
+ const cats=Object.entries(grouped).sort((a,b)=>b[1]-a[1]),max=cats.length?cats[0][1]:0,chart=document.getElementById("financeCategoryChart");
+ if(chart)chart.innerHTML=cats.length?cats.map(([name,val])=>'<div class="finance-category-row"><span class="finance-category-name">'+String(name).replace(/</g,"&lt;")+'</span><div class="finance-category-track"><i style="width:'+Math.max(3,Math.round(val/max*100))+'%"></i></div><span class="finance-category-value">'+money(val)+'</span></div>').join(""):'<div class="sub">Ainda não há saídas registradas neste período.</div>';
+ const dateInput=document.getElementById("finExpenseDate");if(dateInput&&!dateInput.value)dateInput.value=todayISO();
+}
+function exportFinanceCsv(){
+ const rows=financeRows(), csv=[["Data","Movimentação","Categoria","Tipo","Valor (R$)"],...rows.map(r=>[r.date,r.name,r.category,r.type,r.value.toFixed(2).replace(".",",")])];
+ const content="\uFEFF"+csv.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\n");
+ const blob=new Blob([content],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="financeiro-"+getReportMonth()+".csv";a.click();URL.revokeObjectURL(url);
+}
+
 function render(){
- db.materials=db.materials||[]; db.movements=db.movements||[]; db.quotes=db.quotes||[]; db.purchases=db.purchases||[]; db.sales=db.sales||[]; db.products=db.products||[]; db.customers=db.customers||[];
+ db.materials=db.materials||[]; db.movements=db.movements||[]; db.quotes=db.quotes||[]; db.purchases=db.purchases||[]; db.expenses=db.expenses||[]; db.sales=db.sales||[]; db.products=db.products||[]; db.customers=db.customers||[];
  const dashboardPeriod=populateDashboardPeriods();
  renderDashboardSummary(dashboardPeriod);
  renderStateMap(dashboardPeriod);
@@ -2778,7 +2867,7 @@ db.products.forEach(p=>{
  const saleDateEl=document.getElementById("sDate"); if(saleDateEl)saleDateEl.onchange=updatePostDate; const saleDaysEl=document.getElementById("sPostDays"); if(saleDaysEl){saleDaysEl.onchange=updatePostDate;saleDaysEl.oninput=updatePostDate;} const saleProductEl=document.getElementById("sProduct"); if(saleProductEl)saleProductEl.onchange=updateSalePreview; const saleQtyEl=document.getElementById("sQty"); if(saleQtyEl)saleQtyEl.oninput=updateSalePreview;
  const saleGrossEl=document.getElementById("sGross"); if(saleGrossEl)saleGrossEl.oninput=()=>{saleGrossEl.dataset.manual="1";}; const saleNetEl=document.getElementById("sNet"); if(saleNetEl)saleNetEl.oninput=()=>{saleNetEl.dataset.manual="1";};
  populateCalcProductSelect(); updateSalePreview();
- const finRevenue=document.getElementById("finRevenue"),finCost=document.getElementById("finCost"),finFees=document.getElementById("finFees"),finProfit=document.getElementById("finProfit"); if(finRevenue)finRevenue.textContent=money(revenue);if(finCost)finCost.textContent=money(totalProductCosts);if(finFees)finFees.textContent=money(fees);if(finProfit)finProfit.textContent=money(netRevenue-totalProductCosts+activeSales.reduce((a,s)=>a+saleLaborAmount(s),0)); calc();
+ const finRevenue=document.getElementById("finRevenue"),finCost=document.getElementById("finCost"),finFees=document.getElementById("finFees"),finProfit=document.getElementById("finProfit"); if(finRevenue)finRevenue.textContent=money(revenue);if(finCost)finCost.textContent=money(totalProductCosts);if(finFees)finFees.textContent=money(fees);if(finProfit)finProfit.textContent=money(netRevenue-totalProductCosts+activeSales.reduce((a,s)=>a+saleLaborAmount(s),0)); renderFinancePanel(); calc();
 }function calc(){runCalc();}
 addMaterialRow();
 addCalcMaterial();
@@ -2799,7 +2888,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '81';
+const GESTOR_APP_VERSION = '82';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
