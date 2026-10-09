@@ -234,13 +234,50 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 </section>
 
 <section id="marketing" class="hidden">
-<div class="top"><div><h1>Marketing</h1><div class="sub">Acompanhe anúncios, investimento e retorno.</div></div></div>
-<div class="cards">
-<div class="card"><div class="label">Investimento em anúncios</div><div class="value">R$ 0,00</div></div>
-<div class="card"><div class="label">Vendas atribuídas</div><div class="value">0</div></div>
-<div class="card"><div class="label">ROAS</div><div class="value">—</div></div>
+<div class="top">
+ <div><h1>Marketing</h1><div class="sub">Gerencie seus anúncios, investimento e retorno por plataforma e loja.</div></div>
+ <div class="actions">
+  <div class="report-period"><label for="marketingMonth">Período:</label><input id="marketingMonth" type="month" onchange="renderMarketing()"></div>
+  <button class="btn secondary" onclick="openMarketingAdForm()">+ Cadastrar anúncio</button>
+ </div>
 </div>
-<div class="notice">Na próxima etapa podemos conectar os dados de publicidade da Shopee e acompanhar ROAS por produto.</div>
+<div class="cards finance-cards" style="margin-bottom:16px">
+ <div class="card"><div class="label">Investimento em anúncios</div><div class="value" id="marketingTotalSpend">R$ 0,00</div><div class="card-foot">Gasto no período selecionado</div></div>
+ <div class="card"><div class="label">Vendas atribuídas</div><div class="value good" id="marketingTotalSales">R$ 0,00</div><div class="card-foot">Receita atribuída aos anúncios</div></div>
+ <div class="card"><div class="label">ROAS geral</div><div class="value" id="marketingTotalROAS">—</div><div class="card-foot">Vendas atribuídas ÷ investimento</div></div>
+ <div class="card"><div class="label">Pedidos atribuídos</div><div class="value" id="marketingTotalOrders">0</div><div class="card-foot" id="marketingAdCount">0 anúncios no período</div></div>
+</div>
+<div class="panel" style="margin-bottom:16px">
+ <div class="finance-section-head" style="align-items:flex-start">
+  <div><h2 style="margin-bottom:4px">Importar da Shopee Ads</h2><div class="sub">Busca campanhas e métricas de desempenho da loja conectada, quando a API da Shopee permitir acesso a anúncios.</div></div>
+ </div>
+ <div class="formgrid" style="grid-template-columns:minmax(180px,260px) auto;align-items:end">
+  <div class="field"><label>Loja Shopee</label><select id="marketingImportStore"><option value="1">F4R Studio 3D</option><option value="2">F4RM 3D</option></select></div>
+  <div class="field"><button id="marketingImportButton" class="btn" type="button" onclick="importShopeeAds()">↓ Importar desempenho da Shopee</button></div>
+ </div>
+ <div id="marketingImportStatus" class="sub" style="margin-top:10px">Conecte a loja em Canais → Shopee. A importação também depende da permissão de Ads Service da Open Platform.</div>
+</div>
+<div id="marketingAdFormPanel" class="panel hidden" style="margin-bottom:16px">
+ <div class="top" style="margin-bottom:14px"><div><h2 id="marketingAdFormTitle">Cadastrar anúncio</h2><div class="sub">Informe os resultados do período para acompanhar o retorno do investimento.</div></div><button class="btn secondary" type="button" onclick="closeMarketingAdForm()">Fechar</button></div>
+ <input id="marketingAdId" type="hidden">
+ <div class="formgrid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+  <div class="field"><label>Nome do anúncio / campanha</label><input id="marketingAdName" placeholder="Ex.: Chaveiros personalizados"></div>
+  <div class="field"><label>Plataforma</label><select id="marketingPlatform"><option>Shopee Ads</option><option>TikTok Ads</option><option>Meta Ads (Instagram/Facebook)</option><option>Google Ads</option><option>Outra</option></select></div>
+  <div class="field"><label>Loja</label><select id="marketingAdStore"><option value="1">F4R Studio 3D</option><option value="2">F4RM 3D</option><option value="0">Outra / geral</option></select></div>
+  <div class="field"><label>Mês de referência</label><input id="marketingAdMonth" type="month"></div>
+  <div class="field"><label>Status</label><select id="marketingAdStatus"><option>Ativo</option><option>Pausado</option><option>Encerrado</option></select></div>
+  <div class="field"><label>Orçamento diário (R$)</label><input id="marketingDailyBudget" type="number" min="0" step="0.01" placeholder="0,00"></div>
+  <div class="field"><label>Investimento no período (R$)</label><input id="marketingSpend" type="number" min="0" step="0.01" placeholder="0,00"></div>
+  <div class="field"><label>Vendas atribuídas (R$)</label><input id="marketingSalesValue" type="number" min="0" step="0.01" placeholder="0,00"></div>
+  <div class="field"><label>Pedidos atribuídos</label><input id="marketingOrders" type="number" min="0" step="1" placeholder="0"></div>
+  <div class="field" style="grid-column:1/-1"><label>Observações (opcional)</label><input id="marketingNotes" placeholder="Produto anunciado, objetivo, alterações de orçamento etc."></div>
+ </div>
+ <div class="actions" style="margin-top:14px"><button class="btn" type="button" onclick="saveMarketingAd()">Salvar anúncio</button><button class="btn secondary" type="button" onclick="closeMarketingAdForm()">Cancelar</button></div>
+</div>
+<div class="panel">
+ <div class="finance-section-head"><div><h2>Anúncios e resultados</h2><div class="sub">Os registros manuais e os dados importados ficam salvos no Gestor 3D.</div></div></div>
+ <div style="overflow:auto"><table><thead><tr><th>Anúncio / campanha</th><th>Plataforma</th><th>Loja</th><th>Status / origem</th><th>Investimento</th><th>Vendas atribuídas</th><th>Pedidos</th><th>ROAS</th><th>Ações</th></tr></thead><tbody id="marketingAdsTable"></tbody></table></div>
+</div>
 </section>
 
 <section id="settings" class="hidden">
@@ -2886,8 +2923,145 @@ function exportFinanceCsv(){
  a.href=url;a.download="financeiro-"+getReportMonth()+".csv";a.click();URL.revokeObjectURL(url);
 }
 
+function marketingEscape(value){
+ return String(value??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function marketingCurrentMonth(){
+ const input=document.getElementById("marketingMonth");
+ return /^\\d{4}-\\d{2}$/.test(String(input?.value||""))?input.value:currentReportMonth();
+}
+function renderMarketing(){
+ db.marketingAds=Array.isArray(db.marketingAds)?db.marketingAds:[];
+ const monthInput=document.getElementById("marketingMonth");
+ if(monthInput&&!monthInput.value)monthInput.value=currentReportMonth();
+ const month=marketingCurrentMonth();
+ const rows=db.marketingAds.filter(a=>String(a.periodMonth||a.date||"").slice(0,7)===month)
+  .sort((a,b)=>String(b.updatedAt||b.createdAt||"").localeCompare(String(a.updatedAt||a.createdAt||"")));
+ const spend=rows.reduce((sum,a)=>sum+(Number(a.spend)||0),0);
+ const sales=rows.reduce((sum,a)=>sum+(Number(a.salesValue)||0),0);
+ const orders=rows.reduce((sum,a)=>sum+(Number(a.orders)||0),0);
+ const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+ set("marketingTotalSpend",money(spend));
+ set("marketingTotalSales",money(sales));
+ set("marketingTotalROAS",spend>0?(sales/spend).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})+"x":"—");
+ set("marketingTotalOrders",orders.toLocaleString("pt-BR"));
+ set("marketingAdCount",rows.length+" anúncio(s) no período");
+ const table=document.getElementById("marketingAdsTable");
+ if(!table)return;
+ table.innerHTML=rows.map(a=>{
+  const imported=a.source==="shopee_api";
+  const storeLabel=Number(a.storeSlot)===1?"F4R Studio 3D":Number(a.storeSlot)===2?"F4RM 3D": "Outra / geral";
+  const roas=Number(a.spend)>0?((Number(a.salesValue)||0)/(Number(a.spend)||1)).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})+"x":"—";
+  const origin=imported?"Importado da Shopee":(a.status||"Ativo");
+  const actions=(imported?"":'<button class="btn xs outline" data-id="'+marketingEscape(a.id)+'" onclick="editMarketingAd(this.dataset.id)">Editar</button> ')+
+   '<button class="btn xs danger" data-id="'+marketingEscape(a.id)+'" onclick="deleteMarketingAd(this.dataset.id)">Excluir</button>';
+  return '<tr><td><b>'+marketingEscape(a.name||"Anúncio sem nome")+'</b>'+(a.campaignId?'<div class="sub">ID Shopee: '+marketingEscape(a.campaignId)+'</div>':"")+(a.notes?'<div class="sub">'+marketingEscape(a.notes)+'</div>':"")+'</td><td>'+marketingEscape(a.platform||"—")+'</td><td>'+marketingEscape(a.storeLabel||storeLabel)+'</td><td><span class="tag">'+marketingEscape(origin)+'</span></td><td>'+money(a.spend)+'</td><td>'+money(a.salesValue)+'</td><td>'+Number(a.orders||0).toLocaleString("pt-BR")+'</td><td><b>'+roas+'</b></td><td style="white-space:nowrap">'+actions+'</td></tr>';
+ }).join("")||'<tr><td colspan="9">Nenhum anúncio cadastrado ou importado neste mês.</td></tr>';
+}
+function openMarketingAdForm(id=null){
+ const panel=document.getElementById("marketingAdFormPanel");
+ const record=id!=null?(db.marketingAds||[]).find(a=>String(a.id)===String(id)):null;
+ if(id!=null&&!record){alert("Não encontrei esse anúncio.");return;}
+ document.getElementById("marketingAdFormTitle").textContent=record?"Editar anúncio":"Cadastrar anúncio";
+ document.getElementById("marketingAdId").value=record?record.id:"";
+ document.getElementById("marketingAdName").value=record?.name||"";
+ document.getElementById("marketingPlatform").value=record?.platform||"Shopee Ads";
+ document.getElementById("marketingAdStore").value=String(record?.storeSlot??1);
+ document.getElementById("marketingAdMonth").value=record?.periodMonth||marketingCurrentMonth();
+ document.getElementById("marketingAdStatus").value=record?.status||"Ativo";
+ document.getElementById("marketingDailyBudget").value=record?.dailyBudget??"";
+ document.getElementById("marketingSpend").value=record?.spend??"";
+ document.getElementById("marketingSalesValue").value=record?.salesValue??"";
+ document.getElementById("marketingOrders").value=record?.orders??"";
+ document.getElementById("marketingNotes").value=record?.notes||"";
+ panel.classList.remove("hidden");
+ panel.scrollIntoView({behavior:"smooth",block:"start"});
+}
+function closeMarketingAdForm(){
+ const panel=document.getElementById("marketingAdFormPanel");
+ if(panel)panel.classList.add("hidden");
+ const id=document.getElementById("marketingAdId");if(id)id.value="";
+}
+function editMarketingAd(id){openMarketingAdForm(id);}
+function saveMarketingAd(){
+ db.marketingAds=Array.isArray(db.marketingAds)?db.marketingAds:[];
+ const id=document.getElementById("marketingAdId").value;
+ const old=id?db.marketingAds.find(a=>String(a.id)===String(id)):null;
+ const name=document.getElementById("marketingAdName").value.trim();
+ const periodMonth=document.getElementById("marketingAdMonth").value||marketingCurrentMonth();
+ const spend=Number(document.getElementById("marketingSpend").value)||0;
+ const salesValue=Number(document.getElementById("marketingSalesValue").value)||0;
+ const dailyBudget=Number(document.getElementById("marketingDailyBudget").value)||0;
+ const orders=Number(document.getElementById("marketingOrders").value)||0;
+ if(!name){alert("Informe o nome do anúncio ou campanha.");return;}
+ if(!/^\\d{4}-\\d{2}$/.test(periodMonth)){alert("Selecione um mês de referência válido.");return;}
+ if([spend,salesValue,dailyBudget,orders].some(x=>x<0||!Number.isFinite(x))){alert("Use valores iguais ou maiores que zero.");return;}
+ if(!Number.isInteger(orders)){alert("A quantidade de pedidos deve ser um número inteiro.");return;}
+ const record={
+  ...(old||{}),id:old?.id||("marketing-"+Date.now()+"-"+Math.random().toString(36).slice(2,7)),
+  name,platform:document.getElementById("marketingPlatform").value,
+  storeSlot:Number(document.getElementById("marketingAdStore").value)||0,
+  periodMonth,date:periodMonth+"-01",dailyBudget,spend,salesValue,orders,
+  status:document.getElementById("marketingAdStatus").value,source:"manual",
+  notes:document.getElementById("marketingNotes").value.trim(),
+  updatedAt:new Date().toISOString(),createdAt:old?.createdAt||new Date().toISOString()
+ };
+ if(old)Object.assign(old,record);else db.marketingAds.unshift(record);
+ closeMarketingAdForm();save();renderMarketing();
+}
+function deleteMarketingAd(id){
+ const ad=(db.marketingAds||[]).find(a=>String(a.id)===String(id));
+ if(!ad){alert("Não encontrei esse anúncio.");return;}
+ if(!confirm("Excluir o anúncio “"+(ad.name||"Anúncio")+"” do controle de Marketing?"))return;
+ db.marketingAds=db.marketingAds.filter(a=>String(a.id)!==String(id));
+ save();renderMarketing();
+}
+async function importShopeeAds(){
+ const store=Number(document.getElementById("marketingImportStore")?.value)||1;
+ const month=marketingCurrentMonth();
+ const button=document.getElementById("marketingImportButton");
+ const status=document.getElementById("marketingImportStatus");
+ if(button){button.disabled=true;button.textContent="Importando…";}
+ if(status)status.textContent="Consultando campanhas e desempenho da Shopee Ads…";
+ try{
+  const result=await api("/api/shopee/ads/"+store+"?month="+encodeURIComponent(month));
+  const imported=Array.isArray(result.ads)?result.ads:[];
+  if(!imported.length){
+   if(status)status.textContent="A Shopee não retornou campanhas com desempenho para esse mês. Verifique se há anúncios no período.";
+   return;
+  }
+  db.marketingAds=Array.isArray(db.marketingAds)?db.marketingAds:[];
+  let added=0,updated=0;
+  imported.forEach(ad=>{
+   const id="shopee-ads-"+store+"-"+String(ad.campaignId)+"-"+month;
+   const record={
+    id,source:"shopee_api",externalId:String(ad.campaignId),campaignId:String(ad.campaignId),
+    name:ad.name||("Campanha Shopee "+ad.campaignId),platform:"Shopee Ads",storeSlot:store,
+    periodMonth:month,date:month+"-01",dailyBudget:Number(ad.dailyBudget)||0,
+    spend:Number(ad.spend)||0,salesValue:Number(ad.salesValue)||0,directSalesValue:Number(ad.directSalesValue)||0,
+    orders:Number(ad.orders)||0,directOrders:Number(ad.directOrders)||0,
+    impressions:Number(ad.impressions)||0,clicks:Number(ad.clicks)||0,
+    adType:ad.adType||"",placement:ad.placement||"",status:"Importado",
+    notes:"Desempenho importado da Shopee Ads ("+(result.range?.start_date||month)+" a "+(result.range?.end_date||month)+").",
+    updatedAt:new Date().toISOString(),createdAt:new Date().toISOString()
+   };
+   const index=db.marketingAds.findIndex(a=>String(a.id)===id);
+   if(index>=0){record.createdAt=db.marketingAds[index].createdAt||record.createdAt;db.marketingAds[index]=record;updated++;}
+   else{db.marketingAds.unshift(record);added++;}
+  });
+  save();renderMarketing();
+  if(status)status.textContent="Importação concluída: "+added+" novo(s) anúncio(s) e "+updated+" atualização(ões). Os dados ficam salvos no Gestor 3D.";
+ }catch(e){
+  let message=String(e.message||e);
+  if(/Loja não conectada|sem refresh_token/i.test(message))message="Essa loja ainda não está conectada. Vá em Canais → Shopee e autorize a loja.";
+  else if(/permission|privilege|access denied|not allowed|ads service|unauthorized/i.test(message))message="A Shopee recusou o acesso aos dados de ADS. A loja pode estar conectada para pedidos, mas o app precisa da permissão Ads Service/Marketing na Open Platform. Detalhe: "+message;
+  if(status)status.textContent="Não foi possível importar os anúncios. "+message;
+ }finally{
+  if(button){button.disabled=false;button.textContent="↓ Importar desempenho da Shopee";}
+ }
+}
 function render(){
- db.materials=db.materials||[]; db.movements=db.movements||[]; db.quotes=db.quotes||[]; db.purchases=db.purchases||[]; db.expenses=db.expenses||[]; db.sales=db.sales||[]; db.products=db.products||[]; db.customers=db.customers||[];
+ db.materials=db.materials||[]; db.movements=db.movements||[]; db.quotes=db.quotes||[]; db.purchases=db.purchases||[]; db.expenses=db.expenses||[]; db.marketingAds=Array.isArray(db.marketingAds)?db.marketingAds:[]; db.sales=db.sales||[]; db.products=db.products||[]; db.customers=db.customers||[];
  const dashboardPeriod=populateDashboardPeriods();
  renderDashboardSummary(dashboardPeriod);
  renderStateMap(dashboardPeriod);
@@ -2943,7 +3117,7 @@ db.products.forEach(p=>{
  const saleDateEl=document.getElementById("sDate"); if(saleDateEl)saleDateEl.onchange=updatePostDate; const saleDaysEl=document.getElementById("sPostDays"); if(saleDaysEl){saleDaysEl.onchange=updatePostDate;saleDaysEl.oninput=updatePostDate;} const saleProductEl=document.getElementById("sProduct"); if(saleProductEl)saleProductEl.onchange=updateSalePreview; const saleQtyEl=document.getElementById("sQty"); if(saleQtyEl)saleQtyEl.oninput=updateSalePreview;
  const saleGrossEl=document.getElementById("sGross"); if(saleGrossEl)saleGrossEl.oninput=()=>{saleGrossEl.dataset.manual="1";}; const saleNetEl=document.getElementById("sNet"); if(saleNetEl)saleNetEl.oninput=()=>{saleNetEl.dataset.manual="1";};
  populateCalcProductSelect(); updateSalePreview();
- const finRevenue=document.getElementById("finRevenue"),finCost=document.getElementById("finCost"),finFees=document.getElementById("finFees"),finProfit=document.getElementById("finProfit"); if(finRevenue)finRevenue.textContent=money(revenue);if(finCost)finCost.textContent=money(totalProductCosts);if(finFees)finFees.textContent=money(fees);if(finProfit)finProfit.textContent=money(netRevenue-totalProductCosts+activeSales.reduce((a,s)=>a+saleLaborAmount(s),0)); renderFinancePanel(); calc();
+ const finRevenue=document.getElementById("finRevenue"),finCost=document.getElementById("finCost"),finFees=document.getElementById("finFees"),finProfit=document.getElementById("finProfit"); if(finRevenue)finRevenue.textContent=money(revenue);if(finCost)finCost.textContent=money(totalProductCosts);if(finFees)finFees.textContent=money(fees);if(finProfit)finProfit.textContent=money(netRevenue-totalProductCosts+activeSales.reduce((a,s)=>a+saleLaborAmount(s),0)); renderFinancePanel(); renderMarketing(); calc();
 }function calc(){runCalc();}
 addMaterialRow();
 addCalcMaterial();
@@ -2964,7 +3138,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '85';
+const GESTOR_APP_VERSION = '86';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
