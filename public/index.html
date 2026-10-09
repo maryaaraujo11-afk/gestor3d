@@ -627,6 +627,12 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
  <div class="card"><div class="label">Outras despesas</div><div class="value" id="finExpenseOut">R$ 0,00</div><div class="card-foot">Lançamentos manuais</div></div>
  <div class="card"><div class="label">Saldo de caixa registrado</div><div class="value" id="finCashBalance">R$ 0,00</div><div class="card-foot">Entradas menos saídas lançadas</div></div>
 </div>
+ <div class="panel" style="margin-bottom:16px;border:1px solid #e7d6c9;background:linear-gradient(135deg,#fffaf5,#fff)">
+  <h2 style="margin:0 0 5px">Reserva sugerida para materiais</h2>
+  <div class="sub">Estimativa pelas quantidades vendidas no período e pelos custos de materiais cadastrados nas fichas dos produtos.</div>
+  <div id="finMaterialReserveValue" style="font-size:27px;font-weight:850;color:#7b563f;margin:12px 0 4px">R$ 0,00</div>
+  <div id="finMaterialReserveNote" class="sub">Aguardando cálculo das vendas do período.</div>
+ </div>
 <div class="finance-layout">
  <div class="panel finance-main-panel">
   <div class="finance-section-head"><div><h2>Movimentações do período</h2><div class="sub">Vendas, compras de materiais e despesas.</div></div><button class="btn secondary" onclick="exportFinanceCsv()">Exportar CSV</button></div>
@@ -2768,6 +2774,38 @@ function addFinanceExpense(){
  ["finExpenseName","finExpenseValue","finExpenseNote"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
  save();
 }
+function editFinancePurchaseDate(id){
+ const purchase=(db.purchases||[]).find(p=>String(p.id)===String(id));
+ if(!purchase){alert("Não encontrei essa compra.");return;}
+ const current=financeISODate(purchase.dateISO||purchase.date)||todayISO();
+ const value=prompt("Informe a nova data da compra (AAAA-MM-DD). O valor e o estoque não serão alterados.",current);
+ if(value===null)return;
+ const date=financeISODate(value);
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date!==String(value).trim()){alert("Data inválida. Use AAAA-MM-DD, por exemplo 2026-08-15.");return;}
+ const parsed=new Date(date+"T12:00:00");
+ if(Number.isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==date){alert("Essa data não é válida.");return;}
+ purchase.dateISO=date;purchase.date=formatDateISO(date);save();
+ alert("Data atualizada. O valor e o estoque foram mantidos.");
+}
+function financeMaterialReserve(month){
+ let total=0,known=0,missing=0;
+ const sales=(db.sales||[]).filter(s=>reportMonthFromSale(s)===month&&s.status!=="Cancelado"&&s.status!=="Pendente");
+ sales.forEach(s=>{
+  const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,qty:s.qty||1,variantId:s.variantId||"",colorId:s.colorId||""}];
+  let saleKnown=false;
+  items.forEach(item=>{
+   const p=(db.products||[]).find(x=>String(x.id)===String(item.productId));
+   if(!p){missing++;return;}
+   const qty=Math.max(0,Number(item.qty)||1),recipe=saleRecipeMaterials(p,{...s,...item});
+   let itemCost=0,hasCost=false;
+   recipe.forEach(r=>{const use=materialConsumptionForSale(p,r,qty),unitCost=Number(r.unitCost||r.costPerGram)||0;if(use>0&&unitCost>0){itemCost+=use*unitCost;hasCost=true;}});
+   (Array.isArray(p.components)?p.components:[]).forEach(c=>{const q=(Number(c.qty)||0)*qty,unit=Number(c.unitCost)||0;if(q>0&&unit>0){itemCost+=q*unit;hasCost=true;}});
+   if(hasCost){total+=itemCost;saleKnown=true;}else missing++;
+  });
+  if(saleKnown)known++;
+ });
+ return {total,known,missing,sales:sales.length};
+}
 function financeRows(){
  const month=getReportMonth(), rows=[];
  (db.sales||[]).filter(s=>s.status!=="Cancelado"&&s.status!=="Pendente"&&reportMonthFromSale(s)===month).forEach(s=>{
@@ -2776,7 +2814,7 @@ function financeRows(){
  (db.purchases||[]).forEach(p=>{
   const date=financeISODate(p.dateISO||p.date);
   if(date.slice(0,7)!==month)return;
-  rows.push({date,name:"Compra de material — "+(p.material||"Material"),category:p.supplier||"Materiais",type:"Saída",value:Number(p.value)||0,id:"purchase"});
+  rows.push({date,name:"Compra de material — "+(p.material||"Material"),category:p.supplier||"Materiais",type:"Saída",value:Number(p.value)||0,id:"purchase",purchaseId:p.id});
  });
  (db.expenses||[]).filter(e=>String(e.dateISO||"").slice(0,7)===month).forEach(e=>{
   rows.push({date:e.dateISO,name:e.name||"Despesa",category:e.category||"Outros",type:"Saída",value:Number(e.value)||0,id:"expense"});
@@ -2798,6 +2836,14 @@ function renderFinancePanel(){
  const balanceEl=document.getElementById("finCashBalance");if(balanceEl)balanceEl.style.color=balance<0?"#b54b4b":"#2f7d57";
  const table=document.getElementById("financeTransactions");
  if(table)table.innerHTML=rows.map(r=>'<tr><td>'+(r.date?formatDateISO(r.date):"—")+'</td><td><b>'+String(r.name).replace(/</g,"&lt;")+'</b></td><td>'+String(r.category).replace(/</g,"&lt;")+'</td><td><span class="finance-type '+(r.type==="Entrada"?"in":"out")+'">'+r.type+'</span></td><td style="font-weight:800;color:'+(r.type==="Entrada"?"#23774c":"#a84e2d")+'">'+(r.type==="Entrada"?"+ ":"− ")+money(r.value)+'</td></tr>').join("")||'<tr><td colspan="5">Nenhuma movimentação registrada neste período.</td></tr>';
+ const reserve=financeMaterialReserve(getReportMonth());
+ const reserveValue=document.getElementById("finMaterialReserveValue"),reserveNote=document.getElementById("finMaterialReserveNote");
+ if(reserveValue)reserveValue.textContent=money(reserve.total);
+ if(reserveNote){
+  if(!reserve.sales)reserveNote.textContent="Não há vendas válidas registradas neste período.";
+  else if(!reserve.known)reserveNote.textContent="Há "+reserve.sales+" venda(s), mas faltam custos de materiais nas fichas dos produtos para estimar a reserva.";
+  else reserveNote.textContent="Estimativa baseada em "+reserve.known+" venda(s) com custos cadastrados."+(reserve.missing?" "+reserve.missing+" item(ns) sem custo completo ficaram fora do cálculo.":"")+" Reavalie conforme seu estoque atual.";
+ }
  const grouped={};rows.filter(r=>r.type==="Saída").forEach(r=>{const key=r.id==="purchase"?"Materiais":r.category||"Outros";grouped[key]=(grouped[key]||0)+r.value;});
  const cats=Object.entries(grouped).sort((a,b)=>b[1]-a[1]),max=cats.length?cats[0][1]:0,chart=document.getElementById("financeCategoryChart");
  if(chart)chart.innerHTML=cats.length?cats.map(([name,val])=>'<div class="finance-category-row"><span class="finance-category-name">'+String(name).replace(/</g,"&lt;")+'</span><div class="finance-category-track"><i style="width:'+Math.max(3,Math.round(val/max*100))+'%"></i></div><span class="finance-category-value">'+money(val)+'</span></div>').join(""):'<div class="sub">Ainda não há saídas registradas neste período.</div>';
