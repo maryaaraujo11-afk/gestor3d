@@ -2835,7 +2835,7 @@ function renderFinancePanel(){
  put("finCashIn",inflow);put("finMaterialOut",materialOut);put("finExpenseOut",expenseOut);put("finCashBalance",balance);put("finTotalOut",out);put("finOperatingResult",operating);
  const balanceEl=document.getElementById("finCashBalance");if(balanceEl)balanceEl.style.color=balance<0?"#b54b4b":"#2f7d57";
  const table=document.getElementById("financeTransactions");
- if(table)table.innerHTML=rows.map(r=>'<tr><td>'+(r.date?formatDateISO(r.date):"—")+'</td><td><b>'+String(r.name).replace(/</g,"&lt;")+'</b></td><td>'+String(r.category).replace(/</g,"&lt;")+'</td><td><span class="finance-type '+(r.type==="Entrada"?"in":"out")+'">'+r.type+'</span></td><td style="font-weight:800;color:'+(r.type==="Entrada"?"#23774c":"#a84e2d")+'">'+(r.type==="Entrada"?"+ ":"− ")+money(r.value)+'</td></tr>').join("")||'<tr><td colspan="5">Nenhuma movimentação registrada neste período.</td></tr>';
+ if(table)table.innerHTML=rows.map(r=>'<tr><td>'+(r.date?formatDateISO(r.date):"—")+'</td><td><b>'+String(r.name).replace(/</g,"&lt;")+'</b></td><td>'+String(r.category).replace(/</g,"&lt;")+'</td><td><span class="finance-type '+(r.type==="Entrada"?"in":"out")+'">'+r.type+'</span></td><td style="font-weight:800;color:'+(r.type==="Entrada"?"#23774c":"#a84e2d")+'">'+(r.type==="Entrada"?"+ ":"− ")+money(r.value)+(r.id==="purchase"?' <button class="btn xs outline" style="margin-left:6px" onclick="editFinancePurchaseDate(\''+String(r.purchaseId).replace(/\'/g,"") +'\')">Editar data</button>':"")+'</td></tr>').join("")||'<tr><td colspan="5">Nenhuma movimentação registrada neste período.</td></tr>';
  const reserve=financeMaterialReserve(getReportMonth());
  const reserveValue=document.getElementById("finMaterialReserveValue"),reserveNote=document.getElementById("finMaterialReserveNote");
  if(reserveValue)reserveValue.textContent=money(reserve.total);
@@ -2934,7 +2934,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '82';
+const GESTOR_APP_VERSION = '83';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
