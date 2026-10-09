@@ -2797,10 +2797,12 @@ function editFinancePurchaseDate(id){
  const purchase=(db.purchases||[]).find(p=>String(p.id)===String(id));
  if(!purchase){alert("Não encontrei essa compra.");return;}
  const current=financeISODate(purchase.dateISO||purchase.date)||todayISO();
- const value=prompt("Informe a nova data da compra (AAAA-MM-DD). O valor e o estoque não serão alterados.",current);
+ const value=prompt("Informe a nova data no formato brasileiro DD/MM/AAAA. O valor e o estoque não serão alterados.",formatDateISO(current));
  if(value===null)return;
- const date=financeISODate(value);
- if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date!==String(value).trim()){alert("Data inválida. Use AAAA-MM-DD, por exemplo 2026-08-15.");return;}
+ const raw=String(value).trim();
+ const accepted=/^\d{2}\/\d{2}\/\d{4}$/.test(raw)||/^\d{4}-\d{2}-\d{2}$/.test(raw);
+ const date=financeISODate(raw);
+ if(!accepted||!date){alert("Data inválida. Use DD/MM/AAAA, por exemplo 15/08/2026.");return;}
  const parsed=new Date(date+"T12:00:00");
  if(Number.isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==date){alert("Essa data não é válida.");return;}
  purchase.dateISO=date;purchase.date=formatDateISO(date);save();
@@ -2962,7 +2964,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '84';
+const GESTOR_APP_VERSION = '85';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
