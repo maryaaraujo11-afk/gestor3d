@@ -2928,7 +2928,7 @@ function marketingEscape(value){
 }
 function marketingCurrentMonth(){
  const input=document.getElementById("marketingMonth");
- return /^\\d{4}-\\d{2}$/.test(String(input?.value||""))?input.value:currentReportMonth();
+ return /^[0-9]{4}-[0-9]{2}$/.test(String(input?.value||""))?input.value:currentReportMonth();
 }
 function renderMarketing(){
  db.marketingAds=Array.isArray(db.marketingAds)?db.marketingAds:[];
@@ -2994,7 +2994,7 @@ function saveMarketingAd(){
  const dailyBudget=Number(document.getElementById("marketingDailyBudget").value)||0;
  const orders=Number(document.getElementById("marketingOrders").value)||0;
  if(!name){alert("Informe o nome do anúncio ou campanha.");return;}
- if(!/^\\d{4}-\\d{2}$/.test(periodMonth)){alert("Selecione um mês de referência válido.");return;}
+ if(!/^[0-9]{4}-[0-9]{2}$/.test(periodMonth)){alert("Selecione um mês de referência válido.");return;}
  if([spend,salesValue,dailyBudget,orders].some(x=>x<0||!Number.isFinite(x))){alert("Use valores iguais ou maiores que zero.");return;}
  if(!Number.isInteger(orders)){alert("A quantidade de pedidos deve ser um número inteiro.");return;}
  const record={
@@ -3007,6 +3007,7 @@ function saveMarketingAd(){
   updatedAt:new Date().toISOString(),createdAt:old?.createdAt||new Date().toISOString()
  };
  if(old)Object.assign(old,record);else db.marketingAds.unshift(record);
+ const monthFilter=document.getElementById("marketingMonth");if(monthFilter)monthFilter.value=periodMonth;
  closeMarketingAdForm();save();renderMarketing();
 }
 function deleteMarketingAd(id){
@@ -3138,7 +3139,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '86';
+const GESTOR_APP_VERSION = '87';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
