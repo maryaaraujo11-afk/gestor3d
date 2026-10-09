@@ -464,6 +464,75 @@ const server=http.createServer(async(req,res)=>{
       }
       return json(res,200,{ok:true,store,orders:list,details});
     }
+    const adsRoute=u.pathname.match(/^\/api\/shopee\/ads\/([12])$/);
+    if(adsRoute && req.method==="GET"){
+      const store=Number(adsRoute[1]);
+      if(!requireCreds(res) || !requireSupabase(res))return;
+      const user=await getAuthUser(req);
+      if(!user)return json(res,401,{ok:false,error:"Sessão do Gestor 3D não autenticada."});
+      const month=String(u.searchParams.get("month")||"");
+      if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)){
+        return json(res,400,{ok:false,error:"Informe um mês válido no formato AAAA-MM."});
+      }
+      const [year,monthNum]=month.split("-").map(Number);
+      const todayParts=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+      const todayIso=String(todayParts.find(x=>x.type==="year")?.value)+"-"+String(todayParts.find(x=>x.type==="month")?.value)+"-"+String(todayParts.find(x=>x.type==="day")?.value);
+      const todayMonth=todayIso.slice(0,7);
+      if(month>todayMonth)return json(res,400,{ok:false,error:"Não é possível importar um mês futuro."});
+      const startIso=String(year)+"-"+String(monthNum).padStart(2,"0")+"-01";
+      const endIso=month===todayMonth?todayIso:String(year)+"-"+String(monthNum).padStart(2,"0")+"-"+String(new Date(year,monthNum,0).getDate()).padStart(2,"0");
+      const toShopeeDate=iso=>{const [y,m,d]=iso.split("-");return d+"-"+m+"-"+y;};
+      const startDate=toShopeeDate(startIso),endDate=toShopeeDate(endIso);
+      const imported=await withRefresh(user.id,store,async shopData=>{
+        const ids=[];
+        for(let offset=0;offset<1000;offset+=100){
+          const response=await shopee("/api/v2/ads/get_product_level_campaign_id_list","GET",shopData,{limit:100,offset,ad_type:"all"});
+          const payload=response?.response||response||{};
+          const page=Array.isArray(payload.campaign_list)?payload.campaign_list:[];
+          ids.push(...page);
+          if(!payload.has_next_page||page.length===0)break;
+        }
+        const campaignIds=[...new Set(ids.map(c=>String(c?.campaign_id||"")).filter(x=>/^\d+$/.test(x)))];
+        if(!campaignIds.length)return [];
+        const allCampaigns=[];
+        for(let offset=0;offset<campaignIds.length;offset+=100){
+          const batch=campaignIds.slice(offset,offset+100);
+          const response=await shopee("/api/v2/ads/get_product_campaign_daily_performance","GET",shopData,{
+            campaign_id_list:batch.join(","),start_date:startDate,end_date:endDate
+          });
+          const payload=response?.response||response||{};
+          const rows=Array.isArray(payload.campaign_list)?payload.campaign_list:[];
+          allCampaigns.push(...rows);
+        }
+        const deduped=new Map();
+        for(const campaign of allCampaigns){
+          const id=String(campaign?.campaign_id||"");
+          if(!id)continue;
+          const metrics=Array.isArray(campaign.metrics_list)?campaign.metrics_list:[];
+          const sum=key=>metrics.reduce((total,m)=>total+(Number(m?.[key])||0),0);
+          const previous=deduped.get(id)||{
+            campaignId:id,
+            name:String(campaign.ad_name||("Campanha Shopee "+id)),
+            adType:String(campaign.ad_type||""),
+            placement:String(campaign.campaign_placement||""),
+            spend:0,salesValue:0,directSalesValue:0,orders:0,directOrders:0,impressions:0,clicks:0
+          };
+          previous.spend+=sum("expense");
+          previous.salesValue+=sum("broad_gmv");
+          previous.directSalesValue+=sum("direct_gmv");
+          previous.orders+=sum("broad_order");
+          previous.directOrders+=sum("direct_order");
+          previous.impressions+=sum("impression");
+          previous.clicks+=sum("clicks")||sum("click");
+          if(!previous.adType)previous.adType=String(campaign.ad_type||"");
+          if(!previous.placement)previous.placement=String(campaign.campaign_placement||"");
+          deduped.set(id,previous);
+        }
+        return [...deduped.values()];
+      });
+      return json(res,200,{ok:true,store,month,range:{start_date:startDate,end_date:endDate},ads:imported});
+    }
+
     const products=u.pathname.match(/^\/api\/shopee\/products\/([12])$/);
     if(products && req.method==="GET"){
       const store=products[1];
