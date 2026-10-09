@@ -2774,6 +2774,25 @@ function addFinanceExpense(){
  ["finExpenseName","finExpenseValue","finExpenseNote"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
  save();
 }
+function financeEscape(value){
+ return String(value??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function deleteFinancePurchase(id){
+ const purchase=(db.purchases||[]).find(p=>String(p.id)===String(id));
+ if(!purchase){alert("Não encontrei essa compra.");return;}
+ const name=purchase.material||"Material";
+ const value=money(Number(purchase.value)||0);
+ if(!confirm("Excluir o lançamento de compra de "+name+" ("+value+") do Financeiro?\n\nIsso remove o registro da compra, mas não altera o estoque nem o cadastro do material."))return;
+ db.purchases=(db.purchases||[]).filter(p=>String(p.id)!==String(id));
+ save();
+}
+function deleteFinanceExpense(id){
+ const expense=(db.expenses||[]).find(e=>String(e.id)===String(id));
+ if(!expense){alert("Não encontrei essa despesa.");return;}
+ if(!confirm("Excluir a despesa “"+(expense.name||"Despesa")+"” ("+money(Number(expense.value)||0)+")?"))return;
+ db.expenses=(db.expenses||[]).filter(e=>String(e.id)!==String(id));
+ save();
+}
 function editFinancePurchaseDate(id){
  const purchase=(db.purchases||[]).find(p=>String(p.id)===String(id));
  if(!purchase){alert("Não encontrei essa compra.");return;}
@@ -2817,7 +2836,7 @@ function financeRows(){
   rows.push({date,name:"Compra de material — "+(p.material||"Material"),category:p.supplier||"Materiais",type:"Saída",value:Number(p.value)||0,id:"purchase",purchaseId:p.id});
  });
  (db.expenses||[]).filter(e=>String(e.dateISO||"").slice(0,7)===month).forEach(e=>{
-  rows.push({date:e.dateISO,name:e.name||"Despesa",category:e.category||"Outros",type:"Saída",value:Number(e.value)||0,id:"expense"});
+  rows.push({date:financeISODate(e.dateISO||e.date),name:e.name||"Despesa",category:e.category||"Outros",type:"Saída",value:Number(e.value)||0,id:"expense",expenseId:e.id});
  });
  return rows.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }
@@ -2835,7 +2854,16 @@ function renderFinancePanel(){
  put("finCashIn",inflow);put("finMaterialOut",materialOut);put("finExpenseOut",expenseOut);put("finCashBalance",balance);put("finTotalOut",out);put("finOperatingResult",operating);
  const balanceEl=document.getElementById("finCashBalance");if(balanceEl)balanceEl.style.color=balance<0?"#b54b4b":"#2f7d57";
  const table=document.getElementById("financeTransactions");
- if(table)table.innerHTML=rows.map(r=>'<tr><td>'+(r.date?formatDateISO(r.date):"—")+'</td><td><b>'+String(r.name).replace(/</g,"&lt;")+'</b></td><td>'+String(r.category).replace(/</g,"&lt;")+'</td><td><span class="finance-type '+(r.type==="Entrada"?"in":"out")+'">'+r.type+'</span></td><td style="font-weight:800;color:'+(r.type==="Entrada"?"#23774c":"#a84e2d")+'">'+(r.type==="Entrada"?"+ ":"− ")+money(r.value)+(r.id==="purchase"?' <button class="btn xs outline" style="margin-left:6px" onclick="editFinancePurchaseDate(\''+String(r.purchaseId).replace(/\'/g,"") +'\')">Editar data</button>':"")+'</td></tr>').join("")||'<tr><td colspan="5">Nenhuma movimentação registrada neste período.</td></tr>';
+ if(table)table.innerHTML=rows.map(r=>{
+  const idAttr=financeEscape(r.id==="purchase"?r.purchaseId:r.expenseId);
+  let actions="";
+  if(r.id==="purchase"){
+   actions='<button class="btn xs outline" style="margin-left:6px" onclick="editFinancePurchaseDate(this.dataset.id)" data-id="'+idAttr+'">Editar data</button><button class="btn xs danger" style="margin-left:4px" onclick="deleteFinancePurchase(this.dataset.id)" data-id="'+idAttr+'">Excluir</button>';
+  }else if(r.id==="expense"){
+   actions='<button class="btn xs danger" style="margin-left:6px" onclick="deleteFinanceExpense(this.dataset.id)" data-id="'+idAttr+'">Excluir</button>';
+  }
+  return '<tr><td>'+(r.date?formatDateISO(r.date):"—")+'</td><td><b>'+financeEscape(r.name)+'</b></td><td>'+financeEscape(r.category)+'</td><td><span class="finance-type '+(r.type==="Entrada"?"in":"out")+'">'+r.type+'</span></td><td style="font-weight:800;color:'+(r.type==="Entrada"?"#23774c":"#a84e2d")+'">'+(r.type==="Entrada"?"+ ":"− ")+money(r.value)+actions+'</td></tr>';
+ }).join("")||'<tr><td colspan="5">Nenhuma movimentação registrada neste período.</td></tr>';
  const reserve=financeMaterialReserve(getReportMonth());
  const reserveValue=document.getElementById("finMaterialReserveValue"),reserveNote=document.getElementById("finMaterialReserveNote");
  if(reserveValue)reserveValue.textContent=money(reserve.total);
@@ -2934,7 +2962,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '83';
+const GESTOR_APP_VERSION = '84';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
