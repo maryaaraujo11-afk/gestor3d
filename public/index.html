@@ -1084,12 +1084,13 @@ function materialCost(p){
 }
 function componentCost(p){return (p.components||[]).reduce((sum,c)=>sum+(+c.qty||0)*(+c.unitCost||0),0)}
 function machineUnitCost(p){
- const h=+p.printHours||0;
- const watts=+p.machineWatts||0;
- const kwh=+p.machineKwh||0;
- const printerValue=+p.machineValue||0;
- const life=Math.max(1,+p.machineLife||1);
- const wear=+p.machineWear||0;
+ const h=Number(p?.printHours)||0;
+ const has=(key)=>p?.[key]!==undefined&&p?.[key]!==null&&p?.[key]!=="";
+ const watts=has("machineWatts")?(Number(p.machineWatts)||0):200;
+ const kwh=has("machineKwh")?(Number(p.machineKwh)||0):0.90;
+ const printerValue=has("machineValue")?(Number(p.machineValue)||0):3000;
+ const life=Math.max(1,has("machineLife")?(Number(p.machineLife)||1):5000);
+ const wear=has("machineWear")?(Number(p.machineWear)||0):0.20;
  const energy=h*(watts/1000)*kwh;
  const depreciation=h*(printerValue/life);
  const desgaste=h*wear;
@@ -3302,7 +3303,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '90';
+const GESTOR_APP_VERSION = '91';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
