@@ -3004,17 +3004,27 @@ function renderFinancePanel(){
  const put=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=money(val);};
  put("finCashIn",inflow);put("finMaterialOut",materialOut);put("finExpenseOut",expenseOut);put("finCashBalance",balance);put("finTotalOut",out);put("finOperatingResult",operating);
  const balanceEl=document.getElementById("finCashBalance");if(balanceEl)balanceEl.style.color=balance<0?"#b54b4b":"#2f7d57";
+ const search=String(document.getElementById("financeSearch")?.value||"").trim().toLocaleLowerCase("pt-BR");
+ const typeFilter=String(document.getElementById("financeTypeFilter")?.value||"");
+ const filteredRows=rows.filter(r=>{
+  if(typeFilter&&r.type!==typeFilter)return false;
+  if(!search)return true;
+  return [r.name,r.category,r.type,r.date].some(v=>String(v??"").toLocaleLowerCase("pt-BR").includes(search));
+ });
+ const count=document.getElementById("financeMovementCount");
+ if(count)count.textContent=filteredRows.length+" "+(filteredRows.length===1?"registro":"registros")+(filteredRows.length!==rows.length?" de "+rows.length:"");
  const table=document.getElementById("financeTransactions");
- if(table)table.innerHTML=rows.map(r=>{
+ if(table)table.innerHTML=filteredRows.map(r=>{
   const idAttr=financeEscape(r.id==="purchase"?r.purchaseId:r.expenseId);
-  let actions="";
+  let actions='<span class="sub">—</span>';
   if(r.id==="purchase"){
-   actions='<button class="btn xs outline" style="margin-left:6px" onclick="editFinancePurchaseDate(this.dataset.id)" data-id="'+idAttr+'">Editar data</button><button class="btn xs danger" style="margin-left:4px" onclick="deleteFinancePurchase(this.dataset.id)" data-id="'+idAttr+'">Excluir</button>';
+   actions='<div class="row-actions"><button class="btn xs outline" onclick="editFinancePurchaseDate(this.dataset.id)" data-id="'+idAttr+'">Editar data</button><button class="btn xs danger" onclick="deleteFinancePurchase(this.dataset.id)" data-id="'+idAttr+'">Excluir</button></div>';
   }else if(r.id==="expense"){
-   actions='<button class="btn xs danger" style="margin-left:6px" onclick="deleteFinanceExpense(this.dataset.id)" data-id="'+idAttr+'">Excluir</button>';
+   actions='<div class="row-actions"><button class="btn xs danger" onclick="deleteFinanceExpense(this.dataset.id)" data-id="'+idAttr+'">Excluir</button></div>';
   }
-  return '<tr><td>'+(r.date?formatDateISO(r.date):"—")+'</td><td><b>'+financeEscape(r.name)+'</b></td><td>'+financeEscape(r.category)+'</td><td><span class="finance-type '+(r.type==="Entrada"?"in":"out")+'">'+r.type+'</span></td><td style="font-weight:800;color:'+(r.type==="Entrada"?"#23774c":"#a84e2d")+'">'+(r.type==="Entrada"?"+ ":"− ")+money(r.value)+actions+'</td></tr>';
- }).join("")||'<tr><td colspan="5">Nenhuma movimentação registrada neste período.</td></tr>';
+  const sign=r.type==="Entrada"?"+ ":"− ";
+  return '<tr><td style="white-space:nowrap">'+(r.date?formatDateISO(r.date):"—")+'</td><td><b>'+financeEscape(r.name)+'</b></td><td>'+financeEscape(r.category)+'</td><td><span class="finance-type '+(r.type==="Entrada"?"in":"out")+'">'+r.type+'</span></td><td class="finance-number" style="font-weight:850;color:'+(r.type==="Entrada"?"#23774c":"#a84e2d")+';white-space:nowrap">'+sign+money(r.value)+'</td><td>'+actions+'</td></tr>';
+ }).join("")||(search||typeFilter?'<tr><td colspan="6" style="padding:26px;text-align:center;color:#948880">Nenhuma movimentação corresponde aos filtros.</td></tr>':'<tr><td colspan="6" style="padding:26px;text-align:center;color:#948880">Nenhuma movimentação registrada neste período.</td></tr>');
  const reserve=financeMaterialReserve(getReportMonth());
  const reserveValue=document.getElementById("finMaterialReserveValue"),reserveNote=document.getElementById("finMaterialReserveNote");
  if(reserveValue)reserveValue.textContent=money(reserve.total);
