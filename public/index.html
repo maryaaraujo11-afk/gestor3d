@@ -91,6 +91,71 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 
 .finance-cards{grid-template-columns:repeat(4,minmax(0,1fr))}.finance-cards .card{min-height:116px}.finance-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,.85fr);gap:16px;align-items:start}.finance-main-panel,.finance-expense-panel{min-width:0}.finance-section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.finance-section-head h2{margin-bottom:4px}.finance-mini-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.finance-mini-summary>div{padding:13px;border-radius:10px;background:#faf6f3;border:1px solid #eee4df}.finance-mini-summary span{display:block;font-size:11px;color:#91857d}.finance-mini-summary b{display:block;font-size:19px;margin-top:5px}.finance-category-block{border-top:1px solid #eee7e3;padding:14px 0;margin-bottom:8px}.finance-category-block h3{font-size:13px;margin:0 0 12px}.finance-category-row{display:grid;grid-template-columns:minmax(90px,140px) minmax(50px,1fr) 90px;gap:9px;align-items:center;margin:9px 0;font-size:11px}.finance-category-name{overflow-wrap:anywhere}.finance-category-track{height:9px;background:#f0ece9;border-radius:99px;overflow:hidden}.finance-category-track i{display:block;height:100%;background:#c99476;border-radius:99px}.finance-category-value{text-align:right;font-weight:800}.finance-table td{vertical-align:middle}.finance-type{display:inline-block;border-radius:99px;padding:4px 8px;font-size:10px;font-weight:800}.finance-type.in{background:#e4f5eb;color:#23774c}.finance-type.out{background:#fff0e8;color:#a84e2d}.finance-expense-form{grid-template-columns:1fr 1fr}.finance-expense-form input,.finance-expense-form select{width:100%;min-width:0;padding:10px;border:1px solid #ddd1ca;border-radius:8px;background:#fff}@media(max-width:1100px){.finance-layout{grid-template-columns:1fr}.finance-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.finance-cards{grid-template-columns:1fr}.finance-expense-form{grid-template-columns:1fr}.finance-section-head{align-items:flex-start;flex-direction:column}.finance-mini-summary{grid-template-columns:1fr 1fr}}
 
+
+/* Financeiro v2 — hierarquia visual, indicadores e responsividade */
+.finance-v2{--fin-ink:#2d2926;--fin-muted:#81766f;--fin-border:#ece4df;--fin-paper:#fff;--fin-soft:#faf7f4;--fin-accent:#8b5e4a;color:var(--fin-ink)}
+.finance-v2 .finance-page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:22px;flex-wrap:wrap;margin:4px 0 23px}
+.finance-v2 .finance-heading h1{font-size:30px;letter-spacing:-.8px;margin:5px 0 6px;color:var(--fin-ink)}
+.finance-v2 .finance-heading .sub{font-size:13px;max-width:650px;line-height:1.55}
+.finance-eyebrow{font-size:10px;font-weight:900;letter-spacing:1.35px;color:#97715f;display:flex;align-items:center;gap:7px}
+.finance-eyebrow>span{width:7px;height:7px;border-radius:50%;background:#b9876e;display:inline-block}
+.finance-head-actions{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.finance-period-control{display:flex;flex-direction:column;gap:6px;min-width:176px}
+.finance-period-control label{font-size:11px;font-weight:800;color:#766a62}
+.finance-period-control input{height:42px;border:1px solid #e3d8d0;border-radius:10px;padding:0 12px;background:#fff;color:#342e2a;font-weight:700}
+.finance-head-actions>.btn{height:42px;display:inline-flex;align-items:center;gap:8px;border-radius:10px}
+.finance-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:15px}
+.finance-kpi-card{position:relative;min-width:0;padding:19px 19px 17px;background:#fff;border:1px solid var(--fin-border);border-radius:15px;box-shadow:0 3px 12px rgba(57,42,32,.025)}
+.finance-kpi-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:13px}
+.finance-kpi-label{font-size:12px;font-weight:750;color:#766a62;line-height:1.35}
+.finance-kpi-icon{width:33px;height:33px;border-radius:10px;display:grid;place-items:center;background:#f6eee8;color:#8b5e4a;font-size:19px;font-weight:800;flex:0 0 auto}
+.finance-icon-green{background:#eaf5ee;color:#2f7d57}.finance-icon-red{background:#fbefeb;color:#b45b45}.finance-icon-neutral{background:#f1efec;color:#73675f}
+.finance-kpi-value{font-size:clamp(20px,2vw,27px);font-weight:850;letter-spacing:-.6px;line-height:1.25;overflow-wrap:anywhere;color:#312b27;font-variant-numeric:tabular-nums}
+.finance-kpi-foot{font-size:10px;line-height:1.45;color:#9a8f88;margin-top:9px}
+.finance-kpi-highlight{background:linear-gradient(145deg,#fffaf6,#fff);border-color:#e6d5c9}
+.finance-kpi-highlight .finance-kpi-icon{background:#8b5e4a;color:#fff}
+.finance-outflow-strip{display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,1fr) minmax(220px,1fr);align-items:center;gap:14px;background:#fff;border:1px solid var(--fin-border);border-radius:15px;padding:17px 19px;margin-bottom:15px}
+.finance-outflow-heading h2{font-size:15px;margin:0 0 4px}.finance-outflow-heading .sub{font-size:11px;line-height:1.4}
+.finance-outflow-item{display:flex;align-items:center;gap:11px;border-left:1px solid #eee5df;padding-left:16px;min-width:0}
+.finance-outflow-icon{width:35px;height:35px;display:grid;place-items:center;flex:0 0 auto;border-radius:10px;background:#f8f1ec;color:#8b5e4a;font-weight:900;font-size:18px}
+.finance-outflow-copy{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}.finance-outflow-copy span{font-size:12px;font-weight:800}.finance-outflow-copy small{font-size:10px;color:#9a8f88;line-height:1.35}
+.finance-outflow-item strong{font-size:15px;white-space:nowrap;color:#39302a;font-variant-numeric:tabular-nums}
+.finance-insights-grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:15px;margin-bottom:15px;align-items:stretch}
+.finance-reserve-card{display:flex;align-items:flex-start;gap:15px;padding:22px;background:linear-gradient(125deg,#faf2eb 0%,#fff 78%);border:1px solid #ead9cc;border-radius:15px;min-width:0}
+.finance-reserve-mark{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:#8b5e4a;color:#fff;font-size:23px;font-weight:800;flex:0 0 auto}
+.finance-reserve-content{min-width:0;flex:1}.finance-reserve-content h2{font-size:17px;margin:7px 0 6px;letter-spacing:-.2px}.finance-reserve-content>p{font-size:11px;line-height:1.55;margin:0;max-width:580px}
+.finance-reserve-value{font-size:30px;font-weight:900;letter-spacing:-.7px;line-height:1.2;margin:13px 0 6px;color:#704a38;font-variant-numeric:tabular-nums}
+.finance-reserve-note{font-size:11px;color:#87756a;line-height:1.5}
+.finance-v2 .finance-category-panel{margin:0;min-width:0;padding:20px 21px;border-radius:15px;border-color:var(--fin-border);box-shadow:0 3px 12px rgba(57,42,32,.025)}
+.finance-panel-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}
+.finance-panel-heading h2{font-size:17px;letter-spacing:-.25px;margin:0 0 5px}.finance-panel-heading .sub{font-size:11px;line-height:1.45;max-width:560px}
+.finance-heading-mark{display:grid;place-items:center;width:35px;height:35px;border-radius:10px;background:#f6eee8;color:#8b5e4a;font-weight:900;font-size:18px;flex:0 0 auto}
+.finance-v2 .finance-category-block{border:0;padding:0;margin:0}.finance-v2 .finance-category-chart{min-height:42px}.finance-v2 .finance-category-row{grid-template-columns:minmax(88px,130px) minmax(30px,1fr) 90px;gap:10px;margin:11px 0;font-size:11px}.finance-v2 .finance-category-track{height:7px;background:#f1ebe6}.finance-v2 .finance-category-track i{background:linear-gradient(90deg,#d6b19c,#8b5e4a)}.finance-v2 .finance-category-value{font-size:11px}
+.finance-workspace{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.78fr);gap:15px;align-items:start}
+.finance-v2 .finance-transactions-panel,.finance-v2 .finance-expense-panel{margin:0;min-width:0;padding:21px;border:1px solid var(--fin-border);border-radius:15px;box-shadow:0 3px 12px rgba(57,42,32,.025)}
+.finance-transactions-heading{align-items:center;margin-bottom:17px}.finance-transactions-heading h2{font-size:18px}.finance-count-pill{white-space:nowrap;border:1px solid #e9ddd5;border-radius:99px;padding:6px 9px;background:#faf6f2;font-size:10px;font-weight:800;color:#846653}
+.finance-table-tools{display:flex;gap:9px;margin-bottom:13px;align-items:center}
+.finance-search-wrap{height:39px;display:flex;align-items:center;gap:8px;flex:1;min-width:130px;padding:0 11px;border:1px solid #e8dfd9;border-radius:9px;background:#fff;color:#988980}
+.finance-search-wrap span{font-size:20px;line-height:1}.finance-search-wrap input{width:100%;min-width:0;border:0!important;outline:0!important;padding:0!important;background:transparent!important;font-size:11px!important;box-shadow:none!important}
+.finance-table-tools select{height:39px;max-width:145px;border:1px solid #e8dfd9;border-radius:9px;padding:0 9px;background:#fff;font-size:11px;font-weight:700;color:#61554e}
+.finance-table-wrap{overflow:auto;border:1px solid #eee7e2;border-radius:10px}
+.finance-v2 .finance-table{width:100%;border-collapse:separate;border-spacing:0;min-width:670px;font-size:11px}
+.finance-v2 .finance-table thead th{padding:12px 11px;background:#faf7f4;color:#81746c;text-align:left;font-size:10px;letter-spacing:.2px;font-weight:850;border-bottom:1px solid #eee7e2;white-space:nowrap}
+.finance-v2 .finance-table thead th:first-child{border-radius:9px 0 0 0}.finance-v2 .finance-table thead th:last-child{border-radius:0 9px 0 0}
+.finance-v2 .finance-table tbody td{padding:12px 11px;border-bottom:1px solid #f1ebe7;color:#594e47;vertical-align:middle}
+.finance-v2 .finance-table tbody tr:last-child td{border-bottom:0}.finance-v2 .finance-table tbody tr:hover td{background:#fdfbf9}
+.finance-v2 .finance-table tbody td b{color:#332c28;font-size:11px}.finance-v2 .finance-table .finance-number{text-align:right}
+.finance-v2 .finance-type{font-size:9px;padding:5px 8px;letter-spacing:.15px}.finance-v2 .finance-table .btn.xs{font-size:10px;padding:6px 8px;white-space:nowrap;border-radius:7px}
+.finance-table-foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:11px;font-size:10px;line-height:1.45;color:#9a8f88}
+.finance-form-divider{height:1px;background:#efe7e2;margin:0 0 17px}
+.finance-v2 .finance-expense-form{grid-template-columns:1fr;gap:13px}.finance-v2 .finance-expense-form input,.finance-v2 .finance-expense-form select{width:100%;min-width:0;height:40px;padding:0 11px;border:1px solid #e2d8d1;border-radius:9px;background:#fff;font-size:12px;color:#352e2a;box-sizing:border-box}
+.finance-v2 .finance-expense-form input:focus,.finance-v2 .finance-expense-form select:focus,.finance-period-control input:focus,.finance-table-tools select:focus{outline:0;border-color:#b9947e;box-shadow:0 0 0 3px rgba(139,94,74,.08)}
+.finance-v2 .finance-expense-form .field label{display:block;font-size:11px;font-weight:800;color:#71645c;margin-bottom:6px}
+.finance-save-expense{width:100%;min-height:42px;margin-top:17px;border-radius:10px;font-weight:800}
+.finance-form-tip{display:flex;align-items:flex-start;gap:8px;margin-top:15px;padding:12px;border-radius:9px;background:#faf6f2;color:#87766b;font-size:10px;line-height:1.5}.finance-form-tip span:first-child{color:#9c7157;font-size:13px;font-weight:900}
+@media(max-width:1200px){.finance-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.finance-outflow-strip{grid-template-columns:1fr 1fr}.finance-outflow-heading{grid-column:1/-1}.finance-outflow-item:nth-child(2){border-left:0;padding-left:0}}
+@media(max-width:1000px){.finance-workspace{grid-template-columns:1fr}.finance-insights-grid{grid-template-columns:1fr}}
+@media(max-width:650px){.finance-v2 .finance-page-head{align-items:stretch}.finance-head-actions{display:grid;grid-template-columns:1fr}.finance-period-control{min-width:0}.finance-head-actions>.btn{justify-content:center}.finance-kpi-grid{grid-template-columns:1fr 1fr;gap:9px}.finance-kpi-card{padding:14px 12px}.finance-kpi-label{font-size:10px}.finance-kpi-value{font-size:19px}.finance-kpi-foot{font-size:9px}.finance-kpi-icon{width:29px;height:29px}.finance-outflow-strip{grid-template-columns:1fr;padding:15px;gap:14px}.finance-outflow-heading{grid-column:auto}.finance-outflow-item,.finance-outflow-item:nth-child(2){border-left:0;border-top:1px solid #eee5df;padding:12px 0 0}.finance-reserve-card{padding:16px;gap:11px}.finance-reserve-mark{width:35px;height:35px}.finance-reserve-value{font-size:26px}.finance-v2 .finance-category-panel,.finance-v2 .finance-transactions-panel,.finance-v2 .finance-expense-panel{padding:15px}.finance-table-tools{align-items:stretch;flex-direction:column}.finance-table-tools select{max-width:none}.finance-transactions-heading{align-items:flex-start}.finance-table-foot span:last-child{display:none}}
 </style>
 <!-- Gestor 3D V58 — trigger de publicação -->
 </head>
@@ -656,42 +721,89 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <div class="panel hidden" id="customerHistoryPanel"><div class="top" style="margin-bottom:12px"><div><h2 id="customerHistoryTitle">Histórico</h2><div class="sub">Pedidos registrados para este cliente.</div></div><button class="btn secondary" onclick="closeCustomerHistory()">Fechar</button></div><div style="overflow:auto"><table><thead><tr><th>Data</th><th>Produto</th><th>Cor</th><th>Loja</th><th>Qtd.</th><th>Valor</th><th>Status</th></tr></thead><tbody id="customerHistoryTable"></tbody></table></div></div>
 </section>
 
-<section id="finance" class="hidden">
-<div class="top"><div><h1>Financeiro</h1><div class="sub">Fluxo de caixa, despesas e resultado operacional.</div></div><div class="report-period"><label for="financeMonth">Período:</label><input id="financeMonth" type="month" onchange="setReportMonth(this.value)"></div></div>
-<div class="cards finance-cards">
- <div class="card"><div class="label">Entradas de vendas</div><div class="value good" id="finCashIn">R$ 0,00</div><div class="card-foot">Líquido registrado/estimado</div></div>
- <div class="card"><div class="label">Compras de materiais</div><div class="value" id="finMaterialOut">R$ 0,00</div><div class="card-foot">Compras cadastradas no mês</div></div>
- <div class="card"><div class="label">Outras despesas</div><div class="value" id="finExpenseOut">R$ 0,00</div><div class="card-foot">Lançamentos manuais</div></div>
- <div class="card"><div class="label">Saldo de caixa registrado</div><div class="value" id="finCashBalance">R$ 0,00</div><div class="card-foot">Entradas menos saídas lançadas</div></div>
-</div>
- <div class="panel" style="margin-bottom:16px;border:1px solid #e7d6c9;background:linear-gradient(135deg,#fffaf5,#fff)">
-  <h2 style="margin:0 0 5px">Reserva sugerida para materiais</h2>
-  <div class="sub">Estimativa pelas quantidades vendidas no período e pelos custos de materiais cadastrados nas fichas dos produtos.</div>
-  <div id="finMaterialReserveValue" style="font-size:27px;font-weight:850;color:#7b563f;margin:12px 0 4px">R$ 0,00</div>
-  <div id="finMaterialReserveNote" class="sub">Aguardando cálculo das vendas do período.</div>
- </div>
-<div class="finance-layout">
- <div class="panel finance-main-panel">
-  <div class="finance-section-head"><div><h2>Movimentações do período</h2><div class="sub">Vendas, compras de materiais e despesas.</div></div><button class="btn secondary" onclick="exportFinanceCsv()">Exportar CSV</button></div>
-  <div class="finance-mini-summary"><div><span>Saídas registradas</span><b id="finTotalOut">R$ 0,00</b></div><div><span>Resultado operacional estimado</span><b id="finOperatingResult">R$ 0,00</b></div></div>
-  <div class="finance-category-block"><h3>Despesas por categoria</h3><div id="financeCategoryChart" class="finance-category-chart"></div></div>
-  <div style="overflow:auto"><table class="finance-table"><thead><tr><th>Data</th><th>Movimentação</th><th>Categoria</th><th>Tipo</th><th>Valor</th></tr></thead><tbody id="financeTransactions"></tbody></table></div>
-  <div class="sub" style="margin-top:10px">O saldo considera apenas entradas e saídas registradas aqui. O resultado operacional é uma estimativa e pode diferir do saldo de caixa.</div>
- </div>
- <div class="panel finance-expense-panel">
-  <h2>Registrar despesa</h2><div class="sub" style="margin-bottom:14px">Registre gastos que ainda não constam como compra de material.</div>
-  <div class="formgrid finance-expense-form">
-   <div class="field"><label>Descrição</label><input id="finExpenseName" placeholder="Ex.: embalagem, internet"></div>
-   <div class="field"><label>Categoria</label><select id="finExpenseCategory"><option>Embalagens</option><option>Frete e postagem</option><option>Energia elétrica</option><option>Manutenção</option><option>Equipamentos</option><option>Marketing</option><option>Taxas e tarifas</option><option>Impostos</option><option>Outros</option></select></div>
-   <div class="field"><label>Valor (R$)</label><input id="finExpenseValue" type="number" min="0.01" step="0.01" placeholder="0,00"></div>
-   <div class="field"><label>Data da saída</label><input id="finExpenseDate" type="date"></div>
-   <div class="field"><label>Forma de pagamento</label><select id="finExpenseMethod"><option>Pix</option><option>Cartão</option><option>Dinheiro</option><option>Boleto</option><option>Débito automático</option><option>Outro</option></select></div>
-   <div class="field"><label>Observação (opcional)</label><input id="finExpenseNote" placeholder="Detalhes adicionais"></div>
+<section id="finance" class="hidden finance-v2">
+ <div class="finance-page-head">
+  <div class="finance-heading">
+   <div class="finance-eyebrow"><span></span> CONTROLE FINANCEIRO</div>
+   <h1>Financeiro</h1>
+   <div class="sub">Acompanhe o fluxo de caixa, os custos operacionais e os compromissos do negócio.</div>
   </div>
-  <button class="btn" style="margin-top:14px" onclick="addFinanceExpense()">+ Registrar saída</button>
-  <div class="sub" style="margin-top:10px">Não registre aqui uma compra de material que já foi cadastrada no estoque, para evitar duplicidade.</div>
+  <div class="finance-head-actions">
+   <div class="finance-period-control"><label for="financeMonth">Período de análise</label><input id="financeMonth" type="month" onchange="setReportMonth(this.value)"></div>
+   <button class="btn secondary" onclick="exportFinanceCsv()"><span>↓</span> Exportar relatório</button>
+  </div>
  </div>
-</div>
+ <div class="finance-kpi-grid">
+  <div class="finance-kpi-card">
+   <div class="finance-kpi-top"><span class="finance-kpi-label">Entradas de vendas</span><span class="finance-kpi-icon finance-icon-green">↗</span></div>
+   <div class="finance-kpi-value good" id="finCashIn">R$ 0,00</div>
+   <div class="finance-kpi-foot">Valor líquido registrado ou estimado</div>
+  </div>
+  <div class="finance-kpi-card">
+   <div class="finance-kpi-top"><span class="finance-kpi-label">Saídas totais</span><span class="finance-kpi-icon finance-icon-red">↘</span></div>
+   <div class="finance-kpi-value" id="finTotalOut">R$ 0,00</div>
+   <div class="finance-kpi-foot">Compras de materiais + despesas</div>
+  </div>
+  <div class="finance-kpi-card finance-kpi-highlight">
+   <div class="finance-kpi-top"><span class="finance-kpi-label">Saldo de caixa do período</span><span class="finance-kpi-icon">∑</span></div>
+   <div class="finance-kpi-value" id="finCashBalance">R$ 0,00</div>
+   <div class="finance-kpi-foot">Entradas menos saídas registradas</div>
+  </div>
+  <div class="finance-kpi-card">
+   <div class="finance-kpi-top"><span class="finance-kpi-label">Resultado operacional</span><span class="finance-kpi-icon finance-icon-neutral">◷</span></div>
+   <div class="finance-kpi-value" id="finOperatingResult">R$ 0,00</div>
+   <div class="finance-kpi-foot">Estimativa após custos e despesas</div>
+  </div>
+ </div>
+ <div class="finance-outflow-strip">
+  <div class="finance-outflow-heading"><div><h2>Composição das saídas</h2><div class="sub">Entenda para onde foi o dinheiro no mês selecionado.</div></div></div>
+  <div class="finance-outflow-item"><span class="finance-outflow-icon">▦</span><div class="finance-outflow-copy"><span>Compras de materiais</span><small>Filamentos e demais insumos</small></div><strong id="finMaterialOut">R$ 0,00</strong></div>
+  <div class="finance-outflow-item"><span class="finance-outflow-icon">＋</span><div class="finance-outflow-copy"><span>Outras despesas</span><small>Gastos operacionais lançados manualmente</small></div><strong id="finExpenseOut">R$ 0,00</strong></div>
+ </div>
+ <div class="finance-insights-grid">
+  <div class="finance-reserve-card">
+   <div class="finance-reserve-mark">↗</div>
+   <div class="finance-reserve-content">
+    <div class="finance-eyebrow">PLANEJAMENTO DE COMPRAS</div>
+    <h2>Reserva sugerida para materiais</h2>
+    <p class="sub">Estimativa do custo dos materiais consumidos pelas vendas do período, com base nas fichas dos produtos.</p>
+    <div id="finMaterialReserveValue" class="finance-reserve-value">R$ 0,00</div>
+    <div id="finMaterialReserveNote" class="finance-reserve-note">Aguardando cálculo das vendas do período.</div>
+   </div>
+  </div>
+  <div class="panel finance-category-panel">
+   <div class="finance-panel-heading"><div><h2>Despesas por categoria</h2><div class="sub">Distribuição das saídas registradas.</div></div><span class="finance-heading-mark">▥</span></div>
+   <div id="financeCategoryChart" class="finance-category-chart"></div>
+  </div>
+ </div>
+ <div class="finance-workspace">
+  <div class="panel finance-transactions-panel">
+   <div class="finance-panel-heading finance-transactions-heading">
+    <div><h2>Movimentações financeiras</h2><div class="sub">Histórico de entradas, compras e despesas do período.</div></div>
+    <span id="financeMovementCount" class="finance-count-pill">0 registros</span>
+   </div>
+   <div class="finance-table-tools">
+    <div class="finance-search-wrap"><span>⌕</span><input id="financeSearch" type="search" placeholder="Buscar descrição, material ou categoria" oninput="renderFinancePanel()"></div>
+    <select id="financeTypeFilter" aria-label="Filtrar tipo de movimentação" onchange="renderFinancePanel()"><option value="">Todos os tipos</option><option value="Entrada">Entradas</option><option value="Saída">Saídas</option></select>
+   </div>
+   <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>Data</th><th>Movimentação</th><th>Categoria / origem</th><th>Tipo</th><th class="finance-number">Valor</th><th>Ações</th></tr></thead><tbody id="financeTransactions"></tbody></table></div>
+   <div class="finance-table-foot"><span>Os valores refletem os lançamentos registrados no sistema.</span><span>Use os filtros para localizar um movimento.</span></div>
+  </div>
+  <div class="panel finance-expense-panel">
+   <div class="finance-panel-heading"><div><h2>Registrar despesa</h2><div class="sub">Adicione um gasto que ainda não consta nas compras de materiais.</div></div><span class="finance-heading-mark">＋</span></div>
+   <div class="finance-form-divider"></div>
+   <div class="formgrid finance-expense-form">
+    <div class="field"><label for="finExpenseName">Descrição da despesa</label><input id="finExpenseName" placeholder="Ex.: internet, embalagem"></div>
+    <div class="field"><label for="finExpenseCategory">Categoria</label><select id="finExpenseCategory"><option>Embalagens</option><option>Frete e postagem</option><option>Energia elétrica</option><option>Manutenção</option><option>Equipamentos</option><option>Marketing</option><option>Taxas e tarifas</option><option>Impostos</option><option>Outros</option></select></div>
+    <div class="field"><label for="finExpenseValue">Valor (R$)</label><input id="finExpenseValue" type="number" min="0.01" step="0.01" placeholder="0,00"></div>
+    <div class="field"><label for="finExpenseDate">Data da saída</label><input id="finExpenseDate" type="date"></div>
+    <div class="field"><label for="finExpenseMethod">Forma de pagamento</label><select id="finExpenseMethod"><option>Pix</option><option>Cartão</option><option>Dinheiro</option><option>Boleto</option><option>Débito automático</option><option>Outro</option></select></div>
+    <div class="field finance-expense-note-field"><label for="finExpenseNote">Observação (opcional)</label><input id="finExpenseNote" placeholder="Detalhes adicionais"></div>
+   </div>
+   <button class="btn finance-save-expense" onclick="addFinanceExpense()">＋ Registrar despesa</button>
+   <div class="finance-form-tip"><span>ⓘ</span><span>Evite duplicidade: se a compra já foi registrada no estoque, ela já aparece no Financeiro.</span></div>
+  </div>
+ </div>
 </section>
 
 
@@ -3139,7 +3251,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '87';
+const GESTOR_APP_VERSION = '88';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
