@@ -507,7 +507,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
           <div class="formgrid">
             <div class="field"><label>Markup sobre o custo (%)</label><input id="calcMarkup" type="number" min="0" step=".1" value="50" oninput="runCalc()"></div>
             <div class="field"><label>Margem desejada (%)</label><input id="calcMargin" type="number" min="0" max="99" step=".1" value="33" oninput="runCalc()"></div>
-            <div class="field"><label>Taxa marketplace (%)</label><input id="calcFee" type="number" min="0" max="99" step=".1" value="20" oninput="runCalc()"><div class="sub" style="margin-top:5px">Shopee: taxa fixa de R$ 4,50 por venda</div></div>
+            <div class="field"><label>Comissão Shopee automática (%)</label><input id="calcFee" type="number" min="0" max="99" step=".1" value="20" readonly oninput="runCalc()"><div class="sub" style="margin-top:5px">Calculada pelo preço de cada item; a tarifa fixa também muda por faixa.</div></div>
           </div>
         </div>
       <div class="quote-box" style="margin-top:15px">
@@ -946,8 +946,55 @@ normalizeSavedSaleDueDates();
 let editingSaleId=null;
 
 const money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-const SHOPEE_FIXED_FEE=4.50;
-function shopeeFixedFee(percent){return Number(percent)>0?SHOPEE_FIXED_FEE:0;}
+const SHOPEE_FEE_TIERS=[
+ {min:0,max:8.99,rate:0.20,fixed:0,fixedRatio:0.50,label:"Abaixo de R$ 9,00"},
+ {min:9,max:79.99,rate:0.20,fixed:4.50,fixedRatio:0,label:"R$ 9,00 a R$ 79,99"},
+ {min:80,max:99.99,rate:0.14,fixed:16,fixedRatio:0,label:"R$ 80,00 a R$ 99,99"},
+ {min:100,max:199.99,rate:0.14,fixed:20,fixedRatio:0,label:"R$ 100,00 a R$ 199,99"},
+ {min:200,max:Infinity,rate:0.14,fixed:26,fixedRatio:0,label:"R$ 200,00 ou mais"}
+];
+function shopeeFeeForPrice(price,enabled=true){
+ const value=Math.max(0,Number(price)||0);
+ if(!enabled||value<=0)return {rate:0,percentFee:0,fixedFee:0,total:0,label:"Sem taxa Shopee"};
+ const tier=SHOPEE_FEE_TIERS.find(t=>value>=t.min&&value<=t.max)||SHOPEE_FEE_TIERS[SHOPEE_FEE_TIERS.length-1];
+ const percentFee=value*tier.rate;
+ const fixedFee=tier.fixedRatio?value*tier.fixedRatio:tier.fixed;
+ return {rate:tier.rate,percentFee,fixedFee,total:percentFee+fixedFee,label:tier.label};
+}
+function shopeePriceForTarget(cost,target,mode="margin",enabled=true){
+ const c=Math.max(0,Number(cost)||0),t=Math.min(0.99,Math.max(0,Number(target)||0));
+ if(!enabled){
+  const direct=mode==="markup"?c*(1+t):(1-t)>0?c/(1-t):0;
+  return Math.ceil((direct-1e-9)*100)/100;
+ }
+ for(const tier of SHOPEE_FEE_TIERS){
+  const goal=mode==="markup"?c*(1+t):c;
+  const denominator=1-tier.rate-(tier.fixedRatio||0)-(mode==="margin"?t:0);
+  if(denominator<=0)continue;
+  const raw=(goal+(tier.fixedRatio?0:tier.fixed))/denominator;
+  if(!Number.isFinite(raw)||raw<=0)continue;
+  const candidate=Math.ceil((raw-1e-9)*100)/100;
+  if(candidate>=tier.min&&candidate<=tier.max)return candidate;
+ }
+ const last=SHOPEE_FEE_TIERS[SHOPEE_FEE_TIERS.length-1];
+ const denominator=1-last.rate-(mode==="margin"?t:0);
+ return denominator>0?Math.ceil(((c+(last.fixed||0))/denominator-1e-9)*100)/100:0;
+}
+function shopeeEstimatedOrderFee(items,gross,packaging=0){
+ const rows=(items||[]).map(item=>{
+  const p=(db.products||[]).find(x=>String(x.id)===String(item.productId));
+  const enabled=Number(p?.fee)>0;
+  const unit=enabled?suggestedForSale(p,item):0;
+  return {item,p,enabled,unit,qty:Math.max(1,Number(item.qty)||1)};
+ }).filter(row=>row.p);
+ const productGross=Math.max(0,(Number(gross)||0)-(Number(packaging)||0));
+ const basisTotal=rows.reduce((sum,row)=>sum+(Number(row.unit)||0)*row.qty,0);
+ const scale=basisTotal>0?productGross/basisTotal:1;
+ return rows.reduce((sum,row)=>{
+  const unitPrice=Math.max(0,(Number(row.unit)||0)*scale);
+  return sum+shopeeFeeForPrice(unitPrice,row.enabled).total*row.qty;
+ },0);
+}
 // Compatibilidade: evita que uma referência antiga a "cost" interrompa o salvamento do pedido.
 if(typeof globalThis.cost === "undefined") globalThis.cost = 0;
 let lastSavedSnapshot=localStorage.getItem(KEY)||"";
@@ -1137,9 +1184,8 @@ function totalCost(p){
  return variantCosts.length?Math.min(...variantCosts):base;
 }
 function suggested(p){
- const cost=totalCost(p),f=(Number(p?.fee)||0)/100,m=(Number(p?.margin)||0)/100;
- const denominator=1-f-m;
- return denominator>0?(cost+shopeeFixedFee(p?.fee))/denominator:0;
+ const cost=totalCost(p),margin=(Number(p?.margin)||0)/100;
+ return shopeePriceForTarget(cost,margin,"margin",Number(p?.fee)>0);
 }
 function addMaterialRow(materialId="",qty=""){
  const wrap=document.getElementById("materialsList");
@@ -1305,9 +1351,8 @@ function variantLabel(v){ return v?.name ? ` — ${v.name}` : ""; }
 function suggestedForSale(p,saleLike=null){
  if(!p)return 0;
  const cost=saleProductionCost(p,1,saleLike);
- const f=(Number(p.fee)||0)/100,m=(Number(p.margin)||0)/100;
- const denominator=1-f-m;
- return denominator>0?(cost+shopeeFixedFee(p.fee))/denominator:0;
+ const margin=(Number(p.margin)||0)/100;
+ return shopeePriceForTarget(cost,margin,"margin",Number(p.fee)>0);
 }
 function populateSaleVariants(selectedId=""){
  const productEl=document.getElementById("sProduct"), variantEl=document.getElementById("sVariant"), field=document.getElementById("saleVariantField");
@@ -1675,10 +1720,8 @@ function saveSaleForm(){
   const suggestedGross=items.reduce((sum,item)=>{const p=db.products.find(x=>String(x.id)===String(item.productId)); const unit=channel==="Direta" ? ((saleProductionCost(p,1,{variantId:item.variantId||""})/Math.max(0.0001,1-(Number(p?.margin)||0)/100))) : Number(suggestedForSale(p,{variantId:item.variantId||""})); return sum+(Number(unit)||0)*item.qty;},0)+packaging;
   const grossRaw=String(grossEl.value||"").trim(),netRaw=String(netEl.value||"").trim(),gross=grossRaw!==""?Number(grossRaw):suggestedGross;
   if(!Number.isFinite(gross)||gross<0){alert("Informe um valor total da venda válido.");return;}
-  const orderQty=Math.max(1,items.reduce((sum,item)=>sum+(Number(item.qty)||0),0));
-  const feeRate=channel==="Direta"?0:items.reduce((sum,item)=>sum+(Number(db.products.find(p=>String(p.id)===String(item.productId))?.fee)||0)*(Number(item.qty)||0),0)/orderQty/100;
-  const fixedFee=channel==="Direta"?0:shopeeFixedFee(feeRate*100);
-  const defaultNet=Math.max(0,gross-(gross*feeRate+fixedFee));
+  const estimatedFees=channel==="Direta"?0:shopeeEstimatedOrderFee(items,gross,packaging);
+  const defaultNet=Math.max(0,gross-estimatedFees);
   const net=netRaw!==""?Number(netRaw):defaultNet;if(!Number.isFinite(net)||net<0){alert("Informe um valor líquido recebido válido.");return;}
   const fee=Math.max(0,gross-net),old=editingSaleId!=null?db.sales.find(x=>String(x.id)===String(editingSaleId)):null;
   if(old&&old.status!=="Cancelado"&&old.status!=="Pendente")adjustStockForSale(old,1,`Estorno para edição: ${old.product||"Venda"}`);
@@ -1692,12 +1735,18 @@ function saveSaleForm(){
 function addSale(){saveSaleForm();}
 function updateSalePreview(){
  const grossEl=document.getElementById("sGross"),netEl=document.getElementById("sNet");if(!grossEl||!netEl)return;
- const items=collectSaleItems();
- const channel=document.getElementById("sChannel")?.value||"Shopee"; const gross=items.reduce((sum,item)=>{const p=db.products.find(x=>String(x.id)===String(item.productId)); const unit=channel==="Direta" ? (saleProductionCost(p,1,{variantId:item.variantId||""})/Math.max(0.0001,1-(Number(p?.margin)||0)/100)) : Number(suggestedForSale(p,{variantId:item.variantId||""})); return sum+(Number(unit)||0)*item.qty;},0)+saleItemsPackaging(items);
- const feeRate=channel==="Direta"?0:(items.length?items.reduce((sum,item)=>{const p=db.products.find(x=>String(x.id)===String(item.productId));return sum+(Number(p?.fee)||0)*item.qty;},0)/Math.max(1,items.reduce((sum,item)=>sum+item.qty,0))/100:0);
- const fixedFee=channel==="Direta"?0:shopeeFixedFee(feeRate*100);
- const net=Math.max(0,gross-(gross*feeRate+fixedFee));
- if(!grossEl.dataset.manual||grossEl.value==="")grossEl.value=gross?gross.toFixed(2):"";
+ const items=collectSaleItems(),channel=document.getElementById("sChannel")?.value||"Shopee";
+ const packaging=saleItemsPackaging(items);
+ const suggestedGross=items.reduce((sum,item)=>{
+  const p=db.products.find(x=>String(x.id)===String(item.productId));
+  const unit=channel==="Direta"?(saleProductionCost(p,1,{variantId:item.variantId||""})/Math.max(0.0001,1-(Number(p?.margin)||0)/100)):Number(suggestedForSale(p,item));
+  return sum+(Number(unit)||0)*item.qty;
+ },0)+packaging;
+ if(!grossEl.dataset.manual||grossEl.value==="")grossEl.value=suggestedGross?suggestedGross.toFixed(2):"";
+ const typedGross=Number(grossEl.value);
+ const gross=Number.isFinite(typedGross)&&typedGross>=0?typedGross:suggestedGross;
+ const estimatedFees=channel==="Direta"?0:shopeeEstimatedOrderFee(items,gross,packaging);
+ const net=Math.max(0,gross-estimatedFees);
  if(!netEl.dataset.manual||netEl.value==="")netEl.value=net?net.toFixed(2):"";
  document.querySelectorAll("#saleItemsList .sale-item-row").forEach(row=>{const p=(db.products||[]).find(x=>String(x.id)===String(row.querySelector(".sale-item-product")?.value||""));const qty=Math.max(1,Number(row.querySelector(".sale-item-qty")?.value)||1);const v=row.querySelector(".sale-item-variant")?.value||"";const cost=p?saleProductionCost(p,qty,{variantId:v}):0;const el=row.querySelector(".sale-item-cost");if(el)el.textContent=p?`Custo de produção: ${money(cost)} • ${money(cost/Math.max(1,qty))}/un.`:"Selecione o produto";});
 }
@@ -1793,7 +1842,7 @@ function openTechModal(id){
    '<div class="tech-box"><span>Estoque</span><b>'+(Number(p.stock)||0)+' un.</b></div>'+
    '<div class="tech-box"><span>Custo de produção / unidade</span><b>'+money(total)+'</b></div>'+
    '<div class="tech-box"><span>Preço sugerido a partir de</span><b>'+money(price)+'</b></div>'+
-   '<div class="tech-box"><span>Margem / taxa Shopee</span><b>'+(p.margin??0)+'% / '+(p.fee??0)+'% + '+money(shopeeFixedFee(p.fee))+'</b></div>'+
+   '<div class="tech-box"><span>Margem / taxa Shopee</span><b>'+(p.margin??0)+'% / '+(shopeeFeeForPrice(price,Number(p.fee)>0).rate*100)+'% + '+money(shopeeFeeForPrice(price,Number(p.fee)>0).fixedFee)+'</b></div>'+
   '</div>'+
   '<h3>Filamentos / receita base</h3>'+
   '<div class="tech-list">'+(baseMatRows||'<div class="sub" style="padding:10px 0">Nenhum material cadastrado na receita base.</div>')+'</div>'+
@@ -1843,13 +1892,17 @@ function runCalc(){
  const unitBase=materialsUnit+energyUnit+depreciationUnit+wearUnit+laborUnit+otherUnit;
  const orderPackaging=packEntered;
  const totalBase=unitBase*qty+orderPackaging;
- const markup=(+calcMarkup.value||0)/100, margin=(+calcMargin.value||0)/100, fee=(+calcFee.value||0)/100;
- const fixedFee=shopeeFixedFee(fee*100);
- let unitPriceByMarkup=(unitBase*(1+markup)) + (qty>0?(orderPackaging+fixedFee)/qty:0);
- let unitPriceByMargin=(1-margin-fee)>0?((unitBase*qty+orderPackaging+fixedFee)/(qty*(1-margin-fee))):0;
+ const markup=(+calcMarkup.value||0)/100, margin=(+calcMargin.value||0)/100, feeEnabled=Number(calcFee.value)>0;
+ const unitCostWithPackaging=unitBase+orderPackaging/qty;
+ const unitPriceByMarkup=shopeePriceForTarget(unitCostWithPackaging,markup,"markup",feeEnabled);
+ const unitPriceByMargin=shopeePriceForTarget(unitCostWithPackaging,margin,"margin",feeEnabled);
  const unitPrice=Math.max(unitPriceByMarkup,unitPriceByMargin);
+ const feeDetails=shopeeFeeForPrice(unitPrice,feeEnabled);
+ calcFee.value=feeEnabled?String(Math.round(feeDetails.rate*1000)/10):"0";
  const totalPrice=unitPrice*qty;
- const marketplace=totalPrice*fee+fixedFee, profit=totalPrice-totalBase-marketplace, actualMargin=totalPrice>0?profit/totalPrice:0;
+ const percentageFee=totalPrice*feeDetails.rate;
+ const fixedFee=feeDetails.fixedFee*qty;
+ const marketplace=percentageFee+fixedFee, profit=totalPrice-totalBase-marketplace, actualMargin=totalPrice>0?profit/totalPrice:0;
  calcPrice.textContent=money(unitPrice);
  calcTopPrice.textContent=money(unitPrice);
  resMarkup.textContent=unitBase>0?Math.round((unitPrice/unitBase-1)*100)+"%":"0%";
@@ -1861,8 +1914,8 @@ function runCalc(){
  costLegend.innerHTML=parts.filter(x=>x[1]>0).map((x,i)=>`<div class="legend-item"><span class="legend-dot" style="background:hsl(${190+i*38},55%,55%)"></span>${x[0]} <b>${money(x[1])}</b> por unidade (${Math.round(x[1]/total*100)}%)</div>`).join("");
  let acc=0, colors=["#4b9fc2","#e5a33e","#8b6d9c","#d46e54","#75a67c","#b98a58","#aaa"];
  costDonut.style.background=`conic-gradient(${parts.map((x,i)=>{let a=acc/total*100,b=(acc+x[1])/total*100;acc+=x[1];return `${colors[i]} ${a}% ${b}%`}).join(",")})`;
- costAnalysis.innerHTML=parts.filter(x=>x[1]>0).map(x=>`<div class="analysis-row"><span>${x[0]} / unidade</span><b>${money(x[1])}</b></div>`).join("")+`<div class="analysis-row"><span>Embalagem do pedido</span><b>${money(orderPackaging)}</b></div><div class="analysis-row"><span>Custo por unidade (produção)</span><b>${money(unitBase)}</b></div><div class="analysis-row"><span>Custo total (${qty} un.) + embalagem</span><b>${money(totalBase)}</b></div><div class="analysis-row"><span>Preço por unidade</span><b>${money(unitPrice)}</b></div><div class="analysis-row"><span>Venda total</span><b>${money(totalPrice)}</b></div><div class="analysis-row"><span>Taxa percentual (${Math.round(fee*1000)/10}%)</span><b>${money(totalPrice*fee)}</b></div><div class="analysis-row"><span>Taxa fixa por venda</span><b>${money(fixedFee)}</b></div><div class="analysis-row"><span>Total de taxas Shopee</span><b>${money(marketplace)}</b></div><div class="analysis-row"><span>Lucro total</span><b class="good">${money(profit)}</b></div>`;
- window.lastCalc={qty,unitPrice,totalPrice,profit,unitBase,totalBase,marketplace}; updateQuoteAdjustments();
+ costAnalysis.innerHTML=parts.filter(x=>x[1]>0).map(x=>`<div class="analysis-row"><span>${x[0]} / unidade</span><b>${money(x[1])}</b></div>`).join("")+`<div class="analysis-row"><span>Embalagem do pedido</span><b>${money(orderPackaging)}</b></div><div class="analysis-row"><span>Custo por unidade (produção)</span><b>${money(unitBase)}</b></div><div class="analysis-row"><span>Custo total (${qty} un.) + embalagem</span><b>${money(totalBase)}</b></div><div class="analysis-row"><span>Preço por unidade</span><b>${money(unitPrice)}</b></div><div class="analysis-row"><span>Venda total</span><b>${money(totalPrice)}</b></div><div class="analysis-row"><span>Comissão percentual (${Math.round(feeDetails.rate*1000)/10}%)</span><b>${money(percentageFee)}</b></div><div class="analysis-row"><span>Taxa fixa por item × ${qty}</span><b>${money(fixedFee)}</b></div><div class="analysis-row"><span>Faixa de preço Shopee</span><b>${feeDetails.label}</b></div><div class="analysis-row"><span>Total de taxas Shopee</span><b>${money(marketplace)}</b></div><div class="analysis-row"><span>Lucro total</span><b class="good">${money(profit)}</b></div>`;
+ window.lastCalc={qty,unitPrice,totalPrice,profit,unitBase,totalBase,marketplace,feeRate:feeDetails.rate,fixedFee}; updateQuoteAdjustments();
 }
 
 
@@ -3289,7 +3342,7 @@ db.products.forEach(p=>{
  const sd=document.getElementById("sDate"), st=document.getElementById("sTime"), days=document.getElementById("sPostDays"), due=document.getElementById("sDueDate"); if(sd&&!sd.value)sd.value=todayISO(); if(st&&!st.value)st.value=new Date().toTimeString().slice(0,5); if(days&&!days.value)days.value="1"; updatePostDate();
  const allSales=db.sales||[]; const totalOrders=allSales.length, prodCount=allSales.filter(s=>s.status==="Em produção").length, readyCount=allSales.filter(s=>s.status==="Pronto").length, lateCount=allSales.filter(isLate).length, deliveredCount=allSales.filter(s=>s.status==="Entregue").length; ["salesTotal","salesInProduction","salesReady","salesLate","salesDelivered"].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=[totalOrders,prodCount,readyCount,lateCount,deliveredCount][i];});
  const saleDateEl=document.getElementById("sDate"); if(saleDateEl)saleDateEl.onchange=updatePostDate; const saleDaysEl=document.getElementById("sPostDays"); if(saleDaysEl){saleDaysEl.onchange=updatePostDate;saleDaysEl.oninput=updatePostDate;} const saleProductEl=document.getElementById("sProduct"); if(saleProductEl)saleProductEl.onchange=updateSalePreview; const saleQtyEl=document.getElementById("sQty"); if(saleQtyEl)saleQtyEl.oninput=updateSalePreview;
- const saleGrossEl=document.getElementById("sGross"); if(saleGrossEl)saleGrossEl.oninput=()=>{saleGrossEl.dataset.manual="1";}; const saleNetEl=document.getElementById("sNet"); if(saleNetEl)saleNetEl.oninput=()=>{saleNetEl.dataset.manual="1";};
+ const saleGrossEl=document.getElementById("sGross"); if(saleGrossEl)saleGrossEl.oninput=()=>{saleGrossEl.dataset.manual="1";updateSalePreview();}; const saleNetEl=document.getElementById("sNet"); if(saleNetEl)saleNetEl.oninput=()=>{saleNetEl.dataset.manual="1";};
  populateCalcProductSelect(); updateSalePreview();
  const finRevenue=document.getElementById("finRevenue"),finCost=document.getElementById("finCost"),finFees=document.getElementById("finFees"),finProfit=document.getElementById("finProfit"); if(finRevenue)finRevenue.textContent=money(revenue);if(finCost)finCost.textContent=money(totalProductCosts);if(finFees)finFees.textContent=money(fees);if(finProfit)finProfit.textContent=money(netRevenue-totalProductCosts+activeSales.reduce((a,s)=>a+saleLaborAmount(s),0)); renderFinancePanel(); renderMarketing(); calc();
 }function calc(){runCalc();}
@@ -3312,7 +3365,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '92';
+const GESTOR_APP_VERSION = '93';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
