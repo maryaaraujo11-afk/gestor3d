@@ -1095,11 +1095,33 @@ function machineUnitCost(p){
  const desgaste=h*wear;
  return {energy,depreciation,wear:desgaste,total:energy+depreciation+desgaste};
 }
-function laborAmount(p){
- const base=materialCost(p)+componentCost(p)+machineUnitCost(p).total+(+p.other||0);
- return base*((+p.laborPercent||20)/100);
+function productLaborPercent(p){
+ const raw=p?.laborPercent??p?.productionSourceLabor;
+ const value=Number(raw);
+ return Number.isFinite(value)&&value>=0?value:20;
 }
-function productionUnitCost(p){return materialCost(p)+componentCost(p)+machineUnitCost(p).total+laborAmount(p)+(+p.other||0)}
+function productCostBreakdown(p,variant=null){
+ if(!p)return {materials:0,components:0,energy:0,depreciation:0,wear:0,machine:0,labor:0,other:0,total:0,laborPercent:20};
+ const recipes=saleRecipeMaterials(p,variant?{variantId:variant.id}:null);
+ const materials=recipes.reduce((sum,r)=>sum+materialConsumptionForSale(p,r,1)*(Number(r.unitCost||r.costPerGram)||0),0);
+ const components=componentCost(p);
+ const hours=variant&&Number(variant.printHours)>0?Number(variant.printHours):Number(p.printHours)||0;
+ const machineParts=machineUnitCost({...p,printHours:hours});
+ const energy=Number(machineParts.energy)||0,depreciation=Number(machineParts.depreciation)||0,wear=Number(machineParts.wear)||0;
+ const machine=energy+depreciation+wear,other=Math.max(0,Number(p.other)||0);
+ const laborPercent=productLaborPercent(p),labor=(materials+components+machine+other)*laborPercent/100;
+ return {materials,components,energy,depreciation,wear,machine,labor,other,total:materials+components+machine+other+labor,laborPercent};
+}
+function lowestCostVariant(p){
+ const variants=Array.isArray(p?.variants)?p.variants.filter(v=>v&&v.name&&(Array.isArray(v.materials)?v.materials.length:(v.materialId&&Number(v.qty)>0))):[];
+ return variants.map(variant=>({variant,cost:saleProductionCost(p,1,{variantId:variant.id})}))
+  .filter(item=>Number.isFinite(item.cost)&&item.cost>0)
+  .sort((a,b)=>a.cost-b.cost)[0]?.variant||null;
+}
+function laborAmount(p,variant=null){
+ return productCostBreakdown(p,variant||lowestCostVariant(p)).labor;
+}
+function productionUnitCost(p){return productCostBreakdown(p,null).total}
 function totalCost(p){
  const base=productionUnitCost(p);
  const variants=Array.isArray(p?.variants)?p.variants.filter(v=>v&&v.name&&(Array.isArray(v.materials)?v.materials.length:(v.materialId&&Number(v.qty)>0))):[];
@@ -1348,7 +1370,7 @@ function editProduct(id){
  const bq=document.getElementById("pBatchQty"); bq.value=p.productionBatchQty||1;
  document.getElementById("pPrintHours").value=formatHoursInput(p.productionBasis==="batch"?(p.productionSourceHours||0):(p.printHours||0));
  document.getElementById("pPack").value=p.productionSourcePack??(p.pack||0);
- document.getElementById("pLabor").value=p.productionBasis==="batch"?(p.productionSourceLabor??((+p.labor||0)*(+bq.value||1))):(p.labor||0);
+ document.getElementById("pLabor").value=p.productionSourceLabor??p.laborPercent??20;
  document.getElementById("pOther").value=p.productionBasis==="batch"?(p.productionSourceOther??((+p.other||0)*(+bq.value||1))):(p.other||0);
  document.getElementById("materialsList").innerHTML="";
  (p.materials||[]).forEach(r=>{
@@ -1498,7 +1520,7 @@ function saleProductionCost(p, orderQty=1, sale=null){
   const machine=machineUnitCost(costProductForTime).total*q;
   const other=(+p.other||0)*q;
   const laborBase=mats+comps+machine+other;
-  const labor=laborBase*((+p.laborPercent||20)/100);
+  const labor=laborBase*productLaborPercent(p)/100;
   return (mats+comps+machine+labor+other)||0;
  }catch(e){console.error("Erro ao calcular custo do produto",e);return 0;}
 }
@@ -1736,33 +1758,52 @@ function openTechModal(id){
  if(!p)return;
  document.getElementById("techTitle").textContent=p.name;
  document.getElementById("techSub").textContent=[p.sku,p.shopeeSku].filter(Boolean).join(" • ")||"Sem SKU";
- const matRows=(p.materials||[]).map(r=>{const qty=Number(r.qty??r.grams??0)||0;const unit=r.unit||"un.";const unitCost=Number(r.unitCost??r.costPerGram??0)||0;return `<div class="tech-row"><span>${r.name||"Material"} <small class="sub">${qty.toLocaleString("pt-BR",{maximumFractionDigits:4})} ${unit}</small></span><b>${money(qty*unitCost)}</b></div>`;}).join("");
- const compRows=(p.components||[]).map(r=>`<div class="tech-row"><span>${r.name||"Componente"} <small class="sub">${r.qty||0} un.</small></span><b>${money((+r.qty||0)*(+r.unitCost||0))}</b></div>`).join("");
- const total=totalCost(p), price=suggested(p), laborValue=laborAmount(p);
- document.getElementById("techBody").innerHTML=`
-   <div class="tech-grid">
-     <div class="tech-box"><span>Loja</span><b>${p.store||"—"}</b></div>
-     <div class="tech-box"><span>Tempo de impressão</span><b>${p.printHours||0} h</b></div>
-     <div class="tech-box"><span>Estoque</span><b>${p.stock||0} un.</b></div>
-     <div class="tech-box"><span>Custo a partir de</span><b>${money(total)}</b></div>
-     <div class="tech-box"><span>Preço sugerido a partir de</span><b>${money(price)}</b></div>
-     <div class="tech-box"><span>Margem / taxa</span><b>${p.margin||0}% / ${p.fee||0}%</b></div>
-   </div>
-   <h3>Filamentos / receita base</h3>
-   <div class="tech-list">${matRows||'<div class="sub" style="padding:10px 0">Nenhum filamento cadastrado.</div>'}</div>
-   ${(p.variants||[]).length?`<h3 style="margin-top:18px">Variações de cor</h3><div class="tech-list">${p.variants.map(v=>{const ms=Array.isArray(v.materials)&&v.materials.length?v.materials:(v.materialId?[v]:[]);const total=ms.reduce((a,m)=>a+(+m.qty||0)*(+m.unitCost||0),0);const vh=Number(v.printHours)>0?formatHoursInput(Number(v.printHours)):"Tempo padrão";return `<div class="tech-row"><span><b>${v.name||"Variação"}</b><small class="sub" style="display:block">⏱ ${vh}</small>${ms.map(m=>`<small class="sub" style="display:block">${m.qty||0} ${m.unit||""} — ${m.materialName||"Material"}</small>`).join("")}</span><b>${money(total)}</b></div>`}).join("")}</div>`:""}
-   <h3 style="margin-top:18px">Componentes / insumos</h3>
-   <div class="tech-list">${compRows||'<div class="sub" style="padding:10px 0">Nenhum componente cadastrado.</div>'}</div>
-   <h3 style="margin-top:18px">Custos adicionais</h3>
-   <div class="tech-list">
-     <div class="tech-row"><span>Embalagem do pedido</span><b>${money(p.pack||0)}</b></div>
-     <div class="tech-row"><span>Mão de obra (${p.laborPercent??20}%)</span><b>${money(laborValue)}</b></div>
-     <div class="tech-row"><span>Outros custos</span><b>${money(p.other||0)}</b></div>
-     <div class="tech-row"><span><b>Custo final</b></span><b>${money(total)}</b></div>
-   </div>
-   <div class="quote-actions" style="margin-top:18px">
-     <button class="btn" onclick="closeTechModal();document.getElementById('calcProductSelect').value='${p.id}';loadProductToCalc();show('pricing')">Usar na calculadora</button>
-   </div>`;
+ const baseMatRows=(p.materials||[]).map(r=>{
+  const qty=Number(r.qty??r.grams??0)||0,unit=r.unit||"un.",unitCost=Number(r.unitCost??r.costPerGram??0)||0;
+  return '<div class="tech-row"><span>'+financeEscape(r.name||"Material")+' <small class="sub">'+qty.toLocaleString("pt-BR",{maximumFractionDigits:4})+' '+financeEscape(unit)+'</small></span><b>'+money(qty*unitCost)+'</b></div>';
+ }).join("");
+ const compRows=(p.components||[]).map(r=>'<div class="tech-row"><span>'+financeEscape(r.name||"Componente")+' <small class="sub">'+(Number(r.qty)||0)+' un.</small></span><b>'+money((Number(r.qty)||0)*(Number(r.unitCost)||0))+'</b></div>').join("");
+ const variants=Array.isArray(p.variants)?p.variants:[];
+ const breakdownVariant=lowestCostVariant(p);
+ const breakdown=productCostBreakdown(p,breakdownVariant);
+ const total=totalCost(p),price=suggested(p);
+ const timeLabel=breakdownVariant&&Number(breakdownVariant.printHours)>0?formatHoursInput(Number(breakdownVariant.printHours)):(Number(p.printHours)>0?formatHoursInput(Number(p.printHours)):"0:00");
+ const variantRows=variants.length?'<h3 style="margin-top:18px">Variações de cor / tamanho</h3><div class="tech-list">'+variants.map(v=>{
+  const d=productCostBreakdown(p,v);
+  const ms=Array.isArray(v.materials)&&v.materials.length?v.materials:(v.materialId?[v]:[]);
+  const vh=Number(v.printHours)>0?formatHoursInput(Number(v.printHours)):(Number(p.printHours)>0?formatHoursInput(Number(p.printHours)):"Tempo não informado");
+  const materialsText=ms.map(m=>'<small class="sub" style="display:block">'+(Number(m.qty)||0)+' '+financeEscape(m.unit||"")+' — '+financeEscape(m.materialName||m.name||"Material")+'</small>').join("");
+  const details='Materiais '+money(d.materials)+' · Componentes '+money(d.components)+' · Máquina '+money(d.machine)+' · Mão de obra '+money(d.labor)+' · Outros '+money(d.other);
+  return '<div class="tech-row tech-variant-cost-row"><span><b>'+financeEscape(v.name||"Variação")+'</b><small class="sub" style="display:block">⏱ '+financeEscape(vh)+'</small>'+materialsText+'<small class="sub tech-breakdown-note" style="display:block;margin-top:5px">'+details+'</small></span><b>'+money(d.total)+'</b></div>';
+ }).join("")+'</div>':"";
+ const selectedLabel=breakdownVariant?" (base: "+(breakdownVariant.name||"variação de menor custo")+")":"";
+ document.getElementById("techBody").innerHTML=
+  '<div class="tech-grid">'+
+   '<div class="tech-box"><span>Loja</span><b>'+financeEscape(p.store||"—")+'</b></div>'+
+   '<div class="tech-box"><span>Tempo de impressão'+(breakdownVariant?" (variação base)":"")+'</span><b>'+financeEscape(timeLabel)+'</b></div>'+
+   '<div class="tech-box"><span>Estoque</span><b>'+(Number(p.stock)||0)+' un.</b></div>'+
+   '<div class="tech-box"><span>Custo de produção / unidade</span><b>'+money(total)+'</b></div>'+
+   '<div class="tech-box"><span>Preço sugerido a partir de</span><b>'+money(price)+'</b></div>'+
+   '<div class="tech-box"><span>Margem / taxa</span><b>'+(p.margin??0)+'% / '+(p.fee??0)+'%</b></div>'+
+  '</div>'+
+  '<h3>Filamentos / receita base</h3>'+
+  '<div class="tech-list">'+(baseMatRows||'<div class="sub" style="padding:10px 0">Nenhum material cadastrado na receita base.</div>')+'</div>'+
+  variantRows+
+  '<h3 style="margin-top:18px">Componentes / insumos</h3>'+
+  '<div class="tech-list">'+(compRows||'<div class="sub" style="padding:10px 0">Nenhum componente cadastrado.</div>')+'</div>'+
+  '<h3 style="margin-top:18px">Composição do custo'+financeEscape(selectedLabel)+'</h3>'+
+  '<div class="tech-list">'+
+   '<div class="tech-row"><span>Materiais por unidade</span><b>'+money(breakdown.materials)+'</b></div>'+
+   '<div class="tech-row"><span>Componentes / insumos por unidade</span><b>'+money(breakdown.components)+'</b></div>'+
+   '<div class="tech-row"><span>Energia elétrica</span><b>'+money(breakdown.energy)+'</b></div>'+
+   '<div class="tech-row"><span>Depreciação da impressora</span><b>'+money(breakdown.depreciation)+'</b></div>'+
+   '<div class="tech-row"><span>Desgaste da máquina</span><b>'+money(breakdown.wear)+'</b></div>'+
+   '<div class="tech-row"><span>Outros custos por unidade</span><b>'+money(breakdown.other)+'</b></div>'+
+   '<div class="tech-row"><span>Mão de obra ('+breakdown.laborPercent+'%)</span><b>'+money(breakdown.labor)+'</b></div>'+
+   '<div class="tech-row"><span>Embalagem do pedido <small class="sub">por pedido, separada do custo de produção por unidade</small></span><b>'+money(p.pack||0)+'</b></div>'+
+   '<div class="tech-row"><span><b>Custo total de produção por unidade</b></span><b>'+money(breakdown.total)+'</b></div>'+
+  '</div>'+
+  '<div class="quote-actions" style="margin-top:18px"><button class="btn" onclick="closeTechModal();document.getElementById(\'calcProductSelect\').value=\''+String(p.id).replace(/'/g,"")+'\';loadProductToCalc();show(\'pricing\')">Usar na calculadora</button></div>';
  document.getElementById("techModal").classList.add("show");
 }
 
@@ -3261,7 +3302,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '89';
+const GESTOR_APP_VERSION = '90';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
