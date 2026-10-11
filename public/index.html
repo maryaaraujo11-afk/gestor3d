@@ -1658,10 +1658,13 @@ function renderSalesTable(){
  });
  table.innerHTML=rows.map(s=>{const late=isLate(s); return `<tr><td>${formatDateISO(s.dateISO||"")}<small class="sub" style="display:block">${s.time||"—"}</small></td><td>${s.customerName||"—"}</td><td>${s.state||"—"}</td><td>${s.product}${s.variantName?`<small class="sub" style="display:block">Cor: ${s.variantName}</small>`:""}</td><td>${s.store||"—"}</td><td>${s.channel||"Shopee"}</td><td>${s.qty}</td><td><span class="tag ${postingDateClass(s)}">${formatDateISO(s.dueDate)}</span>${late?'<small style="display:block;color:#a33;font-weight:700">Atrasado</small>':s.status==="Pendente"?'<small style="display:block;color:#8a5b00;font-weight:700">Pendente Shopee</small>':""}</td><td>${money(Number(s.grossValue??s.value)||0)}<small class="sub" style="display:block">Líquido: ${money(Number(s.netValue??0)||0)}</small></td><td><b style="color:${saleEstimatedProfit(s)>=0?'#2f7d57':'#b54b4b'}">${money(saleEstimatedProfit(s))}</b><small class="sub" style="display:block">Lucro estimado</small></td><td><select data-sale-status="${s.id}" class="status-select status-${saleStatusKey(s.status||"Recebido")}" onchange="updateSaleStatus('${s.id}',this.value)">${["Pendente","Recebido","Em produção","Pronto","Enviado","Entregue","Cancelado"].map(st=>`<option value="${st}" ${s.status===st?'selected':''}>${st}</option>`).join("")}</select></td><td>${s.notes||"—"}</td><td style="white-space:nowrap"><button class="btn xs outline" onclick="startEditSale('${s.id}')">Editar</button> <button class="btn xs danger" onclick="deleteSale('${s.id}')">Excluir</button></td></tr>`}).join("")||'<tr><td colspan="13">Nenhum pedido encontrado.</td></tr>';
 }
+function sortProductsAlphabetically(products){
+ return [...(products||[])].sort((a,b)=>String(a?.name||"Produto sem nome").localeCompare(String(b?.name||"Produto sem nome"),"pt-BR",{sensitivity:"base",numeric:true}));
+}
 function addSaleItemRow(item={}){
  const wrap=document.getElementById("saleItemsList"); if(!wrap)return;
  const row=document.createElement("div"); row.className="panel sale-item-row"; row.style.cssText="padding:12px;margin:8px 0;background:#faf8f6"; row.dataset.itemId=item.itemId||String(Date.now()+Math.random());
- const products=(db.products||[]);
+ const products=sortProductsAlphabetically(db.products||[]);
  row.innerHTML=`<div class="formgrid" style="grid-template-columns:2fr 1fr 1fr .7fr auto;gap:8px">
  <div><label>Produto</label><select class="sale-item-product" onchange="populateSaleItemVariants(this);updateSalePreview()"><option value="">Selecione</option>${products.map(p=>`<option value="${p.id}" ${String(p.id)===String(item.productId||"")?"selected":""}>${p.name}${p.sku?" — "+p.sku:""}</option>`).join("")}</select></div>
  <div class="sale-item-variant-field"><label>Tamanho</label><select class="sale-item-variant" onchange="updateSalePreview()"><option value="">Produto sem tamanho</option></select></div>
@@ -1785,7 +1788,7 @@ function populateCalcProductSelect(){
  if(!sel)return;
  const current=sel.value;
  sel.innerHTML='<option value="">Selecione um produto para carregar a ficha técnica</option>'+
-   (db.products||[]).map(p=>`<option value="${p.id}">${p.name}${p.sku?" — "+p.sku:""}</option>`).join("");
+   sortProductsAlphabetically(db.products||[]).map(p=>`<option value="${p.id}">${p.name}${p.sku?" — "+p.sku:""}</option>`).join("");
  if(current)sel.value=current;
 }
 
@@ -2677,7 +2680,7 @@ function populateSaleProducts(){
  const el=document.getElementById("sProduct");
  if(!el) return;
  const current=String(el.value||"");
- const products=Array.isArray(db.products)?db.products:[];
+ const products=sortProductsAlphabetically(Array.isArray(db.products)?db.products:[]);
  el.innerHTML="<option value=\"\">Selecione um produto</option>"+products.map(p=>`<option value="${String(p.id)}">${String(p.name||"Produto sem nome")}${p.sku?" — "+String(p.sku):""}</option>`).join("");
  if(products.some(p=>String(p.id)===current)) el.value=current;
  populateSaleVariants();
@@ -3365,7 +3368,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '93';
+const GESTOR_APP_VERSION = '94';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
