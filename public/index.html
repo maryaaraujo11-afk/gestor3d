@@ -1127,9 +1127,41 @@ function save(){
 }
 function show(id,btn){if(id==='sales')setTimeout(populateSaleProducts,0);document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render();if(id==='shopee'){refreshShopeeStatus();renderShopeeStock();}}
 function toggle(id){document.getElementById(id).classList.toggle('hidden')}
+function findLinkedRecipeMaterial(r){
+ const materials=Array.isArray(db?.materials)?db.materials:[];
+ const id=r?.materialId;
+ if(id!==undefined&&id!==null&&id!==""){
+  const byId=materials.find(m=>String(m.id)===String(id));
+  if(byId)return byId;
+ }
+ const wanted=String(r?.name||r?.materialName||"").trim().toLocaleLowerCase("pt-BR");
+ if(!wanted)return null;
+ return materials.find(m=>String(m.name||"").trim().toLocaleLowerCase("pt-BR")===wanted)||null;
+}
+function recipeMaterialUnitCost(r){
+ const linked=findLinkedRecipeMaterial(r);
+ const current=Number(linked?.unitCost);
+ const saved=Number(r?.unitCost??r?.costPerGram);
+ if(linked&&Number.isFinite(current)&&current>0)return current;
+ if(Number.isFinite(saved)&&saved>0)return saved;
+ return linked&&Number.isFinite(current)&&current>=0?current:0;
+}
 function materialCost(p){
- if(Array.isArray(p.materials)) return p.materials.reduce((sum,m)=>sum+(+m.qty||+m.grams||0)*(+m.unitCost||+m.costPerGram||0),0);
- return +p.filamentCost||+p.material||0;
+ if(Array.isArray(p?.materials)){
+  const recipeTotal=p.materials.reduce((sum,m)=>sum+(Number(m.qty)||Number(m.grams)||0)*recipeMaterialUnitCost(m),0);
+  if(recipeTotal>0)return recipeTotal;
+  return Number(p?.filamentCost??p?.material)||0;
+ }
+ return Number(p?.filamentCost??p?.material)||0;
+}
+function saleRecipeMaterialCost(p,sale,orderQty=1){
+ const q=Math.max(0,Number(orderQty)||0);
+ const recipes=saleRecipeMaterials(p,sale);
+ const calculated=recipes.reduce((sum,r)=>sum+materialConsumptionForSale(p,r,q)*recipeMaterialUnitCost(r),0);
+ if(calculated>0)return calculated;
+ // Compatibilidade com fichas antigas que guardavam o custo total do filamento,
+ // mas não tinham o custo unitário gravado em cada linha de material.
+ return Math.max(0,materialCost(p)*q);
 }
 function componentCost(p){return (p.components||[]).reduce((sum,c)=>sum+(+c.qty||0)*(+c.unitCost||0),0)}
 function machineUnitCost(p){
@@ -1152,8 +1184,7 @@ function productLaborPercent(p){
 }
 function productCostBreakdown(p,variant=null){
  if(!p)return {materials:0,components:0,energy:0,depreciation:0,wear:0,machine:0,labor:0,other:0,total:0,laborPercent:20};
- const recipes=saleRecipeMaterials(p,variant?{variantId:variant.id}:null);
- const materials=recipes.reduce((sum,r)=>sum+materialConsumptionForSale(p,r,1)*(Number(r.unitCost||r.costPerGram)||0),0);
+ const materials=saleRecipeMaterialCost(p,variant?{variantId:variant.id}:null,1);
  const components=componentCost(p);
  const hours=variant&&Number(variant.printHours)>0?Number(variant.printHours):Number(p.printHours)||0;
  const machineParts=machineUnitCost({...p,printHours:hours});
@@ -1559,10 +1590,7 @@ function saleProductionCost(p, orderQty=1, sale=null){
  try{
   if(!p)return 0;
   const q=Math.max(0,Number(orderQty)||0);
-  const mats=saleRecipeMaterials(p,sale).reduce((sum,r)=>{
-   const use=materialConsumptionForSale(p,r,q);
-   return sum+use*(Number(r.unitCost||r.costPerGram)||0);
-  },0);
+  const mats=saleRecipeMaterialCost(p,sale,q);
   const comps=Array.isArray(p.components)?p.components.reduce((sum,c)=>sum+(Number(c.qty)||0)*(Number(c.unitCost)||0)*q,0):0;
   const variant=variantForSale(p,sale);
   const variantHours=variant&&Number(variant.printHours)>0?Number(variant.printHours):Number(p.printHours)||0;
@@ -1820,7 +1848,7 @@ function openTechModal(id){
  document.getElementById("techTitle").textContent=p.name;
  document.getElementById("techSub").textContent=[p.sku,p.shopeeSku].filter(Boolean).join(" • ")||"Sem SKU";
  const baseMatRows=(p.materials||[]).map(r=>{
-  const qty=Number(r.qty??r.grams??0)||0,unit=r.unit||"un.",unitCost=Number(r.unitCost??r.costPerGram??0)||0;
+  const qty=Number(r.qty??r.grams??0)||0,unit=r.unit||"un.",unitCost=recipeMaterialUnitCost(r);
   return '<div class="tech-row"><span>'+financeEscape(r.name||"Material")+' <small class="sub">'+qty.toLocaleString("pt-BR",{maximumFractionDigits:4})+' '+financeEscape(unit)+'</small></span><b>'+money(qty*unitCost)+'</b></div>';
  }).join("");
  const compRows=(p.components||[]).map(r=>'<div class="tech-row"><span>'+financeEscape(r.name||"Componente")+' <small class="sub">'+(Number(r.qty)||0)+' un.</small></span><b>'+money((Number(r.qty)||0)*(Number(r.unitCost)||0))+'</b></div>').join("");
@@ -3368,7 +3396,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '94';
+const GESTOR_APP_VERSION = '95';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
