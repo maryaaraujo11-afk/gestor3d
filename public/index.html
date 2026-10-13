@@ -670,13 +670,14 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 
 <section id="production" class="hidden">
 <div class="top"><div><h1>Fila de produção</h1><div class="sub">Quantidade total de cada produto a confeccionar, somando os pedidos ainda em andamento.</div></div><div class="actions"><button class="btn secondary" onclick="printProductionQueue()">Imprimir lista</button></div></div>
-<div class="cards" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:16px">
- <div class="card"><div class="label">Produtos a confeccionar</div><div class="value" id="productionKinds">0</div></div>
- <div class="card"><div class="label">Unidades pendentes</div><div class="value" id="productionPendingQty">0</div></div>
- <div class="card"><div class="label">Em impressão</div><div class="value" id="productionPrintingQty">0</div></div>
+<div class="cards" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:16px">
+ <div class="card"><div class="label">Produtos na fila</div><div class="value" id="productionKinds">0</div></div>
+ <div class="card"><div class="label">Unidades não concluídas</div><div class="value" id="productionPendingQty">0</div></div>
+ <div class="card"><div class="label">Em produção (lotes)</div><div class="value" id="productionPrintingQty">0</div></div>
+ <div class="card"><div class="label">Unidades concluídas</div><div class="value" id="productionCompletedQty">0</div></div>
 </div>
-<div class="panel"><div class="top"><div><h2>Resumo por produto</h2><div class="sub">Pedidos com status Pendente, Recebido ou Em produção são somados. Prontos, enviados, entregues e cancelados não entram na fila.</div></div><input id="productionSearch" type="search" placeholder="Buscar produto..." oninput="renderProductionQueue()" style="max-width:280px"></div>
-<div style="overflow:auto"><table><thead><tr><th>Produto / variação</th><th>Quantidade total</th><th>Pedidos</th><th>Status de produção</th></tr></thead><tbody id="productionQueueTable"></tbody></table></div>
+<div class="panel"><div class="top"><div><h2>Resumo por produto</h2><div class="sub">As encomendas são somadas por produto. Informe quantas unidades estão em produção por lote, marque o lote como concluído e registre o tempo gasto.</div></div><input id="productionSearch" type="search" placeholder="Buscar produto..." oninput="renderProductionQueue()" style="max-width:280px"></div>
+<div style="overflow:auto"><table><thead><tr><th>Produto / variação</th><th>Qtd. encomendada</th><th>Pedidos</th><th>Qtd. em produção (lote)</th><th>Tempo do lote</th><th>Status</th><th>Ações</th></tr></thead><tbody id="productionQueueTable"></tbody></table></div>
 <div id="productionQueueEmpty" class="sub" style="padding:12px;display:none">Não há produtos pendentes de confecção.</div></div>
 </section>
 
@@ -1677,16 +1678,12 @@ function deleteSale(id){
  save();
 }
 function renderProductionQueue(){
- const activeStatuses=new Set(["Pendente","Recebido","Em produção"]);
- const groups=new Map();
+ const activeStatuses=new Set(["Pendente","Recebido","Em produção"]),groups=new Map();
  (db.sales||[]).filter(s=>activeStatuses.has(String(s.status||"Recebido"))).forEach(s=>{
   const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,variantId:s.variantId,variantName:s.variantName,colorId:s.colorId,colorName:s.colorName,qty:s.qty||1}];
   items.forEach(item=>{
-   const p=(db.products||[]).find(x=>String(x.id)===String(item.productId));
-   const productName=String(p?.name||item.product||s.product||"Produto sem nome");
-   const variant=String(item.variantName||item.colorName||item.variant||"").trim();
-   const key=String(item.productId||productName)+"::"+String(item.variantId||item.colorId||variant);
-   if(!groups.has(key))groups.set(key,{key,productName,variant,qty:0,orders:new Set(),productId:item.productId||s.productId});
+   const p=(db.products||[]).find(x=>String(x.id)===String(item.productId)),name=String(p?.name||item.product||s.product||"Produto sem nome"),variant=String(item.variantName||item.colorName||item.variant||"").trim(),key=String(item.productId||name)+"::"+String(item.variantId||item.colorId||variant);
+   if(!groups.has(key))groups.set(key,{key,productName:name,variant,qty:0,orders:new Set()});
    const g=groups.get(key);g.qty+=Math.max(0,Number(item.qty??s.qty)||1);g.orders.add(String(s.id));
   });
  });
@@ -1694,15 +1691,34 @@ function renderProductionQueue(){
  const query=normalizeSearchText(document.getElementById("productionSearch")?.value||"");
  const all=[...groups.values()].sort((a,b)=>a.productName.localeCompare(b.productName,"pt-BR",{sensitivity:"base",numeric:true})||a.variant.localeCompare(b.variant,"pt-BR",{sensitivity:"base"}));
  const visible=all.filter(g=>!query||normalizeSearchText(g.productName+" "+g.variant).includes(query));
- const pending=all.filter(g=>(db.productionStatuses[g.key]||"Pendente")!=="Em impressão").reduce((n,g)=>n+g.qty,0);
- const printing=all.filter(g=>(db.productionStatuses[g.key]||"Pendente")==="Em impressão").reduce((n,g)=>n+g.qty,0);
- const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=String(value);};
- setText("productionKinds",all.length);setText("productionPendingQty",pending);setText("productionPrintingQty",printing);
+ let notCompleted=0,printing=0,completed=0;
+ all.forEach(g=>{const st=db.productionStatuses[g.key]||{};notCompleted+=Math.max(0,g.qty-(Number(st.completedQty)||0));printing+=Math.max(0,Number(st.batchQty)||0);completed+=Math.max(0,Number(st.completedQty)||0);});
+ const setText=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=String(val);};
+ setText("productionKinds",all.length);setText("productionPendingQty",notCompleted);setText("productionPrintingQty",printing);setText("productionCompletedQty",completed);
  const table=document.getElementById("productionQueueTable");if(!table)return;
- table.innerHTML=visible.map(g=>{const status=db.productionStatuses[g.key]||"Pendente";const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
-  return '<tr><td><b>'+esc(g.productName)+'</b>'+(g.variant?'<small class="sub" style="display:block">'+esc(g.variant)+'</small>':'')+'</td><td><b style="font-size:17px">'+g.qty+'</b></td><td>'+g.orders.size+'</td><td><select class="status-select" aria-label="Status de produção" onchange="setProductionStatus(\''+esc(g.key)+'\',this.value)"><option value="Pendente" '+(status==="Pendente"?"selected":"")+'>Pendente</option><option value="Em impressão" '+(status==="Em impressão"?"selected":"")+'>Em impressão</option></select></td></tr>';
+ const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+ table.innerHTML=visible.map(g=>{
+  const st=db.productionStatuses[g.key]||{},batch=Math.max(0,Number(st.batchQty)||0),done=Math.max(0,Number(st.completedQty)||0),mins=Math.max(0,Number(st.timeMinutes)||0),remaining=Math.max(0,g.qty-done),status=done>=g.qty?"Concluído":batch>0?"Em produção":"Pendente",timeText=Math.floor(mins/60)+"h "+(mins%60)+"min";
+  return '<tr><td><b>'+esc(g.productName)+'</b>'+(g.variant?'<small class="sub" style="display:block">'+esc(g.variant)+'</small>':'')+'</td><td><b style="font-size:17px">'+g.qty+'</b><small class="sub" style="display:block">'+remaining+' restantes</small></td><td>'+g.orders.size+'</td><td style="min-width:125px"><input aria-label="Quantidade em produção do lote" type="number" min="0" max="'+remaining+'" step="1" value="'+batch+'" style="width:100px" onchange="updateProductionField(\''+esc(g.key)+'\',\'batchQty\',this.value,'+g.qty+')"></td><td style="min-width:150px"><div style="display:flex;gap:4px;align-items:center"><input aria-label="Horas do lote" type="number" min="0" step="1" value="'+Math.floor(mins/60)+'" style="width:56px" onchange="updateProductionTime(\''+esc(g.key)+'\',this.value,\'hours\')"><span>h</span><input aria-label="Minutos do lote" type="number" min="0" max="59" step="1" value="'+(mins%60)+'" style="width:60px" onchange="updateProductionTime(\''+esc(g.key)+'\',this.value,\'minutes\')"><span>min</span></div><small class="sub">Total: '+timeText+'</small></td><td><span class="tag '+(status==="Concluído"?"good":status==="Em produção"?"warn":"")+'">'+status+'</span><small class="sub" style="display:block">Concluídas: '+done+'</small></td><td style="min-width:170px"><div style="display:flex;flex-direction:column;gap:6px"><button class="btn xs" '+(remaining===0?"disabled":"")+' onclick="completeProductionBatch(\''+esc(g.key)+'\','+g.qty+')">Concluir lote</button><button class="btn xs outline" onclick="updateProductionField(\''+esc(g.key)+'\',\'batchQty\',0,'+g.qty+')">Limpar lote</button></div></td></tr>';
  }).join("");
  const empty=document.getElementById("productionQueueEmpty");if(empty)empty.style.display=visible.length?"none":"block";
+}
+function updateProductionField(key,field,value,total){
+ const n=Math.floor(Number(value)||0);db.productionStatuses=db.productionStatuses&&typeof db.productionStatuses==="object"?db.productionStatuses:{};
+ const st=db.productionStatuses[key]&&typeof db.productionStatuses[key]==="object"?db.productionStatuses[key]:{};
+ if(field==="batchQty")st.batchQty=Math.max(0,Math.min(Math.max(0,total-(Number(st.completedQty)||0)),n));
+ db.productionStatuses[key]=st;save();
+}
+function updateProductionTime(key,value,part){
+ db.productionStatuses=db.productionStatuses&&typeof db.productionStatuses==="object"?db.productionStatuses:{};
+ const st=db.productionStatuses[key]&&typeof db.productionStatuses[key]==="object"?db.productionStatuses[key]:{},n=Math.max(0,Math.floor(Number(value)||0)),cur=Math.max(0,Number(st.timeMinutes)||0);
+ st.timeMinutes=part==="hours"?n*60+(cur%60):Math.floor(cur/60)*60+Math.min(59,n);db.productionStatuses[key]=st;save();
+}
+function completeProductionBatch(key,total){
+ db.productionStatuses=db.productionStatuses&&typeof db.productionStatuses==="object"?db.productionStatuses:{};
+ const st=db.productionStatuses[key]&&typeof db.productionStatuses[key]==="object"?db.productionStatuses[key]:{},batch=Math.floor(Number(st.batchQty)||0);
+ if(batch<=0){alert("Informe primeiro a quantidade do lote em produção.");return;}
+ st.completedQty=Math.min(Math.max(0,total),Math.max(0,Number(st.completedQty)||0)+batch);st.batchQty=0;db.productionStatuses[key]=st;save();alert("Lote marcado como concluído.");
 }
 function printProductionQueue(){
  const rows=[...(document.querySelectorAll("#productionQueueTable tr"))].map(row=>row.outerHTML).join("");
@@ -3457,7 +3473,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '99';
+const GESTOR_APP_VERSION = '100';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
