@@ -1725,7 +1725,13 @@ function saleItemCost(item){
  return saleProductionCost(p,item.qty,{variantId:item.variantId||""});
 }
 function saleItemsCost(items){return items.reduce((sum,item)=>sum+saleItemCost(item),0);}
-function saleItemsPackaging(items){return items.reduce((sum,item)=>{const p=(db.products||[]).find(x=>String(x.id)===String(item.productId));return sum+(Number(p?.pack)||0);},0);}
+const BUBBLE_WRAP_PER_ORDER=0.20*2.50;
+function saleItemsPackaging(items){
+ const list=Array.isArray(items)?items:[];
+ const productPackaging=list.reduce((sum,item)=>{const p=(db.products||[]).find(x=>String(x.id)===String(item.productId));return sum+(Number(p?.pack)||0);},0);
+ // Cada pedido utiliza aproximadamente 20 cm de plástico-bolha, comprado a R$ 2,50 por metro.
+ return productPackaging+(list.length?BUBBLE_WRAP_PER_ORDER:0);
+}
 function adjustStockForSale(s,direction,note){
  const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,variantId:s.variantId,qty:s.qty,product:s.product}];
  items.forEach(item=>{
@@ -3396,7 +3402,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '97';
+const GESTOR_APP_VERSION = '98';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
