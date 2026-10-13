@@ -773,6 +773,9 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
   <div class="finance-outflow-heading"><div><h2>Composição das saídas</h2><div class="sub">Entenda para onde foi o dinheiro no mês selecionado.</div></div></div>
   <div class="finance-outflow-item"><span class="finance-outflow-icon">▦</span><div class="finance-outflow-copy"><span>Compras de materiais</span><small>Filamentos e demais insumos</small></div><strong id="finMaterialOut">R$ 0,00</strong></div>
   <div class="finance-outflow-item"><span class="finance-outflow-icon">＋</span><div class="finance-outflow-copy"><span>Outras despesas</span><small>Gastos operacionais lançados manualmente</small></div><strong id="finExpenseOut">R$ 0,00</strong></div>
+  <div class="finance-outflow-item finance-cost-detail"><span class="finance-outflow-icon">⚡</span><div class="finance-outflow-copy"><span>Energia elétrica</span><small>Despesas classificadas como energia</small></div><strong id="finEnergyOut">R$ 0,00</strong></div>
+  <div class="finance-outflow-item finance-cost-detail"><span class="finance-outflow-icon">⚙</span><div class="finance-outflow-copy"><span>Manutenção da máquina</span><small>Manutenção e reparos registrados</small></div><strong id="finMaintenanceOut">R$ 0,00</strong></div>
+  <div class="finance-outflow-item finance-cost-detail"><span class="finance-outflow-icon">🧵</span><div class="finance-outflow-copy"><span>Filamentos</span><small>Compras identificadas como filamento</small></div><strong id="finFilamentOut">R$ 0,00</strong></div>
  </div>
  <div class="finance-insights-grid">
   <div class="finance-reserve-card">
@@ -3251,13 +3254,17 @@ function renderFinancePanel(){
  const inflow=rows.filter(r=>r.type==="Entrada").reduce((a,r)=>a+r.value,0);
  const materialOut=rows.filter(r=>r.id==="purchase").reduce((a,r)=>a+r.value,0);
  const expenseOut=rows.filter(r=>r.id==="expense").reduce((a,r)=>a+r.value,0);
+ const expenseRows=rows.filter(r=>r.id==="expense"),purchaseRows=rows.filter(r=>r.id==="purchase");
+ const energyOut=expenseRows.filter(r=>/energia|eletricidade|eletrica|luz/i.test(String(r.category||"")+" "+String(r.name||""))).reduce((a,r)=>a+r.value,0);
+ const maintenanceOut=expenseRows.filter(r=>/manuten|reparo|conserto/i.test(String(r.category||"")+" "+String(r.name||""))).reduce((a,r)=>a+r.value,0);
+ const filamentOut=purchaseRows.filter(r=>/filamento/i.test(String(r.name||"")+" "+String(r.category||""))).reduce((a,r)=>a+r.value,0);
  const out=materialOut+expenseOut, balance=inflow-out;
  const activeSales=reportSales().filter(s=>s.status!=="Cancelado"&&s.status!=="Pendente");
  const production=activeSales.reduce((a,s)=>a+(Number(s.cost)||0),0);
  const labor=activeSales.reduce((a,s)=>a+saleLaborAmount(s),0);
  const operating=inflow-production+labor-expenseOut;
  const put=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=money(val);};
- put("finCashIn",inflow);put("finMaterialOut",materialOut);put("finExpenseOut",expenseOut);put("finCashBalance",balance);put("finTotalOut",out);put("finOperatingResult",operating);
+ put("finCashIn",inflow);put("finMaterialOut",materialOut);put("finExpenseOut",expenseOut);put("finEnergyOut",energyOut);put("finMaintenanceOut",maintenanceOut);put("finFilamentOut",filamentOut);put("finCashBalance",balance);put("finTotalOut",out);put("finOperatingResult",operating);
  const balanceEl=document.getElementById("finCashBalance");if(balanceEl)balanceEl.style.color=balance<0?"#b54b4b":"#2f7d57";
  const search=String(document.getElementById("financeSearch")?.value||"").trim().toLocaleLowerCase("pt-BR");
  const typeFilter=String(document.getElementById("financeTypeFilter")?.value||"");
@@ -3516,7 +3523,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '104';
+const GESTOR_APP_VERSION = '105';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
