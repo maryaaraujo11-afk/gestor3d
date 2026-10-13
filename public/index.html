@@ -188,6 +188,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
     <button onclick="show('customers',this)">👤 <span>Clientes</span></button>
     <button onclick="show('products',this)">▣ <span>Produtos</span></button>
     <button onclick="show('sales',this)">▤ <span>Vendas & Pedidos</span></button>
+    <button onclick="show('production',this);renderProductionQueue()">▣ <span>Fila de produção</span></button>
     <button onclick="show('finance',this)">$ <span>Financeiro</span></button>
     <button onclick="show('stock',this)">▥ <span>Estoque</span></button>
     <button onclick="show('materials',this)">◈ <span>Filamento / Insumos</span></button>
@@ -665,6 +666,18 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <table><thead><tr><th>Data</th><th>Material</th><th>Quantidade que saiu</th><th>Estoque antes</th><th>Estoque depois</th><th>Origem / observação</th></tr></thead>
 <tbody id="consumptionHistoryTable"></tbody></table>
 </div>
+</section>
+
+<section id="production" class="hidden">
+<div class="top"><div><h1>Fila de produção</h1><div class="sub">Quantidade total de cada produto a confeccionar, somando os pedidos ainda em andamento.</div></div><div class="actions"><button class="btn secondary" onclick="window.print()">Imprimir lista</button></div></div>
+<div class="cards" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:16px">
+ <div class="card"><div class="label">Produtos a confeccionar</div><div class="value" id="productionKinds">0</div></div>
+ <div class="card"><div class="label">Unidades pendentes</div><div class="value" id="productionPendingQty">0</div></div>
+ <div class="card"><div class="label">Em impressão</div><div class="value" id="productionPrintingQty">0</div></div>
+</div>
+<div class="panel"><div class="top"><div><h2>Resumo por produto</h2><div class="sub">Pedidos com status Pendente, Recebido ou Em produção são somados. Prontos, enviados, entregues e cancelados não entram na fila.</div></div><input id="productionSearch" type="search" placeholder="Buscar produto..." oninput="renderProductionQueue()" style="max-width:280px"></div>
+<div style="overflow:auto"><table><thead><tr><th>Produto / variação</th><th>Quantidade total</th><th>Pedidos</th><th>Status de produção</th></tr></thead><tbody id="productionQueueTable"></tbody></table></div>
+<div id="productionQueueEmpty" class="sub" style="padding:12px;display:none">Não há produtos pendentes de confecção.</div></div>
 </section>
 
 <section id="sales" class="hidden">
@@ -1661,6 +1674,40 @@ function deleteSale(id){
  if(s.status!=="Cancelado"&&s.status!=="Pendente") adjustStockForSale(s,1,`Estorno da exclusão: ${s.product||"Venda"}`);
  db.sales=db.sales.filter(x=>String(x.id)!==String(id));
  if(String(editingSaleId)===String(id)) cancelEditSale();
+ save();
+}
+function renderProductionQueue(){
+ const activeStatuses=new Set(["Pendente","Recebido","Em produção"]);
+ const groups=new Map();
+ (db.sales||[]).filter(s=>activeStatuses.has(String(s.status||"Recebido"))).forEach(s=>{
+  const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,variantId:s.variantId,variantName:s.variantName,colorId:s.colorId,colorName:s.colorName,qty:s.qty||1}];
+  items.forEach(item=>{
+   const p=(db.products||[]).find(x=>String(x.id)===String(item.productId));
+   const productName=String(p?.name||item.product||s.product||"Produto sem nome");
+   const variant=String(item.variantName||item.colorName||item.variant||"").trim();
+   const key=String(item.productId||productName)+"::"+String(item.variantId||item.colorId||variant);
+   if(!groups.has(key))groups.set(key,{key,productName,variant,qty:0,orders:new Set(),productId:item.productId||s.productId});
+   const g=groups.get(key);g.qty+=Math.max(0,Number(item.qty??s.qty)||1);g.orders.add(String(s.id));
+  });
+ });
+ db.productionStatuses=db.productionStatuses&&typeof db.productionStatuses==="object"?db.productionStatuses:{};
+ const query=normalizeSearchText(document.getElementById("productionSearch")?.value||"");
+ const all=[...groups.values()].sort((a,b)=>a.productName.localeCompare(b.productName,"pt-BR",{sensitivity:"base",numeric:true})||a.variant.localeCompare(b.variant,"pt-BR",{sensitivity:"base"}));
+ const visible=all.filter(g=>!query||normalizeSearchText(g.productName+" "+g.variant).includes(query));
+ const pending=all.filter(g=>(db.productionStatuses[g.key]||"Pendente")!=="Em impressão").reduce((n,g)=>n+g.qty,0);
+ const printing=all.filter(g=>(db.productionStatuses[g.key]||"Pendente")==="Em impressão").reduce((n,g)=>n+g.qty,0);
+ const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=String(value);};
+ setText("productionKinds",all.length);setText("productionPendingQty",pending);setText("productionPrintingQty",printing);
+ const table=document.getElementById("productionQueueTable");if(!table)return;
+ table.innerHTML=visible.map(g=>{const status=db.productionStatuses[g.key]||"Pendente";const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  return '<tr><td><b>'+esc(g.productName)+'</b>'+(g.variant?'<small class="sub" style="display:block">'+esc(g.variant)+'</small>':'')+'</td><td><b style="font-size:17px">'+g.qty+'</b></td><td>'+g.orders.size+'</td><td><select class="status-select" aria-label="Status de produção" onchange="setProductionStatus(\''+esc(g.key)+'\',this.value)"><option value="Pendente" '+(status==="Pendente"?"selected":"")+'>Pendente</option><option value="Em impressão" '+(status==="Em impressão"?"selected":"")+'>Em impressão</option></select></td></tr>';
+ }).join("");
+ const empty=document.getElementById("productionQueueEmpty");if(empty)empty.style.display=visible.length?"none":"block";
+}
+function setProductionStatus(key,status){
+ if(!["Pendente","Em impressão"].includes(status))return;
+ db.productionStatuses=db.productionStatuses&&typeof db.productionStatuses==="object"?db.productionStatuses:{};
+ db.productionStatuses[key]=status;
  save();
 }
 function renderSalesTable(){
@@ -3402,7 +3449,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '98';
+const GESTOR_APP_VERSION = '99';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
