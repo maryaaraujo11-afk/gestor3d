@@ -773,9 +773,9 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
   <div class="finance-outflow-heading"><div><h2>Composição das saídas</h2><div class="sub">Entenda para onde foi o dinheiro no mês selecionado.</div></div></div>
   <div class="finance-outflow-item"><span class="finance-outflow-icon">▦</span><div class="finance-outflow-copy"><span>Compras de materiais</span><small>Filamentos e demais insumos</small></div><strong id="finMaterialOut">R$ 0,00</strong></div>
   <div class="finance-outflow-item"><span class="finance-outflow-icon">＋</span><div class="finance-outflow-copy"><span>Outras despesas</span><small>Gastos operacionais lançados manualmente</small></div><strong id="finExpenseOut">R$ 0,00</strong></div>
-  <div class="finance-outflow-item finance-cost-detail"><span class="finance-outflow-icon">⚡</span><div class="finance-outflow-copy"><span>Energia elétrica</span><small>Despesas classificadas como energia</small></div><strong id="finEnergyOut">R$ 0,00</strong></div>
-  <div class="finance-outflow-item finance-cost-detail"><span class="finance-outflow-icon">⚙</span><div class="finance-outflow-copy"><span>Manutenção da máquina</span><small>Manutenção e reparos registrados</small></div><strong id="finMaintenanceOut">R$ 0,00</strong></div>
-  <div class="finance-outflow-item finance-cost-detail"><span class="finance-outflow-icon">🧵</span><div class="finance-outflow-copy"><span>Filamentos</span><small>Compras identificadas como filamento</small></div><strong id="finFilamentOut">R$ 0,00</strong></div>
+  <div class="finance-outflow-item finance-cost-detail"><span class="finance-outflow-icon">⚡</span><div class="finance-outflow-copy"><span>Energia elétrica</span><small>Despesas lançadas + estimativa pelas vendas</small></div><strong id="finEnergyOut">R$ 0,00</strong></div>
+  <div class="finance-outflow-item finance-cost-detail"><span class="finance-outflow-icon">⚙</span><div class="finance-outflow-copy"><span>Manutenção da máquina</span><small>Despesas + desgaste estimado das impressões</small></div><strong id="finMaintenanceOut">R$ 0,00</strong></div>
+  <div class="finance-outflow-item finance-cost-detail"><span class="finance-outflow-icon">🧵</span><div class="finance-outflow-copy"><span>Filamentos</span><small>Compras + filamento estimado nas vendas</small></div><strong id="finFilamentOut">R$ 0,00</strong></div>
  </div>
  <div class="finance-insights-grid">
   <div class="finance-reserve-card">
@@ -3255,9 +3255,13 @@ function renderFinancePanel(){
  const materialOut=rows.filter(r=>r.id==="purchase").reduce((a,r)=>a+r.value,0);
  const expenseOut=rows.filter(r=>r.id==="expense").reduce((a,r)=>a+r.value,0);
  const expenseRows=rows.filter(r=>r.id==="expense"),purchaseRows=rows.filter(r=>r.id==="purchase");
- const energyOut=expenseRows.filter(r=>/energia|eletricidade|eletrica|luz/i.test(String(r.category||"")+" "+String(r.name||""))).reduce((a,r)=>a+r.value,0);
- const maintenanceOut=expenseRows.filter(r=>/manuten|reparo|conserto/i.test(String(r.category||"")+" "+String(r.name||""))).reduce((a,r)=>a+r.value,0);
- const filamentOut=purchaseRows.filter(r=>/filamento/i.test(String(r.name||"")+" "+String(r.category||""))).reduce((a,r)=>a+r.value,0);
+ const energyRecorded=expenseRows.filter(r=>/energia|eletricidade|eletrica|luz/i.test(String(r.category||"")+" "+String(r.name||""))).reduce((a,r)=>a+r.value,0);
+ const maintenanceRecorded=expenseRows.filter(r=>/manuten|reparo|conserto/i.test(String(r.category||"")+" "+String(r.name||""))).reduce((a,r)=>a+r.value,0);
+ const filamentRecorded=purchaseRows.filter(r=>/filamento/i.test(String(r.name||"")+" "+String(r.category||""))).reduce((a,r)=>a+r.value,0);
+ // Estimativas de custo geradas a partir dos itens vendidos no mês selecionado.
+ const soldItems=reportSales().filter(s=>s.status!=="Cancelado"&&s.status!=="Pendente").flatMap(s=>Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,variantId:s.variantId,colorId:s.colorId,qty:s.qty||1}].map(item=>({...item,_sale:s})));
+ const salesCosts=soldItems.reduce((tot,item)=>{const sale=item._sale||{},p=(db.products||[]).find(x=>String(x.id)===String(item.productId));if(!p)return tot;const q=Math.max(0,Number(item.qty)||0),variant={...sale,...item,variantId:item.variantId||sale.variantId,colorId:item.colorId||sale.colorId};const parts=machineUnitCost({...p,printHours:variantForSale(p,variant)?.printHours||p.printHours||0});tot.energy+=Math.max(0,Number(parts.energy)||0)*q;tot.maintenance+=Math.max(0,Number(parts.wear)||0)*q;tot.filament+=Math.max(0,saleRecipeMaterialCost(p,variant,q));return tot;},{energy:0,maintenance:0,filament:0});
+ const energyOut=energyRecorded+salesCosts.energy,maintenanceOut=maintenanceRecorded+salesCosts.maintenance,filamentOut=filamentRecorded+salesCosts.filament;
  const out=materialOut+expenseOut, balance=inflow-out;
  const activeSales=reportSales().filter(s=>s.status!=="Cancelado"&&s.status!=="Pendente");
  const production=activeSales.reduce((a,s)=>a+(Number(s.cost)||0),0);
@@ -3523,7 +3527,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '105';
+const GESTOR_APP_VERSION = '106';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
