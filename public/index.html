@@ -1717,29 +1717,35 @@ function updateProductionField(key,field,value,total){
 function startFirstMatchingOrder(key){
  const active=new Set(["Pendente","Recebido","Em produção"]),parts=String(key).split("::"),keyProduct=parts[0],keyVariant=parts.slice(1).join("::");
  const norm=v=>normalizeSearchText(String(v||"")).trim();
- const candidates=(db.sales||[]).filter(s=>{
-  if(!active.has(String(s.status||"Recebido")))return false;
+ const matches=[];
+ (db.sales||[]).forEach(s=>{
+  if(!active.has(String(s.status||"Recebido")))return;
   const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,variantId:s.variantId,variantName:s.variantName,colorId:s.colorId,colorName:s.colorName,qty:s.qty||1}];
-  return items.some(item=>{
+  let productMatch=false,variantMatch=false;
+  items.forEach(item=>{
    const p=(db.products||[]).find(x=>String(x.id)===String(item.productId));
    const name=String(p?.name||item.product||s.product||"Produto sem nome");
+   const itemProduct=String(item.productId||name);
+   if(itemProduct!==keyProduct && norm(name)!==norm(keyProduct))return;
+   productMatch=true;
    const variant=String(item.variantName||item.colorName||item.variant||"").trim();
-   const itemProduct=String(item.productId||name),itemVariant=String(item.variantId||item.colorId||variant);
-   if(itemProduct!==keyProduct)return false;
-   if(itemVariant===keyVariant)return true;
-   // Compatibilidade com pedidos antigos que guardaram o nome da variação em vez do ID (ou vice-versa).
-   return !!keyVariant && !!variant && norm(variant)===norm(keyVariant);
+   const itemVariant=String(item.variantId||item.colorId||variant);
+   if(itemVariant===keyVariant || (variant && norm(variant)===norm(keyVariant)))variantMatch=true;
   });
- }).sort((a,b)=>{
-  const ad=a.dueDate||"9999-12-31",bd=b.dueDate||"9999-12-31";
-  if(ad!==bd)return ad.localeCompare(bd);
-  const da=a.dateISO||"9999-12-31",dbb=b.dateISO||"9999-12-31";
-  if(da!==dbb)return da.localeCompare(dbb);
-  const at=a.time||"23:59",bt=b.time||"23:59";
-  if(at!==bt)return at.localeCompare(bt);
-  return String(a.id).localeCompare(String(b.id),undefined,{numeric:true});
+  if(productMatch)matches.push({sale:s,variantMatch});
  });
- const first=candidates[0];
+ // Prioriza a mesma variação; se o cadastro antigo não permitir relacioná-la, usa o primeiro pedido do produto.
+ matches.sort((a,b)=>{
+  if(a.variantMatch!==b.variantMatch)return a.variantMatch?-1:1;
+  const x=a.sale,y=b.sale,ad=x.dueDate||"9999-12-31",bd=y.dueDate||"9999-12-31";
+  if(ad!==bd)return ad.localeCompare(bd);
+  const da=x.dateISO||"9999-12-31",dbb=y.dateISO||"9999-12-31";
+  if(da!==dbb)return da.localeCompare(dbb);
+  const at=x.time||"23:59",bt=y.time||"23:59";
+  if(at!==bt)return at.localeCompare(bt);
+  return String(x.id).localeCompare(String(y.id),undefined,{numeric:true});
+ });
+ const first=matches[0]?.sale;
  if(first&&first.status!=="Em produção"){
   if(first.status==="Pendente")adjustStockForSale(first,-1,"Início da produção do pedido: "+(first.product||"Venda"));
   first.status="Em produção";
@@ -3510,7 +3516,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '103';
+const GESTOR_APP_VERSION = '104';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
