@@ -669,7 +669,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 </section>
 
 <section id="production" class="hidden">
-<div class="top"><div><h1>Fila de produção</h1><div class="sub">Quantidade total de cada produto a confeccionar, somando os pedidos ainda em andamento.</div></div><div class="actions"><button class="btn secondary" onclick="window.print()">Imprimir lista</button></div></div>
+<div class="top"><div><h1>Fila de produção</h1><div class="sub">Quantidade total de cada produto a confeccionar, somando os pedidos ainda em andamento.</div></div><div class="actions"><button class="btn secondary" onclick="printProductionQueue()">Imprimir lista</button></div></div>
 <div class="cards" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:16px">
  <div class="card"><div class="label">Produtos a confeccionar</div><div class="value" id="productionKinds">0</div></div>
  <div class="card"><div class="label">Unidades pendentes</div><div class="value" id="productionPendingQty">0</div></div>
@@ -1703,6 +1703,14 @@ function renderProductionQueue(){
   return '<tr><td><b>'+esc(g.productName)+'</b>'+(g.variant?'<small class="sub" style="display:block">'+esc(g.variant)+'</small>':'')+'</td><td><b style="font-size:17px">'+g.qty+'</b></td><td>'+g.orders.size+'</td><td><select class="status-select" aria-label="Status de produção" onchange="setProductionStatus(\''+esc(g.key)+'\',this.value)"><option value="Pendente" '+(status==="Pendente"?"selected":"")+'>Pendente</option><option value="Em impressão" '+(status==="Em impressão"?"selected":"")+'>Em impressão</option></select></td></tr>';
  }).join("");
  const empty=document.getElementById("productionQueueEmpty");if(empty)empty.style.display=visible.length?"none":"block";
+}
+function printProductionQueue(){
+ const rows=[...(document.querySelectorAll("#productionQueueTable tr"))].map(row=>row.outerHTML).join("");
+ if(!rows){alert("Não há itens para imprimir.");return;}
+ const win=window.open("","_blank","width=900,height=700");
+ if(!win){alert("Permita pop-ups para imprimir a lista de produção.");return;}
+ win.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Fila de produção — Gestor 3D</title><style>body{font:14px Arial,sans-serif;padding:24px;color:#222}h1{font-size:22px}p{color:#666}table{border-collapse:collapse;width:100%;margin-top:18px}th,td{border:1px solid #ccc;padding:10px;text-align:left}th{background:#f4eee9}select{border:0;appearance:none;font:inherit}</style></head><body><h1>Fila de produção — Gestor 3D</h1><p>Resumo das quantidades a confeccionar</p><table><thead><tr><th>Produto / variação</th><th>Quantidade total</th><th>Pedidos</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></body></html>');
+ win.document.close();win.focus();setTimeout(()=>{win.print();},250);
 }
 function setProductionStatus(key,status){
  if(!["Pendente","Em impressão"].includes(status))return;
@@ -3422,7 +3430,7 @@ db.products.forEach(p=>{
  const stockTable=document.getElementById("stockTable"); if(stockTable) stockTable.innerHTML=[...(db.materials||[]).map(m=>`<tr><td>${m.name}</td><td>${m.category}</td><td>${m.stock} ${m.unit}</td><td>${m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td></tr>`),...db.products.map(p=>`<tr><td>${p.name}</td><td>Produto acabado</td><td>${p.stock||0} un.</td><td>${(p.stock||0)<=2?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td></tr>`)].join('')||'<tr><td colspan="4">Nenhum item.</td></tr>';
  const lowStock=document.getElementById("lowStock"); if(lowStock){const lp=db.products.filter(p=>(+p.stock||0)<=2).map(p=>`<div style="padding:9px 0;border-bottom:1px solid #eee">${p.name} <span class="tag warn">${p.stock||0} un.</span></div>`);const lm=db.materials.filter(m=>(+m.stock||0)<=m.minStock).map(m=>`<div style="padding:9px 0;border-bottom:1px solid #eee">${m.name} <span class="tag warn">${m.stock} ${m.unit}</span></div>`);lowStock.innerHTML=[...lp,...lm].join('')||'<div class="sub">Nenhum estoque crítico.</div>'; }
  const dashSales=document.getElementById("dashSales"); if(dashSales){ const recentReportSales=[...reportSales()].sort((a,b)=>`${b.dateISO||""}T${b.time||"00:00"}`.localeCompare(`${a.dateISO||""}T${a.time||"00:00"}`)).slice(0,6); dashSales.innerHTML=recentReportSales.map(s=>`<div style="padding:9px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between"><span>${s.customerName?s.customerName+" • ":""}${s.product}<small class="sub">${s.date||formatDateISO(s.dateISO)} ${s.time||""} • ${s.store||"—"}</small></span><b>${money(Number(s.grossValue??s.value)||0)}</b></div>`).join('')||'<div class="sub">Nenhuma venda registrada neste período.</div>'; }
- renderCustomers(); renderSalesTable();
+ renderCustomers(); renderSalesTable(); renderProductionQueue();
  const sd=document.getElementById("sDate"), st=document.getElementById("sTime"), days=document.getElementById("sPostDays"), due=document.getElementById("sDueDate"); if(sd&&!sd.value)sd.value=todayISO(); if(st&&!st.value)st.value=new Date().toTimeString().slice(0,5); if(days&&!days.value)days.value="1"; updatePostDate();
  const allSales=db.sales||[]; const totalOrders=allSales.length, prodCount=allSales.filter(s=>s.status==="Em produção").length, readyCount=allSales.filter(s=>s.status==="Pronto").length, lateCount=allSales.filter(isLate).length, deliveredCount=allSales.filter(s=>s.status==="Entregue").length; ["salesTotal","salesInProduction","salesReady","salesLate","salesDelivered"].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=[totalOrders,prodCount,readyCount,lateCount,deliveredCount][i];});
  const saleDateEl=document.getElementById("sDate"); if(saleDateEl)saleDateEl.onchange=updatePostDate; const saleDaysEl=document.getElementById("sPostDays"); if(saleDaysEl){saleDaysEl.onchange=updatePostDate;saleDaysEl.oninput=updatePostDate;} const saleProductEl=document.getElementById("sProduct"); if(saleProductEl)saleProductEl.onchange=updateSalePreview; const saleQtyEl=document.getElementById("sQty"); if(saleQtyEl)saleQtyEl.oninput=updateSalePreview;
