@@ -1706,8 +1706,41 @@ function renderProductionQueue(){
 function updateProductionField(key,field,value,total){
  const n=Math.floor(Number(value)||0);db.productionStatuses=db.productionStatuses&&typeof db.productionStatuses==="object"?db.productionStatuses:{};
  const st=db.productionStatuses[key]&&typeof db.productionStatuses[key]==="object"?db.productionStatuses[key]:{};
- if(field==="batchQty")st.batchQty=Math.max(0,Math.min(Math.max(0,total-(Number(st.completedQty)||0)),n));
+ if(field==="batchQty"){
+  const previous=Math.max(0,Number(st.batchQty)||0);
+  st.batchQty=Math.max(0,Math.min(Math.max(0,total-(Number(st.completedQty)||0)),n));
+  // Ao iniciar um lote, muda apenas o primeiro pedido prioritário deste produto/variação.
+  if(previous===0&&st.batchQty>0)startFirstMatchingOrder(key);
+ }
  db.productionStatuses[key]=st;save();
+}
+function startFirstMatchingOrder(key){
+ const active=new Set(["Pendente","Recebido","Em produção"]);
+ const candidates=(db.sales||[]).filter(s=>{
+  if(!active.has(String(s.status||"Recebido")))return false;
+  const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,variantId:s.variantId,variantName:s.variantName,colorId:s.colorId,colorName:s.colorName,qty:s.qty||1}];
+  return items.some(item=>{
+   const p=(db.products||[]).find(x=>String(x.id)===String(item.productId));
+   const name=String(p?.name||item.product||s.product||"Produto sem nome");
+   const variant=String(item.variantName||item.colorName||item.variant||"").trim();
+   const itemKey=String(item.productId||name)+"::"+String(item.variantId||item.colorId||variant);
+   return itemKey===String(key);
+  });
+ }).sort((a,b)=>{
+  const ad=a.dueDate||"9999-12-31",bd=b.dueDate||"9999-12-31";
+  if(ad!==bd)return ad.localeCompare(bd);
+  const da=a.dateISO||"9999-12-31",dbb=b.dateISO||"9999-12-31";
+  if(da!==dbb)return da.localeCompare(dbb);
+  const at=a.time||"23:59",bt=b.time||"23:59";
+  if(at!==bt)return at.localeCompare(bt);
+  return String(a.id).localeCompare(String(b.id),undefined,{numeric:true});
+ });
+ const first=candidates[0];
+ if(first&&first.status!=="Em produção"){
+  if(first.status==="Pendente")adjustStockForSale(first,-1,"Início da produção do pedido: "+(first.product||"Venda"));
+  first.status="Em produção";
+  first.pendingShopee=false;
+ }
 }
 function updateProductionTime(key,value,part){
  db.productionStatuses=db.productionStatuses&&typeof db.productionStatuses==="object"?db.productionStatuses:{};
@@ -3473,7 +3506,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '100';
+const GESTOR_APP_VERSION = '101';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
