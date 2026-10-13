@@ -375,7 +375,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <section id="materials" class="hidden">
 <div class="top">
   <div><h1>Materiais</h1><div class="sub">Cadastre filamentos, argolas, LEDs, embalagens e outros componentes usados nos produtos.</div></div>
-  <div class="actions"><button class="btn secondary" onclick="toggle('categoryManager');renderCategories()">⚙ Categorias</button><button class="btn" onclick="openMaterialNew()">+ Novo material</button></div>
+  <div class="actions"><button class="btn secondary" onclick="toggle('categoryManager');renderCategories()">⚙ Categorias</button><button class="btn secondary" onclick="openMaterialRestock()">＋ Adicionar compra a existente</button><button class="btn" onclick="openMaterialNew()">+ Novo material</button></div>
 </div>
 
 <div id="materialForm" class="panel hidden">
@@ -410,7 +410,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
   <div class="actions"><button class="btn" onclick="saveMaterial()">Salvar material</button><button type="button" class="btn secondary" onclick="closeMaterialForm()">Cancelar</button></div>
 </div>
 
-<div id="categoryManager" class="panel hidden category-manager">
+<div id="materialRestockForm" class="panel hidden"><h2>Adicionar compra a material existente</h2><div class="sub">A quantidade será somada ao estoque e a compra aparecerá no Financeiro.</div><div class="formgrid"><div class="field"><label>Material existente</label><select id="mrMaterial"></select></div><div class="field"><label>Quantidade adicionada</label><input id="mrQty" type="number" min="0.01" step="0.01"></div><div class="field"><label>Valor total da compra (R$)</label><input id="mrPrice" type="number" min="0" step="0.01"></div><div class="field"><label>Fornecedor</label><input id="mrSupplier"></div><div class="field"><label>Data da compra</label><input id="mrDate" type="date"></div></div><div id="mrPreview" class="notice" style="margin-top:12px"></div><br><div class="actions"><button class="btn" onclick="addStockToExistingMaterial()">Registrar compra e atualizar estoque</button><button class="btn secondary" onclick="closeMaterialRestock()">Cancelar</button></div></div><div id="categoryManager" class="panel hidden category-manager">
   <div class="top" style="margin-bottom:12px"><div><h2 style="margin:0">Categorias</h2><div class="sub">Defina o nome e a cor usada para identificar os materiais no estoque.</div></div></div>
   <div class="formgrid">
     <div class="field"><label>Nova categoria</label><input id="newCategoryName" placeholder="Ex.: Papelaria"></div>
@@ -1271,6 +1271,26 @@ function updateProductMaterialTotal(){
  const el=document.getElementById("pFilamentCost"); if(el)el.value=totalUnit.toFixed(4);
 }
 
+function openMaterialRestock(){
+ const form=document.getElementById("materialRestockForm");if(!form)return;
+ const select=document.getElementById("mrMaterial");const materials=[...(db.materials||[])].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR"));
+ select.innerHTML=materials.map(m=>"<option value=\""+m.id+"\">"+m.name+" ("+(m.stock||0)+" "+(m.unit||"unidades")+")</option>").join("");
+ if(!materials.length){alert("Cadastre primeiro um material.");return;}
+ document.getElementById("mrQty").value="";document.getElementById("mrPrice").value="";document.getElementById("mrSupplier").value="";document.getElementById("mrDate").value=todayISO();form.classList.remove("hidden");updateMaterialRestockPreview();
+}
+function closeMaterialRestock(){document.getElementById("materialRestockForm")?.classList.add("hidden");}
+function updateMaterialRestockPreview(){
+ const m=(db.materials||[]).find(x=>String(x.id)===String(document.getElementById("mrMaterial")?.value));const q=Number(document.getElementById("mrQty")?.value)||0;const price=Number(document.getElementById("mrPrice")?.value)||0;const stock=Number(m?.stock)||0;const cost=(stock+q)>0?(stock*(Number(m?.unitCost)||0)+price)/(stock+q):0;
+ const el=document.getElementById("mrPreview");if(el)el.textContent=m?"Estoque atual: "+stock+" • Novo estoque: "+(stock+q)+" • Novo custo médio: "+money(cost)+"/"+(m.unit||"unidade"):"Selecione um material.";
+}
+function addStockToExistingMaterial(){
+ const m=(db.materials||[]).find(x=>String(x.id)===String(document.getElementById("mrMaterial")?.value));const q=Number(document.getElementById("mrQty")?.value)||0;const price=Number(document.getElementById("mrPrice")?.value)||0;const supplier=document.getElementById("mrSupplier")?.value.trim()||"";const date=document.getElementById("mrDate")?.value||todayISO();
+ if(!m){alert("Selecione um material.");return;}if(q<=0||price<0){alert("Informe quantidade e valor válidos.");return;}
+ const stock=Math.max(0,Number(m.stock)||0);const total=stock+q;m.unitCost=total>0?(stock*(Number(m.unitCost)||0)+price)/total:price/q;m.stock=total;m.purchaseQty=(Number(m.purchaseQty)||0)+q;m.purchasePrice=(Number(m.purchasePrice)||0)+price;if(supplier)m.supplier=supplier;
+ db.purchases=Array.isArray(db.purchases)?db.purchases:[];db.purchases.unshift({id:Date.now()+1,date:formatDateISO(date),dateISO:date,material:m.name,qty:q,unit:m.unit,value:price,supplier:supplier});save();closeMaterialRestock();renderMaterialsTable();renderFinancePanel();alert("Compra registrada e estoque atualizado.");
+}
+document.addEventListener("input",function(e){if(e.target&&["mrQty","mrPrice"].includes(e.target.id))updateMaterialRestockPreview();});
+document.addEventListener("change",function(e){if(e.target&&e.target.id==="mrMaterial")updateMaterialRestockPreview();});
 function saveMaterial(){
  const purchaseQty=+mPurchaseQty.value||0;
  const purchasePrice=+mPurchasePrice.value||0;
@@ -3535,7 +3555,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '107';
+const GESTOR_APP_VERSION = '108';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
