@@ -3287,6 +3287,7 @@ function renderFinancePanel(){
  const energyRecorded=expenseRows.filter(r=>/energia|eletricidade|eletrica|luz/i.test(String(r.category||"")+" "+String(r.name||""))).reduce((a,r)=>a+r.value,0);
  const maintenanceRecorded=expenseRows.filter(r=>/manuten|reparo|conserto/i.test(String(r.category||"")+" "+String(r.name||""))).reduce((a,r)=>a+r.value,0);
  const filamentRecorded=purchaseRows.filter(r=>/filamento/i.test(String(r.name||"")+" "+String(r.category||""))).reduce((a,r)=>a+r.value,0);
+ const suppliesOut=purchaseRows.filter(r=>!/filamento/i.test(String(r.name||"")+" "+String(r.category||""))).reduce((a,r)=>a+r.value,0);
  // Estimativas de custo geradas a partir dos itens vendidos no mês selecionado.
  const soldItems=reportSales().filter(s=>s.status!=="Cancelado"&&s.status!=="Pendente").flatMap(s=>Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,variantId:s.variantId,colorId:s.colorId,qty:s.qty||1}].map(item=>({...item,_sale:s})));
  const salesCosts=soldItems.reduce((tot,item)=>{const sale=item._sale||{},p=(db.products||[]).find(x=>String(x.id)===String(item.productId));if(!p)return tot;const q=Math.max(0,Number(item.qty)||0),variant={...sale,...item,variantId:item.variantId||sale.variantId,colorId:item.colorId||sale.colorId};const parts=machineUnitCost({...p,printHours:variantForSale(p,variant)?.printHours||p.printHours||0});tot.energy+=Math.max(0,Number(parts.energy)||0)*q;tot.maintenance+=Math.max(0,Number(parts.wear)||0)*q;tot.filament+=Math.max(0,saleRecipeMaterialCost(p,variant,q));return tot;},{energy:0,maintenance:0,filament:0});
@@ -3297,7 +3298,7 @@ function renderFinancePanel(){
  const labor=activeSales.reduce((a,s)=>a+saleLaborAmount(s),0);
  const operating=inflow-production+labor-expenseOut;
  const put=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=money(val);};
- put("finCashIn",inflow);put("finMaterialOut",materialOut);put("finExpenseOut",expenseOut);put("finEnergyOut",energyOut);put("finMaintenanceOut",maintenanceOut);put("finFilamentOut",filamentOut);put("finCashBalance",balance);put("finTotalOut",out);put("finOperatingResult",operating);
+ put("finCashIn",inflow);put("finMaterialOut",materialOut);put("finSuppliesOut",suppliesOut);put("finExpenseOut",expenseOut);put("finEnergyOut",energyOut);put("finMaintenanceOut",maintenanceOut);put("finFilamentOut",filamentOut);put("finCashBalance",balance);put("finTotalOut",out);put("finOperatingResult",operating);
  const balanceEl=document.getElementById("finCashBalance");if(balanceEl)balanceEl.style.color=balance<0?"#b54b4b":"#2f7d57";
  const search=String(document.getElementById("financeSearch")?.value||"").trim().toLocaleLowerCase("pt-BR");
  const typeFilter=String(document.getElementById("financeTypeFilter")?.value||"");
@@ -3556,7 +3557,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '110';
+const GESTOR_APP_VERSION = '111';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
