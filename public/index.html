@@ -1169,6 +1169,14 @@ function findLinkedRecipeMaterial(r){
  if(!wanted)return null;
  return materials.find(m=>String(m.name||"").trim().toLocaleLowerCase("pt-BR")===wanted)||null;
 }
+function isFilamentRecipeMaterial(r){
+ const linked=findLinkedRecipeMaterial(r);
+ const fields=[linked?.category,linked?.type,linked?.name,r?.category,r?.type,r?.name,r?.materialName].map(v=>String(v||"").toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g,""));
+ if(fields.some(v=>/filamento|\bpla\b|pla\+|petg|abs|asa|tpu|nylon|\bpc\b/.test(v)))return true;
+ if(fields.some(v=>/componente|embalagem|papel|argola|led|brinco|saquinho|insumo/.test(v)))return false;
+ const unit=String(linked?.unit||r?.unit||"").toLocaleLowerCase("pt-BR");
+ return /gramas?|g$/.test(unit)&&!/folhas?|unidades?|pares?|metros?|mililitros?|litros?/.test(unit);
+}
 function recipeMaterialUnitCost(r){
  const linked=findLinkedRecipeMaterial(r);
  const current=Number(linked?.unitCost);
@@ -3339,9 +3347,8 @@ function toggleFinanceCostDetails(){const panel=document.getElementById("finance
   const sale=item._sale||{},p=financeProductForItem(item);if(!p)return tot;
   const q=Math.max(0,Number(item.qty)||0),variant={...sale,...item,variantId:item.variantId||sale.variantId,colorId:item.colorId||sale.colorId};
   saleRecipeMaterials(p,variant).forEach(r=>{
-   const linked=findLinkedRecipeMaterial(r),name=String(linked?.name||r.name||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
    const amount=materialConsumptionForSale(p,r,q),cost=amount*recipeMaterialUnitCost(r);
-   if(/filamento|pla\+?|petg|abs|asa|tpu|nylon/.test(name))tot.filament+=cost;else tot.supplies+=cost;
+   if(isFilamentRecipeMaterial(r))tot.filament+=cost;else tot.supplies+=cost;
   });
   return tot;
  },{filament:0,supplies:0});
@@ -3368,7 +3375,7 @@ function toggleFinanceCostDetails(){const panel=document.getElementById("finance
    const sale=item._sale||{},p=financeProductForItem(item);if(!p)return "";
    const qty=Math.max(0,Number(item.qty)||0),variant={...sale,...item,variantId:item.variantId||sale.variantId,colorId:item.colorId||sale.colorId};
    let filament=0,supplies=0;
-   saleRecipeMaterials(p,variant).forEach(r=>{const linked=findLinkedRecipeMaterial(r),name=String(linked?.name||r.name||"").toLowerCase();const c=materialConsumptionForSale(p,r,qty)*recipeMaterialUnitCost(r);if(/filamento|pla|petg|abs|asa|tpu|nylon/i.test(name))filament+=c;else supplies+=c;});
+   saleRecipeMaterials(p,variant).forEach(r=>{const c=materialConsumptionForSale(p,r,qty)*recipeMaterialUnitCost(r);if(isFilamentRecipeMaterial(r))filament+=c;else supplies+=c;});
    supplies+=componentCost(p)*qty;
    const labor=saleLaborAmount({...sale,items:[{...item,qty}],productId:item.productId,qty});
    const parts=machineUnitCost({...p,printHours:variantForSale(p,variant)?.printHours||p.printHours||0});
