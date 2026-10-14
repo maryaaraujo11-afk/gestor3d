@@ -3648,7 +3648,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '115';
+const GESTOR_APP_VERSION = '116';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
@@ -3656,7 +3656,7 @@ async function checkGestorVersion(){
     const data=await r.json();
     const remote=String(data.version||'');
     const seen=localStorage.getItem('gestor3d_app_version')||'';
-    if(remote && seen && remote!==GESTOR_APP_VERSION && remote!==seen && !sessionStorage.getItem('gestor3d_version_reload')){
+    if(remote && remote!==GESTOR_APP_VERSION && !sessionStorage.getItem('gestor3d_version_reload')){
       sessionStorage.setItem('gestor3d_version_reload','1');
       localStorage.setItem('gestor3d_app_version',remote);
       location.reload();
