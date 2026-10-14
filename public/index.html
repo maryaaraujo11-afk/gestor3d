@@ -3323,7 +3323,8 @@ function showFinanceCostCategory(category){
  overlay.classList.add("show");
 }
 function closeFinanceCategoryDetail(){document.getElementById("financeCategoryDetailModal")?.classList.remove("show");}
-function toggleFinanceCostDetails(){const panel=document.getElementById("financeCostDetails"),link=document.getElementById("financeCostDetailLink");if(!panel)return;const show=panel.classList.contains("hidden");panel.classList.toggle("hidden",!show);if(link)link.textContent=show?"Ocultar detalhamefunction renderFinancePanel(){
+function toggleFinanceCostDetails(){const panel=document.getElementById("financeCostDetails"),link=document.getElementById("financeCostDetailLink");if(!panel)return;const show=panel.classList.contains("hidden");panel.classList.toggle("hidden",!show);if(link)link.textContent=show?"Ocultar detalhamento ↑":"Ver detalhamento por produto ↓";}
+function renderFinancePanel(){
  const rows=financeRows();
  const inflow=rows.filter(r=>r.type==="Entrada").reduce((a,r)=>a+r.value,0);
  const materialOut=rows.filter(r=>r.id==="purchase").reduce((a,r)=>a+r.value,0);
@@ -3647,7 +3648,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '114';
+const GESTOR_APP_VERSION = '115';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
