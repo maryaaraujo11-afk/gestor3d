@@ -794,7 +794,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
    <div id="financeCategoryChart" class="finance-category-chart"></div>
   </div>
  </div>
- <div class="panel" style="margin-bottom:14px"><div class="finance-panel-heading"><div><h2>Detalhamento de custos</h2><div class="sub">Custos estimados das vendas e gastos registrados no período selecionado, separados por categoria.</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Categoria</th><th>Origem</th><th style="text-align:right">Valor</th></tr></thead><tbody id="financeCostBreakdown"><tr><td colspan="3">Carregando custos…</td></tr></tbody><tfoot><tr><th colspan="2">Total detalhado estimado</th><th id="financeCostBreakdownTotal" style="text-align:right">R$ 0,00</th></tr></tfoot></table></div><div class="sub" style="margin-top:8px">Estimativas de produção não são novas saídas de caixa. Taxas são calculadas pelo valor líquido informado quando disponível.</div></div>
+ <div class="panel" style="margin-bottom:14px"><div class="finance-panel-heading"><div><h2>Detalhamento de custos</h2><div class="sub">Custos estimados das vendas e gastos registrados no período selecionado, separados por categoria. Compras e consumo estimado aparecem separados para conferência.</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Categoria</th><th>Origem</th><th style="text-align:right">Valor</th></tr></thead><tbody id="financeCostBreakdown"><tr><td colspan="3">Carregando custos…</td></tr></tbody></table></div><div class="sub" style="margin-top:8px">Estimativas de produção não são novas saídas de caixa. Taxas são calculadas pelo valor líquido informado quando disponível.</div></div>
  <div class="finance-workspace">
   <div class="panel finance-transactions-panel">
    <div class="finance-panel-heading finance-transactions-heading">
@@ -3311,7 +3311,7 @@ function renderFinancePanel(){
   "Compras de filamentos registradas":{value:filamentRecorded,source:"Saídas de caixa"},
   "Compras de outros insumos":{value:suppliesOut,source:"Saídas de caixa"}
  };
- const costBody=document.getElementById("financeCostBreakdown");if(costBody){costBody.innerHTML=Object.entries(costBreakdown).map(([name,item])=>`<tr><td><b>${name}</b></td><td>${item.source}</td><td style="text-align:right;white-space:nowrap">${money(item.value)}</td></tr>`).join("");const total=Object.values(costBreakdown).reduce((sum,item)=>sum+Math.max(0,Number(item.value)||0),0);const totalEl=document.getElementById("financeCostBreakdownTotal");if(totalEl)totalEl.textContent=money(total);}
+ const costBody=document.getElementById("financeCostBreakdown");if(costBody){costBody.innerHTML=Object.entries(costBreakdown).map(([name,item])=>`<tr><td><b>${name}</b></td><td>${item.source}</td><td style="text-align:right;white-space:nowrap">${money(item.value)}</td></tr>`).join("");}
  const put=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=money(val);};
  put("finCashIn",inflow);put("finMaterialOut",materialOut);put("finSuppliesOut",suppliesOut);put("finExpenseOut",expenseOut);put("finEnergyOut",energyOut);put("finMaintenanceOut",maintenanceOut);put("finFilamentOut",filamentOut);put("finCashBalance",balance);put("finTotalOut",out);put("finOperatingResult",operating);
  const balanceEl=document.getElementById("finCashBalance");if(balanceEl)balanceEl.style.color=balance<0?"#b54b4b":"#2f7d57";
