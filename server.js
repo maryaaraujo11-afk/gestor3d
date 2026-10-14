@@ -279,11 +279,15 @@ async function withRefresh(userId,storeId, fn){
 function serveStatic(req,res){
   let requestPath = (req.url || "/").split("?")[0];
 
-  if (requestPath === "/" || requestPath === "") {
-    requestPath = "/index.html";
+  if (requestPath === "/" || requestPath === "") requestPath = "/index.html";
+
+  let relativePath;
+  try {
+    relativePath = decodeURIComponent(requestPath).replace(/^\/+/, "");
+  } catch {
+    return json(res,400,{ok:false,error:"URL inválida."});
   }
 
-  const relativePath = decodeURIComponent(requestPath).replace(/^\/+/, "");
   const publicDir = path.resolve(__dirname, "public");
   const file = path.resolve(publicDir, relativePath);
 
@@ -291,21 +295,18 @@ function serveStatic(req,res){
     return json(res,403,{error:"forbidden"});
   }
 
-  if (!fs.existsSync(file)) {
-    console.log("Arquivo não encontrado:", file);
-    console.log("Diretório atual:", __dirname);
-    console.log("public existe:", fs.existsSync(publicDir));
-
-    return json(res,404,{
-      ok:false,
-      error:"not found",
-      requested:requestPath,
-      file:file
-    });
+  let stat;
+  try {
+    stat = fs.statSync(file);
+  } catch {
+    return json(res,404,{ok:false,error:"not found"});
   }
 
-  const ext=path.extname(file).toLowerCase();
+  // Nunca tente transmitir diretórios como arquivos: isso pode emitir EISDIR
+  // e derrubar o processo Node quando scanners consultam caminhos inexistentes.
+  if (!stat.isFile()) return json(res,404,{ok:false,error:"not found"});
 
+  const ext=path.extname(file).toLowerCase();
   const types={
     ".html":"text/html; charset=utf-8",
     ".js":"text/javascript; charset=utf-8",
@@ -320,13 +321,19 @@ function serveStatic(req,res){
     ".ico":"image/x-icon"
   };
 
-  const noStore = [".html",".js",".json",".webmanifest"].includes(ext);
+  const noStore = [".html",".js",".json",".webmanifest"];
   res.writeHead(200,{
     "Content-Type":types[ext]||"application/octet-stream",
-    "Cache-Control": noStore ? "no-store, no-cache, must-revalidate, max-age=0" : "public, max-age=31536000, immutable"
+    "Cache-Control": noStore.includes(ext) ? "no-store, no-cache, must-revalidate, max-age=0" : "public, max-age=31536000, immutable"
   });
 
-  fs.createReadStream(file).pipe(res);
+  const stream=fs.createReadStream(file);
+  stream.on("error",err=>{
+    console.error("Falha ao transmitir arquivo estático:",err.message);
+    if(!res.headersSent) json(res,500,{ok:false,error:"Falha ao ler arquivo."});
+    else res.destroy(err);
+  });
+  stream.pipe(res);
 }
 
 const server=http.createServer(async(req,res)=>{
