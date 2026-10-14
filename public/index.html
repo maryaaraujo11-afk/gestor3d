@@ -1670,7 +1670,7 @@ function adjustStockForSale(s, direction, note){
    db.movements.unshift({id:Date.now()+Math.random(),date:new Date().toLocaleString("pt-BR"),materialId:m.id,material:m.name,type:direction<0?"saída":"entrada",qty:Math.abs(use),note, before, after:m.stock});
  });
 }
-function saleStatusKey(status){ return ({"Pendente":"pendente","Recebido":"recebido","Em produção":"producao","Pronto":"pronto","Pronto para embalar":"pronto-embalar","Pronto":"embalando","Enviado":"enviado","Entregue":"entregue","Cancelado":"cancelado"}[status]||"recebido"); }
+function saleStatusKey(status){ return ({"Pendente":"pendente","Recebido":"recebido","Em produção":"producao","Pronto":"pronto","Pronto para embalar":"pronto-embalar","Enviado":"enviado","Entregue":"entregue","Cancelado":"cancelado"}[status]||"recebido"); }
 function applySaleStatusColor(el){ if(!el)return; el.className="status-select status-"+saleStatusKey(el.value); }
 function updateSaleStatus(id,value){ const s=db.sales.find(x=>String(x.id)===String(id)); if(!s)return; const wasPending=s.status==="Pendente"; if(wasPending&&value!=="Pendente"&&value!=="Cancelado")adjustStockForSale(s,-1,`Pedido Shopee confirmado: ${s.product||"Venda"}`); if(!wasPending&&value==="Pendente")adjustStockForSale(s,1,`Pedido movido para pendente: ${s.product||"Venda"}`); s.status=value; s.pendingShopee=value==="Pendente"; if(value==="Entregue"&&!s.completedDate)s.completedDate=todayISO(); save(); const el=document.querySelector(`select[data-sale-status="${id}"]`); applySaleStatusColor(el); }
 function startEditSale(id){
@@ -3556,7 +3556,7 @@ setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '109';
+const GESTOR_APP_VERSION = '110';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
