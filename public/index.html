@@ -794,7 +794,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
    <div id="financeCategoryChart" class="finance-category-chart"></div>
   </div>
  </div>
- <div class="panel" style="margin-bottom:14px"><div class="finance-panel-heading"><div><h2>Detalhamento de custos</h2><div class="sub">Custos estimados dos produtos vendidos no período selecionado. Mostra o custo consumido pelas vendas, não as compras de estoque.</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Categoria</th><th>Origem</th><th style="text-align:right">Valor</th></tr></thead><tbody id="financeCostBreakdown"><tr><td colspan="3">Carregando custos…</td></tr></tbody></table></div><div class="sub" style="margin-top:8px">Valores estimados de consumo por vendas; compras de estoque e despesas pagas já aparecem nos indicadores de caixa acima.</div></div>
+ <div class="panel" style="margin-bottom:14px"><div class="finance-panel-heading"><div><h2>Detalhamento de custos</h2><div class="sub">Custos estimados dos produtos vendidos no período selecionado. Mostra o custo consumido pelas vendas, não as compras de estoque.</div></div><a href="#" id="financeCostDetailLink" onclick="event.preventDefault();toggleFinanceCostDetails()">Ver detalhamento por produto ↓</a></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Categoria</th><th>Origem</th><th style="text-align:right">Valor</th></tr></thead><tbody id="financeCostBreakdown"><tr><td colspan="3">Carregando custos…</td></tr></tbody></table></div><div id="financeCostDetails" class="hidden" style="margin-top:16px"><h3>Custos por produto vendido</h3><div class="sub" style="margin-bottom:8px">Cada linha mostra a estimativa por produto/variação. Taxas são distribuídas proporcionalmente ao valor bruto da venda. Valores sem ficha de custo podem aparecer zerados.</div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Data</th><th>Produto / variação</th><th>Qtd.</th><th>Filamentos</th><th>Outros insumos</th><th>Mão de obra</th><th>Energia</th><th>Manutenção</th><th>Depreciação</th><th>Taxas</th><th>Total estimado</th></tr></thead><tbody id="financeCostDetailsBody"></tbody></table></div></div><div class="sub" style="margin-top:8px">Valores estimados de consumo por vendas; compras de estoque e despesas pagas já aparecem nos indicadores de caixa acima.</div></div>
  <div class="finance-workspace">
   <div class="panel finance-transactions-panel">
    <div class="finance-panel-heading finance-transactions-heading">
@@ -3279,6 +3279,7 @@ function financeRows(){
  });
  return rows.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }
+function toggleFinanceCostDetails(){const panel=document.getElementById("financeCostDetails"),link=document.getElementById("financeCostDetailLink");if(!panel)return;const show=panel.classList.contains("hidden");panel.classList.toggle("hidden",!show);if(link)link.textContent=show?"Ocultar detalhamento ↑":"Ver detalhamento por produto ↓";}
 function renderFinancePanel(){
  const rows=financeRows();
  const inflow=rows.filter(r=>r.type==="Entrada").reduce((a,r)=>a+r.value,0);
@@ -3325,6 +3326,24 @@ function renderFinancePanel(){
   "Depreciação da impressora":{value:salesDepreciation,source:"Depreciação estimada pelas horas de impressão"}
  };
  const costBody=document.getElementById("financeCostBreakdown");if(costBody){costBody.innerHTML=Object.entries(costBreakdown).map(([name,item])=>`<tr><td><b>${name}</b></td><td>${item.source}</td><td style="text-align:right;white-space:nowrap">${money(item.value)}</td></tr>`).join("");}
+ const detailsBody=document.getElementById("financeCostDetailsBody");
+ if(detailsBody){
+  const saleGrossTotal=costSales.reduce((sum,s)=>sum+Math.max(0,Number(s.grossValue??s.value)||0),0);
+  detailsBody.innerHTML=soldItems.map(item=>{
+   const sale=item._sale||{},p=(db.products||[]).find(x=>String(x.id)===String(item.productId));if(!p)return "";
+   const qty=Math.max(0,Number(item.qty)||0),variant={...sale,...item,variantId:item.variantId||sale.variantId,colorId:item.colorId||sale.colorId};
+   let filament=0,supplies=0;
+   saleRecipeMaterials(p,variant).forEach(r=>{const linked=findLinkedRecipeMaterial(r),name=String(linked?.name||r.name||"").toLowerCase();const c=materialConsumptionForSale(p,r,qty)*recipeMaterialUnitCost(r);if(/filamento|pla|petg|abs|asa|tpu|nylon/i.test(name))filament+=c;else supplies+=c;});
+   supplies+=componentCost(p)*qty;
+   const labor=saleLaborAmount({...sale,items:[{...item,qty}],productId:item.productId,qty});
+   const parts=machineUnitCost({...p,printHours:variantForSale(p,variant)?.printHours||p.printHours||0});
+   const energy=Math.max(0,Number(parts.energy)||0)*qty,maintenance=Math.max(0,Number(parts.wear)||0)*qty,depreciation=Math.max(0,Number(parts.depreciation)||0)*qty;
+   const gross=Math.max(0,Number(sale.grossValue??sale.value)||0),feeTotal=Number(sale.fee)>0?Number(sale.fee):Math.max(0,gross-(Number(sale.netValue)||0)),fee=saleGrossTotal>0?feeTotal*(gross/saleGrossTotal):0;
+   const total=filament+supplies+labor+energy+maintenance+depreciation+fee;
+   const nm=(p.name||item.product||"Produto")+(item.variantName||item.color||item.variant?" / "+(item.variantName||item.color||item.variant):"");
+   return "<tr><td>"+formatDateISO(sale.dateISO||sale.date||"")+"</td><td>"+nm+"</td><td>"+qty+"</td><td>"+money(filament)+"</td><td>"+money(supplies)+"</td><td>"+money(labor)+"</td><td>"+money(energy)+"</td><td>"+money(maintenance)+"</td><td>"+money(depreciation)+"</td><td>"+money(fee)+"</td><td><b>"+money(total)+"</b></td></tr>";
+  }).join("")||'<tr><td colspan="11">Nenhum produto vendido no período.</td></tr>';
+ }
  const put=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=money(val);};
  put("finCashIn",inflow);put("finMaterialOut",materialOut);put("finSuppliesOut",suppliesOut);put("finExpenseOut",expenseOut);put("finEnergyOut",energyOut);put("finMaintenanceOut",maintenanceOut);put("finFilamentOut",filamentOut);put("finCashBalance",balance);put("finTotalOut",out);put("finOperatingResult",operating);
  const balanceEl=document.getElementById("finCashBalance");if(balanceEl)balanceEl.style.color=balance<0?"#b54b4b":"#2f7d57";
