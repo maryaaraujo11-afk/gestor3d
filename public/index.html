@@ -2364,7 +2364,9 @@ function showShopeeHelp(){
 
 let shopeeCache={orders:{},products:{},status:{}};
 
+const SHOPEE_API_BASE="https://givfacbmlhjizrmgguzi.supabase.co/functions/v1/gestor3d-shopee";
 async function api(url,opts={}){
+ const endpoint=url.startsWith("/api/")?SHOPEE_API_BASE+url:url;
  const headers={"Content-Type":"application/json",...(opts.headers||{})};
  try{
    const client=window.gestorSupabase;
@@ -2374,7 +2376,7 @@ async function api(url,opts={}){
      if(token)headers.Authorization="Bearer "+token;
    }
  }catch(e){console.warn("Não foi possível obter a sessão para a API:",e);}
- const r=await fetch(url,{...opts,headers});
+ const r=await fetch(endpoint,{...opts,headers,credentials:"include"});
  const d=await r.json().catch(()=>({error:"Resposta inválida"}));
  if(!r.ok||d.ok===false) throw new Error(d.error||"Erro na API");
  return d;
