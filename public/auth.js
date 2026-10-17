@@ -1,7 +1,7 @@
 (async function(){
   const SUPABASE_URL="https://givfacbmlhjizrmgguzi.supabase.co";
   const SUPABASE_KEY="sb_publishable_-RaV-4hmFnLPyGhewGQZeg_1I_fs_wH";
-  const APP_URL="https://gestor3d-z1u5.onrender.com";
+  const APP_URL=(location.protocol==="http:"||location.protocol==="https:")?location.origin:"https://gestor3d-z1u5.onrender.com";
 
   async function ensureSupabase(){
     if(window.supabase?.createClient)return;
