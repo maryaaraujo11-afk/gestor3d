@@ -2384,7 +2384,8 @@ async function api(url,opts={}){
 async function connectShopee(store){
  try{
    const d=await api(`/api/shopee/authorize/${store}`);
-   window.location.href=d.url;
+   if(!d || typeof d.url!=="string" || !/^https:\/\//i.test(d.url)) throw new Error(d?.error || "O backend não retornou um link válido de autorização. Nenhuma página foi aberta.");
+   window.location.assign(d.url);
  }catch(e){alert("Não foi possível iniciar a autorização: "+e.message+"\n\nConfira o backend e as credenciais Shopee.");}
 }
 async function refreshShopee(store){
