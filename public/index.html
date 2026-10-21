@@ -345,8 +345,11 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <div class="notice" id="cloudBackupStatus" style="margin-top:10px">Backup na nuvem desativado. Seus backups já salvos na nuvem não foram apagados.</div>
 <div class="actions" style="margin-top:12px">
 <button class="btn secondary" type="button" onclick="restoreLatestAutoBackup()">↶ Restaurar último local</button>
+<button class="btn secondary" type="button" onclick="exportGestorData()">↓ Exportar dados para migrar/backup</button>
+<button class="btn secondary" type="button" onclick="document.getElementById('importGestorDataFile').click()">↑ Importar backup neste navegador</button>
+<input id="importGestorDataFile" type="file" accept=".json,application/json" style="display:none" onchange="importGestorData(this)">
 </div>
-<div class="sub" style="margin-top:10px">Os backups locais ficam neste navegador. Para evitar perda de dados, exporte uma cópia regularmente e guarde-a em outro local.</div>
+<div class="sub" style="margin-top:10px">Para levar os dados do sistema local ao endereço online, exporte o arquivo aqui no navegador original e importe-o no outro endereço. A importação substitui os dados do navegador de destino; antes disso, o sistema fará um backup automático dos dados que já estiverem nele.</div>
 </div>
 <div class="panel"><h2>Logo para orçamentos</h2><div class="formgrid">
 <div class="field"><label>Enviar logo</label><input id="companyLogoInput" type="file" accept="image/png,image/jpeg,image/webp" onchange="saveCompanyLogo(this)"><div class="sub">A logo fica salva neste navegador e será usada nos orçamentos impressos.</div></div>
@@ -815,6 +818,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 
 <script>
 const KEY='gestor3d_v1';
+const HAD_SAVED_DB=!!localStorage.getItem(KEY);
 let db=JSON.parse(localStorage.getItem(KEY)||'{"products":[],"sales":[],"materials":[]}');
 db.materials=db.materials||[];
 db.categories=db.categories||[
@@ -854,7 +858,9 @@ function seedTagProduct(){
  db.products.push({id:Date.now()+15,name:"TAG em Papel Fotográfico com Brinco",sku:"TAG-PAPEL-BRINCO",store:"F4R Studio 3D",shopeeSku:"",shopeeName:"",materials:[{materialId:paper.id,name:paper.name,qty:1/15,unit:"folhas",unitCost:paper.unitCost},{materialId:earring.id,name:earring.name,qty:2,unit:"unidades",unitCost:earring.unitCost}],components:[],filamentCost:(1/15)*paper.unitCost+2*earring.unitCost,pack:0,labor:0,other:0,fee:20,margin:30,stock:0,printHours:0,shopeeItemId:"",shopeeModelId:"0",stockManaged:false});
  localStorage.setItem(KEY,JSON.stringify(db));
 }
-seedTagProduct();
+// Não inserir dados pré-carregados em um endereço novo do Cloudflare Pages.
+// A versão local mantém a migração existente; no site online os dados serão importados do backup local.
+if(location.hostname!=='gestor3d-2be.pages.dev') seedTagProduct();
 
 // Migração inicial: garante apenas UMA cópia do pedido que estava sendo cadastrado antes do erro da V28.
 function seedPedidoEmAndamento(){
@@ -883,7 +889,7 @@ function seedPedidoEmAndamento(){
  });
  localStorage.setItem(KEY,JSON.stringify(db));
 }
-seedPedidoEmAndamento();
+if(location.hostname!=='gestor3d-2be.pages.dev' && HAD_SAVED_DB) seedPedidoEmAndamento();
 function normalizeSavedSaleDueDates(){
  let changed=false;
  (db.sales||[]).forEach(s=>{
@@ -1038,6 +1044,32 @@ async function restoreLatestAutoBackup(){
  }catch(e){alert("Não foi possível restaurar o backup.");}
 }
 
+async function exportGestorData(){
+ try{
+  const payload={app:"Gestor 3D",formatVersion:1,exportedAt:new Date().toISOString(),data:db};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json;charset=utf-8"});
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download="gestor3d-backup-"+new Date().toISOString().slice(0,10)+".json";
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  alert("Backup exportado. Guarde esse arquivo em local seguro antes de importar em outro endereço.");
+ }catch(e){alert("Não foi possível exportar o backup: "+e.message);}
+}
+async function importGestorData(input){
+ const file=input?.files?.[0]; if(!file)return;
+ input.value="";
+ try{
+  const raw=await file.text(),parsed=JSON.parse(raw),incoming=parsed?.data&&typeof parsed.data==="object"?parsed.data:parsed;
+  if(!incoming||typeof incoming!=="object"||!Array.isArray(incoming.products)||!Array.isArray(incoming.sales)){
+   alert("Esse arquivo não parece ser um backup válido do Gestor 3D. Nenhum dado foi alterado.");return;
+  }
+  const summary="Produtos: "+incoming.products.length+"\nVendas/pedidos: "+incoming.sales.length+"\nMateriais/insumos: "+(incoming.materials||[]).length+"\n\nO sistema vai guardar um backup dos dados atuais deste navegador antes da importação. Os dados atuais serão substituídos pelo conteúdo do arquivo. Deseja continuar?";
+  if(!confirm("Importar backup do Gestor 3D?\n\n"+summary))return;
+  await createAutoBackup(JSON.stringify(db),"antes da importação de arquivo");
+  localStorage.setItem(KEY,JSON.stringify(incoming));
+  alert("Backup importado. O Gestor 3D será recarregado para carregar os dados.");
+  location.reload();
+ }catch(e){alert("Não foi possível importar esse arquivo. Nenhum dado foi substituído. Detalhe: "+e.message);}
+}
 function save(){
  const current=JSON.stringify(db);
  // Antes de substituir os dados atuais, guarda a versão anterior.
