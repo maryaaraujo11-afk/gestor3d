@@ -340,15 +340,13 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 </div></div>
 <div class="panel">
 <h2>💾 Backup automático</h2>
-<div class="sub" style="margin-bottom:14px">O Gestor 3D mantém cópias automáticas locais e também pode salvar versões na nuvem, protegidas pela sua conta.</div>
+<div class="sub" style="margin-bottom:14px">O Gestor 3D mantém backups automáticos somente neste navegador. A sincronização com a nuvem está desativada para reduzir o tráfego e manter o sistema local.</div>
 <div class="notice" id="backupStatus">Backup local: verificando...</div>
-<div class="notice" id="cloudBackupStatus" style="margin-top:10px">Backup na nuvem: verificando...</div>
+<div class="notice" id="cloudBackupStatus" style="margin-top:10px">Backup na nuvem desativado. Seus backups já salvos na nuvem não foram apagados.</div>
 <div class="actions" style="margin-top:12px">
 <button class="btn secondary" type="button" onclick="restoreLatestAutoBackup()">↶ Restaurar último local</button>
-<button class="btn secondary" type="button" onclick="restoreLatestCloudBackup()">☁️ Restaurar da nuvem</button>
-<button class="btn" type="button" onclick="backupCurrentToCloud()">☁️ Fazer backup agora</button>
 </div>
-<div class="sub" style="margin-top:10px">A nuvem guarda as últimas 20 versões da sua conta. O backup local continua funcionando mesmo sem internet.</div>
+<div class="sub" style="margin-top:10px">Os backups locais ficam neste navegador. Para evitar perda de dados, exporte uma cópia regularmente e guarde-a em outro local.</div>
 </div>
 <div class="panel"><h2>Logo para orçamentos</h2><div class="formgrid">
 <div class="field"><label>Enviar logo</label><input id="companyLogoInput" type="file" accept="image/png,image/jpeg,image/webp" onchange="saveCompanyLogo(this)"><div class="sub">A logo fica salva neste navegador e será usada nos orçamentos impressos.</div></div>
@@ -969,57 +967,18 @@ function getBackupDeviceId(){
  if(!id){id=(crypto?.randomUUID?crypto.randomUUID():("dev-"+Date.now()+"-"+Math.random().toString(36).slice(2)));localStorage.setItem("gestor3d_backup_device_id",id);}
  return id;
 }
-async function cloudBackup(snapshot,reason="automático"){
- try{
-   const client=window.gestorSupabase;
-   if(!client)return false;
-   const {data:{user}}=await client.auth.getUser();
-   if(!user)return false;
-   let parsed=typeof snapshot==="string"?JSON.parse(snapshot):snapshot;
-   const {error}=await client.from("gestor3d_backups").insert({
-     user_id:user.id,device_id:getBackupDeviceId(),reason,data:parsed,app_version:"V58"
-   });
-   if(error)throw error;
-   const {data:rows}=await client.from("gestor3d_backups").select("id").eq("user_id",user.id).order("created_at",{ascending:false}).range(CLOUD_BACKUP_LIMIT,9999);
-   if(Array.isArray(rows)&&rows.length)await client.from("gestor3d_backups").delete().in("id",rows.map(x=>x.id));
-   updateCloudBackupStatus();
-   return true;
- }catch(e){console.warn("Backup na nuvem indisponível:",e);updateCloudBackupStatus();return false;}
-}
-async function getLatestCloudBackup(){
- try{
-   const client=window.gestorSupabase;if(!client)return null;
-   const {data:{user}}=await client.auth.getUser();if(!user)return null;
-   const {data,error}=await client.from("gestor3d_backups").select("id,created_at,reason,data,app_version").eq("user_id",user.id).order("created_at",{ascending:false}).limit(1).maybeSingle();
-   if(error)throw error;return data||null;
- }catch(e){console.warn("Não foi possível consultar o backup na nuvem:",e);return null;}
-}
+// Sincronização com Supabase desativada: o Gestor 3D permanece local.
+async function cloudBackup(){ return false; }
+async function getLatestCloudBackup(){ return null; }
 async function updateCloudBackupStatus(){
- const el=document.getElementById("cloudBackupStatus");if(!el)return;
- try{
-   const latest=await getLatestCloudBackup();
-   if(!latest){el.textContent="Backup na nuvem: nenhum backup encontrado.";return;}
-   el.textContent="Último backup na nuvem: "+new Date(latest.created_at).toLocaleString("pt-BR")+" • "+(latest.reason||"automático");
- }catch(e){el.textContent="Backup na nuvem: aguardando conexão.";}
+ const el=document.getElementById("cloudBackupStatus");
+ if(el)el.textContent="Backup na nuvem desativado. Backups anteriores permanecem preservados no Supabase.";
 }
 async function restoreLatestCloudBackup(){
- const latest=await getLatestCloudBackup();
- if(!latest){alert("Ainda não existe backup na nuvem para esta conta.");return;}
- if(!confirm("Restaurar o último backup da nuvem? Os dados atuais deste navegador serão substituídos pela versão salva na nuvem."))return;
- try{
-   const parsed=typeof latest.data==="string"?JSON.parse(latest.data):latest.data;
-   localStorage.setItem(KEY,JSON.stringify(parsed));
-   lastSavedSnapshot=JSON.stringify(parsed);
-   alert("Backup da nuvem restaurado com sucesso. O Gestor 3D será recarregado.");
-   location.reload();
- }catch(e){alert("Não foi possível restaurar o backup da nuvem.");}
+ alert("A restauração da nuvem está desativada nesta versão local. Seus dados na nuvem não foram apagados.");
 }
 async function backupCurrentToCloud(){
- const current=localStorage.getItem(KEY)||"";
- if(!current){alert("Ainda não há dados para enviar para a nuvem.");return;}
- const ok=await cloudBackup(current,"backup manual");
- if(ok)alert("Backup enviado para a nuvem com sucesso! ☁️");
- else alert("Não foi possível enviar o backup. Verifique se você está conectado à sua conta.");
+ alert("O backup na nuvem está desativado nesta versão local. Use o backup local e exporte uma cópia de segurança.");
 }
 
 function openBackupDB(){
@@ -1087,7 +1046,7 @@ function save(){
  }
  localStorage.setItem(KEY,current);
  lastSavedSnapshot=current;
- cloudBackup(current,"salvamento automático");
+ // Sincronização automática com Supabase desativada nesta versão local.
  try{render();}catch(e){console.error("Pedido salvo, mas houve erro ao atualizar a tela:",e);}
 }
 function show(id,btn){if(id==='sales')setTimeout(populateSaleProducts,0);document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render();if(id==='shopee'){refreshShopeeStatus();renderShopeeStock();}}
@@ -3585,10 +3544,7 @@ runCalc();
 render();
 
 try{const q=new URLSearchParams(location.search);if(q.get("shopee_connected")){history.replaceState({},document.title,"/");setTimeout(()=>{show("shopee");refreshShopeeStatus();alert("Loja Shopee autorizada com sucesso!");},200);}}catch(e){}
-updateCalcBasisUI();
-updateBackupStatus();
-updateCloudBackupStatus();
-setInterval(()=>{
+updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
  const current=localStorage.getItem(KEY)||"";
  if(current && current!==lastSavedSnapshot) lastSavedSnapshot=current;
  if(current) createAutoBackup(current,"backup periódico");
