@@ -161,22 +161,6 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <!-- Gestor 3D V58 — trigger de publicação -->
 </head>
 <body>
-<div id="authGate" class="auth-gate">
-  <div class="auth-card">
-    <div class="auth-brand">Gestor 3D<small>Vendas • Estoque • Lucro</small></div>
-    <h1 id="authTitle">Entrar no Gestor 3D</h1>
-    <div id="authSubtitle" class="auth-sub">Entre para acessar suas vendas, produtos e orçamentos.</div>
-    <form id="authForm">
-      <div id="authNameField" class="auth-field hidden"><label for="authName">Seu nome</label><input id="authName" autocomplete="name" placeholder="Seu nome"></div>
-      <div class="auth-field"><label for="authEmail">E-mail</label><input id="authEmail" type="email" autocomplete="email" required placeholder="seu@email.com"></div>
-      <div class="auth-field"><label for="authPassword">Senha</label><input id="authPassword" type="password" autocomplete="current-password" required placeholder="Mínimo de 6 caracteres"></div>
-      <div id="authMessage" class="auth-message"></div>
-      <button id="authSubmit" class="auth-submit" type="submit">Entrar</button>
-    </form>
-    <div class="auth-footer"><button id="authForgot" class="auth-link" type="button">Esqueci minha senha</button></div>
-    <div class="auth-footer"><button id="authToggle" class="auth-link" type="button">Criar uma conta</button></div>
-  </div>
-</div>
 <div class="app">
 <aside class="side">
   <div class="brand">Gestor 3D<small>V58 • Vendas • Estoque • Lucro</small></div>
@@ -196,13 +180,13 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
     <button onclick="show('movements',this)">↕ <span>Movimentações</span></button>
     <button onclick="show('consumption',this)">◫ <span>Consumo de materiais</span></button>
     <div class="nav-title">CANAIS</div>
-    <button onclick="show('shopee',this)">◇ <span>Shopee</span></button>
+
     <button onclick="show('storefront',this)">▱ <span>Vitrine</span></button>
     <button onclick="show('marketing',this)">✦ <span>Marketing</span></button>
     <div class="nav-title">SISTEMA</div>
     <button onclick="show('settings',this)">⚙ <span>Configurações</span></button>
   </div>
-<div class="auth-user" id="authUserLabel"></div><button class="auth-logout" onclick="gestorAuthLogout()">↪ Sair da conta</button>
+
 </aside>
 <main class="main">
 <section id="dashboard">
@@ -826,61 +810,11 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 </section>
 
 
-<section id="shopee" class="hidden">
-<div class="top"><div><h1>Integração Shopee</h1><div class="sub">Autorização OAuth, pedidos, produtos e estoque.</div></div><div class="actions"><button class="btn secondary" onclick="refreshShopeeStatus()">↻ Atualizar status</button></div></div>
-<div class="channel-tabs">
-<button class="channel-tab active" onclick="channelTab('shopeeConnect',this)">🔗 Conexão</button>
-<button class="channel-tab" onclick="channelTab('shopeeOrders',this)">🛒 Pedidos</button>
-<button class="channel-tab" onclick="channelTab('shopeeProducts',this)">📦 Produtos</button>
-<button class="channel-tab" onclick="channelTab('shopeeStock',this)">📊 Estoque</button>
-</div>
-<div id="shopeeConnect">
-<div class="channel-grid">
-<div class="channel-card">
-<div class="channel-head"><div class="channel-logo">S</div><div><h2 style="margin:0">F4R Studio 3D</h2><div id="shopStatus1" class="sub"><span class="status-dot"></span>Verificando...</div></div></div>
-<div class="formgrid">
-<div class="field"><label>Nome interno</label><input id="shopName1" placeholder="Ex.: Minha F4R Studio 3D"></div>
-<div class="field"><label>Shop ID</label><input id="shopId1" disabled placeholder="Após autorização"></div>
-</div>
-<div class="quote-actions"><button class="btn" onclick="connectShopee(1)">🔗 Conectar F4R Studio 3D</button><button class="btn secondary" onclick="refreshShopee(1)">↻ Renovar token</button></div>
-</div>
-<div class="channel-card">
-<div class="channel-head"><div class="channel-logo">S</div><div><h2 style="margin:0">F4RM 3D</h2><div id="shopStatus2" class="sub"><span class="status-dot"></span>Verificando...</div></div></div>
-<div class="formgrid">
-<div class="field"><label>Nome interno</label><input id="shopName2" placeholder="Ex.: Minha F4RM 3D"></div>
-<div class="field"><label>Shop ID</label><input id="shopId2" disabled placeholder="Após autorização"></div>
-</div>
-<div class="quote-actions"><button class="btn" onclick="connectShopee(2)">🔗 Conectar F4RM 3D</button><button class="btn secondary" onclick="refreshShopee(2)">↻ Renovar token</button></div>
-</div>
-</div>
-<div class="notice" style="margin-top:15px"><b>Importante:</b> a senha da Shopee não é armazenada pelo Gestor 3D. A autorização acontece na própria Shopee. O backend guarda somente os tokens necessários para as APIs.</div>
-<div class="integration-steps">
-<div class="step"><b>1. App Shopee</b><span>Partner ID e Partner Key no Open Platform.</span></div>
-<div class="step"><b>2. Autorizar loja</b><span>A loja entra na Shopee e concede as permissões.</span></div>
-<div class="step"><b>3. Sincronizar</b><span>Pedidos, anúncios e estoque passam a conversar com o Gestor.</span></div>
-</div>
-</div>
 
-<div id="shopeeOrders" class="hidden">
-<div class="sync-bar"><div><b>Pedidos Shopee</b><div class="sub">Sincroniza pedidos de hoje e também envios a processar dos últimos 15 dias.</div></div><div class="actions"><select id="orderStore"><option value="1">F4R Studio 3D</option><option value="2">F4RM 3D</option></select><button class="btn secondary" onclick="syncShopeeOrders()">↻ Sincronizar pedidos</button></div></div>
-<div id="shopeeOrderMsg" class="notice hidden" style="margin-top:12px"></div>
-<div class="panel" style="margin-top:14px"><table><thead><tr><th>Pedido</th><th>Loja</th><th>Produto/SKU</th><th>Qtd.</th><th>Status</th><th>Total</th><th>Ação</th></tr></thead><tbody id="shopeeOrdersTable"><tr><td colspan="7" class="sub">Nenhum pedido sincronizado.</td></tr></tbody></table></div>
-</div>
-
-<div id="shopeeProducts" class="hidden">
-<div class="sync-bar"><div><b>Produtos Shopee</b><div class="sub">Importe anúncios e use o Item ID para vincular ao produto interno.</div></div><div class="actions"><select id="productStore"><option value="1">F4R Studio 3D</option><option value="2">F4RM 3D</option></select><button class="btn secondary" onclick="syncShopeeProducts()">↓ Importar produtos</button><button id="importAllShopeeBtn" class="btn secondary" style="display:none;margin-left:6px"></button></div></div>
-<div class="panel" style="margin-top:14px"><table><thead><tr><th>Foto</th><th>Item ID</th><th>SKU</th><th>Nome</th><th>Estoque Shopee</th><th>Vincular</th></tr></thead><tbody id="shopeeProductsTable"><tr><td colspan="5" class="sub">Nenhum produto importado.</td></tr></tbody></table></div>
-</div>
-
-<div id="shopeeStock" class="hidden">
-<div class="sync-bar"><div><b>Sincronização de estoque</b><div class="sub">Envia o estoque do produto interno para o anúncio vinculado.</div></div><div class="actions"><select id="stockStore"><option value="1">F4R Studio 3D</option><option value="2">F4RM 3D</option></select><button class="btn" onclick="pushAllShopeeStock()">↑ Atualizar estoque</button></div></div>
-<div class="panel" style="margin-top:14px"><table><thead><tr><th>Produto</th><th>SKU</th><th>Item ID</th><th>Estoque interno</th><th>Status</th></tr></thead><tbody id="shopeeStockTable"></tbody></table></div>
-</div>
-</section>
 
 </main></div>
 
-<script src="/auth.js"></script>
+
 <script>
 const KEY='gestor3d_v1';
 let db=JSON.parse(localStorage.getItem(KEY)||'{"products":[],"sales":[],"materials":[]}');
