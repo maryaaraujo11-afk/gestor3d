@@ -1771,6 +1771,12 @@ function renderSalesTable(){
    const group={"Pendente":0,"Recebido":1,"Em produção":1,"Pronto":2,"Pronto para embalar":3,"Pronto":4,"Enviado":5,"Entregue":6,"Cancelado":7};
    const ga=group[a.status]??9,gb=group[b.status]??9;
    if(ga!==gb)return ga-gb;
+   // Pedidos já enviados: mais recentes primeiro (data da compra e horário).
+   if(a.status==="Enviado"&&b.status==="Enviado"){
+     const at=a.dateISO||"",bt=b.dateISO||"";
+     if(at!==bt)return bt.localeCompare(at);
+     return String(b.time||"00:00").localeCompare(String(a.time||"00:00"));
+   }
    const ad=a.dueDate||"9999-12-31",bd=b.dueDate||"9999-12-31";
    if(ad!==bd)return ad.localeCompare(bd);
    const at=a.dateISO||"",bt=b.dateISO||"";
