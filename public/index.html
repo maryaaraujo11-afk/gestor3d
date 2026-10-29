@@ -2268,6 +2268,33 @@ table tbody tr:hover td{background:#fcf7f2}
  .state-map-layout{gap:12px!important}
 }
 
+
+/* V127 — acabamento editorial do dashboard e leitura do gráfico */
+#dailySalesPanel{padding:22px 22px 17px!important;background:linear-gradient(145deg,#fffdfa 0%,#fffaf6 100%)!important;border-color:#e6d8cd!important;box-shadow:0 8px 24px rgba(86,57,39,.045)!important}
+#dailySalesPanel>.top{display:flex!important;align-items:center!important;padding:0 0 14px!important;margin:0 0 10px!important;border-bottom:1px solid #f0e5dc!important}
+#dailySalesPanel h2{font-size:17px!important;font-weight:850!important;letter-spacing:-.4px!important;margin:0 0 5px!important}
+#dailySalesSubtitle{font-size:11px!important;color:#958176!important}
+#dailySalesTotal{font-size:21px!important;color:#5d4031!important;letter-spacing:-.6px;font-variant-numeric:tabular-nums}
+#dailySalesPanel #dailySalesChart{min-height:104px!important;align-items:flex-end!important;gap:5px!important;padding:8px 2px 0!important;scrollbar-width:thin;scrollbar-color:#d8c2b3 transparent}
+#dailySalesPanel #dailySalesChart>div{transition:opacity .15s ease,transform .15s ease}
+#dailySalesPanel #dailySalesChart>div:hover{opacity:.82;transform:translateY(-2px)}
+#dailySalesPanel>.sub:last-child{font-size:10px!important;color:#a08f83!important;line-height:1.5}
+#dailySalesPanel .top>div:last-child{min-width:125px;padding:10px 13px;border:1px solid #eee0d5;border-radius:12px;background:#fbf4ee}
+#dailySalesPanel .top>div:last-child .sub{font-size:10px!important}
+.dashboard-map-panel{margin-top:20px!important}
+.state-map-title h2{font-size:18px!important}
+.state-map-title .sub{font-size:11px!important}
+.state-map-filter{background:#fbf6f1!important;border-color:#e9d9ce!important}
+.state-map-filter select{font-size:12px!important}
+.map-scale{border-color:#eadbd0!important;background:#fffdfa!important;border-radius:12px!important}
+@media(max-width:700px){
+ #dailySalesPanel{padding:15px!important}
+ #dailySalesPanel>.top{align-items:flex-start!important}
+ #dailySalesPanel .top>div:last-child{min-width:105px;padding:8px}
+ #dailySalesTotal{font-size:17px!important}
+ #dailySalesPanel #dailySalesChart{min-height:92px!important;gap:3px!important}
+}
+
 </style></head><body><div class="sheet"><div class="head">${logo?`<img class="logo" src="${logo}" alt="Logo">`:`<div class="brand">Gestor 3D</div>`}<div style="text-align:right"><b>ORÇAMENTO</b><div class="meta">${esc(q.date)}</div></div></div>
  ${q.buyerName?`<div class="meta" style="margin-top:18px">Cliente: <b style="color:#2d2926">${esc(q.buyerName)}</b></div>`:""}
  <h1>${esc(q.name)}</h1><div class="box"><div class="row"><span>Quantidade</span><b>${esc(q.qty)}</b></div>${q.colors?`<div class="row"><span>Cores / acabamento</span><b>${esc(q.colors)}</b></div>`:""}<div class="row"><span>Preço por unidade</span><b>${money(q.price)}</b></div><div class="row"><span>Subtotal</span><b>${money(gross)}</b></div>${discount>0?`<div class="row discount"><span>Desconto</span><b>- ${money(discount)}</b></div>`:""}${freight>0?`<div class="row freight"><span>Frete</span><b>+ ${money(freight)}</b></div>`:""}<div class="row"><span><b>Total final</b></span><b class="total">${money(finalTotal)}</b></div></div>
