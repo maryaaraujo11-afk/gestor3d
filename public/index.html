@@ -2934,7 +2934,7 @@ function renderDailySalesChart(period){
  const p=period||document.getElementById("dashboardPeriod")?.value||"total";
  const today=todayISO();
  let dates=[];
- if(p!=="total"&&/^\\d{4}-\\d{2}$/.test(p)){
+ if(p!=="total"&&/^\d{4}-\d{2}$/.test(p)){
   const [year,month]=p.split("-").map(Number),days=new Date(year,month,0).getDate();
   dates=Array.from({length:days},(_,i)=>year+"-"+String(month).padStart(2,"0")+"-"+String(i+1).padStart(2,"0"));
  }else{
