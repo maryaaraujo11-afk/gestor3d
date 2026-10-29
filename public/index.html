@@ -157,6 +157,87 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 @media(max-width:1200px){.finance-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.finance-outflow-strip{grid-template-columns:1fr 1fr}.finance-outflow-heading{grid-column:1/-1}.finance-outflow-item:nth-child(2){border-left:0;padding-left:0}}
 @media(max-width:1000px){.finance-workspace{grid-template-columns:1fr}.finance-insights-grid{grid-template-columns:1fr}}
 @media(max-width:650px){.finance-v2 .finance-page-head{align-items:stretch}.finance-head-actions{display:grid;grid-template-columns:1fr}.finance-period-control{min-width:0}.finance-head-actions>.btn{justify-content:center}.finance-kpi-grid{grid-template-columns:1fr 1fr;gap:9px}.finance-kpi-card{padding:14px 12px}.finance-kpi-label{font-size:10px}.finance-kpi-value{font-size:19px}.finance-kpi-foot{font-size:9px}.finance-kpi-icon{width:29px;height:29px}.finance-outflow-strip{grid-template-columns:1fr;padding:15px;gap:14px}.finance-outflow-heading{grid-column:auto}.finance-outflow-item,.finance-outflow-item:nth-child(2){border-left:0;border-top:1px solid #eee5df;padding:12px 0 0}.finance-reserve-card{padding:16px;gap:11px}.finance-reserve-mark{width:35px;height:35px}.finance-reserve-value{font-size:26px}.finance-v2 .finance-category-panel,.finance-v2 .finance-transactions-panel,.finance-v2 .finance-expense-panel{padding:15px}.finance-table-tools{align-items:stretch;flex-direction:column}.finance-table-tools select{max-width:none}.finance-transactions-heading{align-items:flex-start}.finance-table-foot span:last-child{display:none}}
+
+/* Gestor 3D — identidade visual premium creme, madeira e rosé */
+:root{
+ --bg:#f5f0eb;--card:#fffdfa;--text:#342b27;--muted:#887970;
+ --accent:#8c604c;--line:#e8ddd4;--good:#347657;--danger:#b54b4b;
+ --cream:#fbf7f2;--rose:#c99488;--wood:#725344;
+}
+html{scroll-behavior:smooth}
+body{background:#f5f0eb;color:#342b27;font-family:Inter,"Segoe UI",Arial,sans-serif;letter-spacing:-.01em}
+.app{background:#f5f0eb}
+.side{background:#fbf7f2!important;color:#342b27!important;border-right:1px solid #e7dcd3!important;box-shadow:5px 0 24px rgba(76,53,39,.035);padding:23px 15px!important}
+.brand{font-size:23px!important;font-weight:850!important;letter-spacing:-.8px;color:#4a352b!important;padding:10px 12px 22px!important}
+.brand:before{content:"";display:block;width:34px;height:4px;border-radius:9px;background:linear-gradient(90deg,#8c604c,#d4a69b);margin:0 0 12px}
+.brand small{color:#a28d81!important;font-size:10px!important;letter-spacing:.35px}
+.nav-title{color:#b19b8d!important;font-size:9px!important;letter-spacing:1.5px!important;margin:19px 12px 7px!important}
+.nav button{color:#75665d!important;border-radius:10px!important;padding:11px 12px!important;font-size:13px!important;font-weight:650!important;transition:background .18s ease,color .18s ease,transform .18s ease}
+.nav button:hover{background:#f1e6de!important;color:#815640!important;transform:translateX(2px)}
+.nav button.active{background:#ead9ce!important;color:#714b39!important;box-shadow:inset 3px 0 #9c6e56;font-weight:800!important}
+.main{background:#f5f0eb!important;padding:29px clamp(14px,2.3vw,34px)!important;max-width:none!important}
+.top{gap:14px}
+.top h1,.finance-v2 .finance-heading h1{color:#382c26;letter-spacing:-1px;font-weight:850}
+.sub{color:#928178}
+.cards{gap:13px}
+.card,.panel,.store-item,.channel-card,.quick-card{background:#fffdfa!important;border-color:#e9ded5!important;border-radius:16px!important;box-shadow:0 4px 18px rgba(75,51,37,.035)!important}
+.card{padding:19px}
+.card:hover{border-color:#d9c1b2!important}
+.label{color:#8b7b71;font-weight:650}
+.value{color:#3e3029;font-variant-numeric:tabular-nums;letter-spacing:-.65px}
+.dash-card-icon,.quick-icon{background:#f3e6de!important;color:#8c604c!important}
+.btn{background:#8c604c!important;border-radius:10px!important;box-shadow:0 3px 8px rgba(115,76,55,.10);transition:transform .15s ease,filter .15s ease}
+.btn:hover{filter:brightness(1.05);transform:translateY(-1px)}
+.btn.secondary{background:#efe4dc!important;color:#6b4c3c!important;box-shadow:none}
+.btn.outline{background:#fffdfa!important;color:#7b6254!important;border-color:#dfcec2!important}
+.btn.danger{background:#b54b4b!important}
+.field input,.field select,.field textarea,.report-period input,.report-period select,
+.state-map-filter select,.material-row input,.component-row input,
+.variant-head input,.variant-material-row input,.variant-material-row select{
+ border-color:#e2d4ca!important;border-radius:9px!important;background:#fffdfa!important;color:#3d3029
+}
+input:focus,select:focus,textarea:focus{outline:0;border-color:#bc9380!important;box-shadow:0 0 0 3px rgba(140,96,76,.10)}
+table th{color:#9a887d}
+table td,table th{border-bottom-color:#f0e7e0}
+.panel h2{color:#47352b;letter-spacing:-.25px}
+.notice{background:#fbf3ed;border-color:#dfc6b6;color:#765c4d}
+.tag{background:#f2e9e2;color:#795d4c}
+.quick-card:hover{border-color:#cfb3a1!important}
+.calc-tabs,.inventory-tabs,.channel-tabs{background:#eee5de!important}
+.calc-tab.active,.inventory-tab.active,.channel-tab.active{color:#7b503a!important}
+.price-banner{background:#fbf0e7!important;border-color:#ead5c5!important}
+.price-banner strong,.result-price{color:#986044!important}
+.result-panel{background:#fff8f2!important}
+.product-loader{background:#faf4ef!important;border-color:#e9ddd4!important}
+.tech-card{background:#fffdfa!important}
+.auth-gate{background:radial-gradient(ellipse at top left,#f1dfd3 0%,#fbf7f2 45%,#f5f0eb 100%)!important}
+.auth-card{background:#fffdfa!important;border-color:#e9dcd2!important}
+.auth-brand{color:#4a352b!important}
+.auth-submit{background:#8c604c!important}
+.finance-v2 .finance-category-track i{background:linear-gradient(90deg,#d9b8a4,#8c604c)!important}
+.finance-v2 .finance-kpi-highlight{background:linear-gradient(145deg,#fbf1e9,#fffdfa)!important}
+.finance-v2 .finance-reserve-card{background:linear-gradient(125deg,#f6e9df 0%,#fffdfa 78%)!important}
+.finance-v2 .finance-kpi-icon,.finance-v2 .finance-heading-mark{background:#f3e6de!important;color:#8c604c!important}
+.finance-v2 .finance-kpi-highlight .finance-kpi-icon{background:#8c604c!important;color:#fff!important}
+.finance-v2 .finance-kpi-value{color:#3e3029}
+.finance-v2 .finance-count-pill{background:#faf2ec;border-color:#eadbd0;color:#805c48}
+.finance-v2 .finance-table thead th{background:#faf4ef}
+.state-ranking-panel{background:#fffdfa!important;border-color:#e9ded5!important}
+.ranking-bar i{background:#c99488!important}
+.brazil-map{background:#f8f1eb!important}
+.map-count{border-color:#d4b5a3!important;color:#6b4b3b!important}
+@media(max-width:900px){
+ .side{box-shadow:3px 0 18px rgba(76,53,39,.05)!important}
+ .brand:before{margin-left:auto;margin-right:auto}
+ .nav button.active{box-shadow:inset 0 -3px #9c6e56}
+}
+@media(max-width:600px){
+ .main{padding:13px!important}
+ .top h1{font-size:23px}
+ .card{padding:15px}
+ .panel{padding:14px}
+}
+
 </style>
 <!-- Gestor 3D V58 — trigger de publicação -->
 </head>
