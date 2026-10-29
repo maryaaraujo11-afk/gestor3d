@@ -2216,7 +2216,59 @@ function printQuote(id){
  const discount=Number(q.discount)||0, freight=Number(q.freight)||0;
  const finalTotal=Number(q.finalTotal??Math.max(0,gross-discount+freight));
  const html=`<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Orçamento - ${esc(q.name)}</title><style>
- body{font-family:Arial,sans-serif;color:#2d2926;margin:0;padding:35px}.sheet{max-width:800px;margin:auto;border:1px solid #ddd;padding:35px;border-radius:12px}.head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #8b5e4a;padding-bottom:18px}.logo{max-width:220px;max-height:80px}.brand{font-size:24px;font-weight:800}.meta{color:#777;font-size:12px;margin-top:5px}h1{font-size:22px;margin:25px 0 8px}.box{background:#f8f5f3;padding:15px;border-radius:8px;margin:14px 0}.row{display:flex;justify-content:space-between;gap:20px;padding:8px 0;border-bottom:1px solid #eee}.row:last-child{border:0}.discount{color:#b54b4b}.freight{color:#4d7d65}.total{font-size:22px;font-weight:800;color:#8b5e4a}.thanks{font-size:14px;line-height:1.5}.foot{margin-top:35px;color:#777;font-size:11px;text-align:center}@media print{body{padding:0}.sheet{border:0}} </style></head><body><div class="sheet"><div class="head">${logo?`<img class="logo" src="${logo}" alt="Logo">`:`<div class="brand">Gestor 3D</div>`}<div style="text-align:right"><b>ORÇAMENTO</b><div class="meta">${esc(q.date)}</div></div></div>
+ body{font-family:Arial,sans-serif;color:#2d2926;margin:0;padding:35px}.sheet{max-width:800px;margin:auto;border:1px solid #ddd;padding:35px;border-radius:12px}.head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #8b5e4a;padding-bottom:18px}.logo{max-width:220px;max-height:80px}.brand{font-size:24px;font-weight:800}.meta{color:#777;font-size:12px;margin-top:5px}h1{font-size:22px;margin:25px 0 8px}.box{background:#f8f5f3;padding:15px;border-radius:8px;margin:14px 0}.row{display:flex;justify-content:space-between;gap:20px;padding:8px 0;border-bottom:1px solid #eee}.row:last-child{border:0}.discount{color:#b54b4b}.freight{color:#4d7d65}.total{font-size:22px;font-weight:800;color:#8b5e4a}.thanks{font-size:14px;line-height:1.5}.foot{margin-top:35px;color:#777;font-size:11px;text-align:center}@media print{body{padding:0}.sheet{border:0}} 
+/* V125 — redesign real do dashboard: hierarquia, profundidade e cartões */
+.main{background:linear-gradient(180deg,#f8f3ee 0%,#f3ede7 100%)!important}
+.top{padding:5px 2px 17px;border-bottom:1px solid #e7d8cd;margin-bottom:24px}
+.top h1{font-size:clamp(27px,2.4vw,34px)!important;letter-spacing:-1.25px!important}
+.top .sub{font-size:13px;line-height:1.55;color:#8f7c70}
+.dashboard-summary-cards{gap:15px!important;margin:0 0 23px!important}
+.dashboard-summary-cards .card{position:relative;overflow:hidden;min-height:132px!important;padding:19px 17px!important;align-items:flex-start!important;gap:13px!important;border-radius:17px!important;background:linear-gradient(145deg,#fffefa 0%,#fffaf5 100%)!important;border:1px solid #e6d7cc!important;box-shadow:0 8px 22px rgba(86,57,39,.055)!important;transition:transform .18s ease,box-shadow .18s ease}
+.dashboard-summary-cards .card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#c99488}
+.dashboard-summary-cards .card:nth-child(2):before{background:#8c604c}
+.dashboard-summary-cards .card:nth-child(3):before{background:#b69a72}
+.dashboard-summary-cards .card:nth-child(4):before{background:#6d9b80}
+.dashboard-summary-cards .card:nth-child(5):before{background:#b987a0}
+.dashboard-summary-cards .card:hover{transform:translateY(-3px);box-shadow:0 13px 28px rgba(86,57,39,.09)!important}
+.dashboard-summary-cards .dash-card-icon{width:43px;height:43px;flex:0 0 43px;border-radius:13px!important;background:#f2e4da!important;color:#86583f!important;font-size:19px!important}
+.dashboard-summary-cards .card>div:last-child{min-width:0}
+.dashboard-summary-cards .label{font-size:11px!important;line-height:1.4;letter-spacing:.15px;color:#8b7a70!important}
+.dashboard-summary-cards .value{font-size:clamp(19px,1.7vw,26px)!important;line-height:1.25;margin-top:9px!important;font-weight:850!important;letter-spacing:-.8px!important;overflow-wrap:anywhere}
+.dashboard-summary-cards .card-foot{font-size:10px!important;line-height:1.4;margin-top:7px;color:#a18f83!important}
+.dashboard-map-panel,.main>.panel{border-radius:18px!important;border:1px solid #e7d9cf!important;background:#fffdfa!important;box-shadow:0 8px 24px rgba(86,57,39,.045)!important}
+.dashboard-map-panel{padding:23px!important;margin-top:22px}
+.dashboard-map-panel h2,.main>.panel h2{font-size:17px!important;font-weight:850!important;letter-spacing:-.35px!important}
+.state-map-layout{gap:22px!important}
+.state-ranking-panel{border-radius:15px!important;background:linear-gradient(180deg,#fffdfa,#fbf6f1)!important;border-color:#eaded4!important;padding:18px!important}
+.ranking-title{font-size:14px!important;margin-bottom:13px!important}
+.ranking-row{padding:10px 0!important}
+.ranking-bar{height:7px!important;background:#f0e6df!important}
+.ranking-bar i{background:linear-gradient(90deg,#d8b5a2,#93644e)!important}
+.ranking-summary div{background:#f7eee7!important;border:1px solid #eee0d5}
+.brazil-map{border-radius:15px!important;background:radial-gradient(ellipse at center,#fffdfa 0%,#f7eee7 100%)!important}
+.map-count{box-shadow:0 3px 10px rgba(88,58,39,.14)!important;font-weight:900!important}
+.quick-grid{gap:13px!important}
+.quick-card{border-radius:14px!important;padding:16px!important;background:linear-gradient(135deg,#fffdfa,#fbf5ef)!important;border-color:#e9dcd1!important;box-shadow:0 5px 16px rgba(86,57,39,.04)!important}
+.quick-icon{width:39px!important;height:39px!important;border-radius:12px!important}
+.panel{padding:21px!important}
+table th{letter-spacing:.45px}
+table tbody tr:hover td{background:#fcf7f2}
+@media(max-width:1100px){
+ .dashboard-summary-cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .dashboard-summary-cards .card{min-height:115px!important}
+}
+@media(max-width:600px){
+ .top{align-items:flex-start!important;padding-bottom:14px;margin-bottom:17px}
+ .dashboard-summary-cards{grid-template-columns:1fr 1fr!important;gap:9px!important}
+ .dashboard-summary-cards .card{padding:13px 11px!important;min-height:104px!important;gap:9px!important}
+ .dashboard-summary-cards .dash-card-icon{width:32px;height:32px;flex-basis:32px;font-size:15px!important}
+ .dashboard-summary-cards .value{font-size:17px!important}
+ .dashboard-summary-cards .label{font-size:10px!important}
+ .dashboard-map-panel{padding:14px!important}
+ .state-map-layout{gap:12px!important}
+}
+
+</style></head><body><div class="sheet"><div class="head">${logo?`<img class="logo" src="${logo}" alt="Logo">`:`<div class="brand">Gestor 3D</div>`}<div style="text-align:right"><b>ORÇAMENTO</b><div class="meta">${esc(q.date)}</div></div></div>
  ${q.buyerName?`<div class="meta" style="margin-top:18px">Cliente: <b style="color:#2d2926">${esc(q.buyerName)}</b></div>`:""}
  <h1>${esc(q.name)}</h1><div class="box"><div class="row"><span>Quantidade</span><b>${esc(q.qty)}</b></div>${q.colors?`<div class="row"><span>Cores / acabamento</span><b>${esc(q.colors)}</b></div>`:""}<div class="row"><span>Preço por unidade</span><b>${money(q.price)}</b></div><div class="row"><span>Subtotal</span><b>${money(gross)}</b></div>${discount>0?`<div class="row discount"><span>Desconto</span><b>- ${money(discount)}</b></div>`:""}${freight>0?`<div class="row freight"><span>Frete</span><b>+ ${money(freight)}</b></div>`:""}<div class="row"><span><b>Total final</b></span><b class="total">${money(finalTotal)}</b></div></div>
  ${q.details?`<div class="box"><b>Observações</b><div style="margin-top:8px">${esc(q.details)}</div></div>`:""}${q.thankYou?`<div class="box thanks"><b>${esc(q.thankYou)}</b></div>`:""}<div class="foot">Orçamento gerado pelo Gestor 3D.</div></div><script>window.onload=()=>window.print();<\/script></body></html>`;
