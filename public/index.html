@@ -3823,10 +3823,13 @@ function dsBalance(s){return Math.max(0,(Number(s.amount)||0)-dsReceived(s.id));
 function printDirectSale(id){
  const sale=directSales().find(s=>String(s.id)===String(id));if(!sale)return;
  const quote=(db.quotes||[]).find(q=>String(q.id)===String(sale.quoteId));
- if(quote){printQuote(quote.id);return;}
  const esc=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
  const logo=db.settings?.logo||"";
- const html=`<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Orçamento - ${esc(sale.product)}</title><style>body{font-family:Arial,sans-serif;color:#2d2926;padding:32px}.sheet{max-width:780px;margin:auto}.head{display:flex;justify-content:space-between;border-bottom:2px solid #8b5e4a;padding-bottom:16px}.logo{max-width:180px;max-height:70px}.box{margin-top:24px;padding:18px;background:#f8f5f3}.row{display:flex;justify-content:space-between;padding:10px 0}.total{font-size:22px;color:#8b5e4a;font-weight:bold}@media print{body{padding:0}}</style></head><body><div class="sheet"><div class="head">${logo?`<img class="logo" src="${logo}">`:"<b>Gestor 3D</b>"}<b>ORÇAMENTO</b></div><p>Cliente: <b>${esc(sale.client)}</b></p><h2>${esc(sale.product)}</h2><div class="box"><div class="row"><span>Quantidade</span><b>${esc(sale.qty)}</b></div><div class="row"><span>Total</span><b class="total">${dsMoney(sale.amount)}</b></div>${sale.deadline?`<div class="row"><span>Prazo de entrega</span><b>${esc(sale.deadline)}</b></div>`:""}${sale.notes?`<p>${esc(sale.notes)}</p>`:""}</div></div><script>window.onload=()=>window.print();<\\/script></body></html>`;
+ const gross=Number(quote?.grossPrice??((Number(quote?.price??sale.unitPrice)||0)*(Number(quote?.qty??sale.qty)||1)));
+ const discount=Math.max(0,Number(quote?.discount??sale.discount)||0),discountPercent=Number(quote?.discountPercent??sale.discountPercent)||0;
+ const freight=Math.max(0,Number(quote?.freight??sale.freight)||0),finalTotal=Number(sale.amount??quote?.finalTotal??Math.max(0,gross-discount+freight));
+ const row=(label,value,cls="")=>'<div class="row '+cls+'"><span>'+label+'</span><b>'+value+'</b></div>';
+ const html='<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Orçamento - '+esc(sale.product)+'</title><style>body{font-family:Arial,sans-serif;color:#2d2926;padding:32px}.sheet{max-width:780px;margin:auto}.head{display:flex;justify-content:space-between;border-bottom:2px solid #8b5e4a;padding-bottom:16px}.logo{max-width:180px;max-height:70px}.box{margin-top:24px;padding:18px;background:#f8f5f3}.row{display:flex;justify-content:space-between;gap:18px;padding:10px 0;border-bottom:1px solid #e9e3df}.row:last-child{border:0}.discount{color:#b54b4b}.freight{color:#4d7d65}.total{font-size:22px;color:#8b5e4a;font-weight:bold}@media print{body{padding:0}}</style></head><body><div class="sheet"><div class="head">'+(logo?'<img class="logo" src="'+logo+'">':'<b>Gestor 3D</b>')+'<b>ORÇAMENTO</b></div><p>Cliente: <b>'+esc(sale.client)+'</b></p><h2>'+esc(sale.product)+'</h2><div class="box">'+row('Quantidade',esc(sale.qty))+(gross>0?row('Subtotal',dsMoney(gross)):'')+(discount>0?row('Desconto'+(discountPercent>0?' ('+discountPercent.toLocaleString('pt-BR',{maximumFractionDigits:2})+'%)':''),'− '+dsMoney(discount),'discount'):'')+(freight>0?row('Frete','+ '+dsMoney(freight),'freight'):'')+row('Total',dsMoney(finalTotal),'total')+(sale.deadline?row('Prazo de entrega',esc(sale.deadline)):'')+(sale.notes?'<p>'+esc(sale.notes)+'</p>':'')+'</div></div><script>window.onload=()=>window.print();<\/script></body></html>';
  const w=window.open("","_blank","width=900,height=800");if(!w){alert("Permita pop-ups para imprimir o orçamento.");return;}w.document.write(html);w.document.close();
 }
 function renderDirectSales(){
@@ -3933,7 +3936,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '126';
+const GESTOR_APP_VERSION = '127';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
