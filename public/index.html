@@ -3196,9 +3196,9 @@ const STATE_POS={AC:[8.6,34.8],AL:[91.0,38.0],AP:[53.2,11.4],AM:[24.7,23.0],BA:[
 function saleStateCode(s){const raw=String(s?.state||s?.uf||"").trim();if(!raw)return"";const m=raw.match(/\(([A-Z]{2})\)/i);if(m)return m[1].toUpperCase();const upper=raw.toUpperCase();for(const uf of STATE_ORDER){if(upper===uf||upper.includes(STATE_NAMES[uf].toUpperCase()))return uf;}return"";}
 function mapMonthKey(s){if(s?.dateISO&&/^\d{4}-\d{2}/.test(s.dateISO))return s.dateISO.slice(0,7);const d=String(s?.date||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return d?`${d[3]}-${d[2]}`:"";}
 function mapMonthLabel(k){if(!k)return"Total geral";const[y,m]=k.split("-");return new Date(Number(y),Number(m)-1,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"}).replace(/^./,c=>c.toUpperCase());}
-function dashboardPeriods(){return[...new Set((db.sales||[]).map(mapMonthKey).filter(Boolean))].sort().reverse();}
+function dashboardPeriods(){return[...new Set([...((db.sales||[])),...((db.directSales||[]).map(s=>({...s,dateISO:String(s.dateISO||s.createdAt||"").slice(0,10)})))].map(mapMonthKey).filter(Boolean))].sort().reverse();}
 function populateDashboardPeriods(selected){const months=dashboardPeriods();const current=selected||document.getElementById("dashboardPeriod")?.value||"total";["dashboardPeriod","stateMapPeriod"].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.innerHTML='<option value="total">Total geral</option>'+months.map(k=>`<option value="${k}">${mapMonthLabel(k)}</option>`).join("");el.value=current==="total"||months.includes(current)?current:"total";});return document.getElementById("dashboardPeriod")?.value||"total";}
-function dashboardSales(period){return(db.sales||[]).filter(s=>s.status!=="Cancelado"&&s.status!=="Pendente"&&(period==="total"||mapMonthKey(s)===period));}
+function dashboardSales(period){const regular=(db.sales||[]).filter(s=>!["Cancelado","Cancelada","Pendente"].includes(String(s.status||"").trim()));const direct=(db.directSales||[]).filter(s=>!["Cancelado","Cancelada"].includes(String(s.status||"").trim())).map(s=>{const dateISO=String(s.dateISO||s.createdAt||"").slice(0,10);return {...s,dateISO,grossValue:Number(s.amount)||0,value:Number(s.amount)||0,netValue:Number(s.amount)||0,fee:0,cost:0,product:s.product||"Venda direta",qty:Number(s.qty)||1,items:[{product:s.product||"Venda direta",productId:s.productId,qty:Number(s.qty)||1}]};});return [...regular,...direct].filter(s=>period==="total"||mapMonthKey(s)===period);}
 function saleLaborAmount(s){
  try{
   const items=Array.isArray(s?.items)&&s.items.length?s.items:[{productId:s?.productId,variantId:s?.variantId,colorId:s?.colorId,qty:s?.qty}];
@@ -3219,7 +3219,7 @@ function renderDailySalesChart(period){
  const [year,month]=monthKey.split("-").map(Number);
  const days=new Date(year,month,0).getDate();
  const dates=Array.from({length:days},(_,i)=>monthKey+"-"+String(i+1).padStart(2,"0"));
- const eligible=(db.sales||[]).filter(s=>!["Cancelado","Cancelada","Pendente"].includes(String(s.status||"").trim()));
+ const eligible=[...(db.sales||[]),...(db.directSales||[]).map(s=>({...s,dateISO:String(s.dateISO||s.createdAt||"").slice(0,10),grossValue:Number(s.amount)||0,value:Number(s.amount)||0,qty:Number(s.qty)||1}))].filter(s=>!["Cancelado","Cancelada","Pendente"].includes(String(s.status||"").trim()));
  const values=dates.map(date=>({date,value:eligible.filter(s=>String(s.dateISO||"")===date).reduce((sum,s)=>sum+(Number(s.grossValue??s.value)||0),0),count:eligible.filter(s=>String(s.dateISO||"")===date).length}));
  const max=Math.max(1,...values.map(x=>x.value)),total=values.reduce((sum,x)=>sum+x.value,0);
  const totalEl=document.getElementById("dailySalesTotal");if(totalEl)totalEl.textContent=money(total);
@@ -3246,7 +3246,7 @@ function renderDashboardSummary(period){
  const costs=sales.reduce((a,s)=>a+(Number(s.cost)||0),0);
  const fees=sales.reduce((a,s)=>a+(Number(s.fee)||0),0);
  const today=todayISO();
- const dailySales=(db.sales||[]).filter(s=>s.status!=="Cancelado"&&s.status!=="Pendente"&&String(s.dateISO||"")===today);
+ const dailySales=[...(db.sales||[]),...(db.directSales||[]).map(s=>({...s,dateISO:String(s.dateISO||s.createdAt||"").slice(0,10),grossValue:Number(s.amount)||0,value:Number(s.amount)||0}))].filter(s=>!["Cancelado","Cancelada","Pendente"].includes(String(s.status||"").trim())&&String(s.dateISO||"")===today);
  const dailyRevenue=dailySales.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0);
  const label=p==="total"?"Todos os períodos":mapMonthLabel(p);
  const dailyLabel=new Date().toLocaleDateString("pt-BR");
