@@ -3787,6 +3787,9 @@ function dsMoney(v){return money(Number(v)||0);}
 function dsReceived(id){return directPayments().filter(p=>String(p.saleId)===String(id)).reduce((a,p)=>a+(Number(p.amount)||0),0);}
 function dsBalance(s){return Math.max(0,(Number(s.amount)||0)-dsReceived(s.id));}
 function renderDirectSales(){
+ // Ao entrar em Vendas Diretas, importa orçamentos já aceitos/marcados para produção.
+ // Usa o ID do orçamento como vínculo para impedir vendas duplicadas.
+ if(typeof syncProductionQuotesToDirectSales==="function")syncProductionQuotesToDirectSales();
  const sales=directSales(), pay=directPayments();
  const c=document.getElementById("dsCount"),t=document.getElementById("dsTotal"),d=document.getElementById("dsDue");
  if(c)c.textContent=sales.length;if(t)t.textContent=dsMoney(sales.reduce((a,s)=>a+(Number(s.amount)||0),0));if(d)d.textContent=dsMoney(sales.reduce((a,s)=>a+dsBalance(s),0));
