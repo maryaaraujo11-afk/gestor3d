@@ -595,7 +595,7 @@ table td,table th{border-bottom-color:#f0e7e0}
             <div class="formgrid">
               <div class="field"><label>Nome do comprador</label><input id="calcBuyerName" placeholder="Ex.: Maria José"></div>
               <div class="field"><label>Preço por unidade no orçamento (R$)</label><input id="calcQuoteUnitPrice" type="number" min="0" step=".01" placeholder="Usar preço calculado"></div>
-              <div class="field"><label>Desconto (R$)</label><input id="calcDiscount" type="number" min="0" step=".01" value="0" oninput="updateQuoteAdjustments()"></div>
+              <div class="field"><label>Desconto</label><div style="display:grid;grid-template-columns:110px 1fr;gap:8px"><select id="calcDiscountMode" onchange="updateQuoteDiscountLabel();updateQuoteAdjustments()"><option value="value">Em R$</option><option value="percent">Em %</option></select><input id="calcDiscount" type="number" min="0" step=".01" value="0" placeholder="0,00" oninput="updateQuoteAdjustments()"></div><small id="calcDiscountHint" style="display:block;color:var(--muted);margin-top:5px">Informe o desconto em reais.</small></div>
               <div class="field"><label>Frete (R$)</label><input id="calcFreight" type="number" min="0" step=".01" value="0" oninput="updateQuoteAdjustments()"></div>
               <div class="field" style="grid-column:1/-1"><label>Mensagem de agradecimento</label><input id="calcThankYou" placeholder="Ex.: Muito obrigada pela sua compra! Será um prazer atender você."></div>
             </div>
@@ -2395,7 +2395,7 @@ table tbody tr:hover td{background:#fcf7f2}
 
 </style></head><body><div class="sheet"><div class="head">${logo?`<img class="logo" src="${logo}" alt="Logo">`:`<div class="brand">Gestor 3D</div>`}<div style="text-align:right"><b>ORÇAMENTO</b><div class="meta">${esc(q.date)}</div></div></div>
  ${q.buyerName?`<div class="meta" style="margin-top:18px">Cliente: <b style="color:#2d2926">${esc(q.buyerName)}</b></div>`:""}
- <h1>${esc(q.name)}</h1><div class="box"><div class="row"><span>Quantidade</span><b>${esc(q.qty)}</b></div>${q.colors?`<div class="row"><span>Cores / acabamento</span><b>${esc(q.colors)}</b></div>`:""}<div class="row"><span>Preço por unidade</span><b>${money(q.price)}</b></div><div class="row"><span>Subtotal</span><b>${money(gross)}</b></div>${discount>0?`<div class="row discount"><span>Desconto</span><b>- ${money(discount)}</b></div>`:""}${freight>0?`<div class="row freight"><span>Frete</span><b>+ ${money(freight)}</b></div>`:""}<div class="row"><span><b>Total final</b></span><b class="total">${money(finalTotal)}</b></div></div>
+ <h1>${esc(q.name)}</h1><div class="box"><div class="row"><span>Quantidade</span><b>${esc(q.qty)}</b></div>${q.colors?`<div class="row"><span>Cores / acabamento</span><b>${esc(q.colors)}</b></div>`:""}<div class="row"><span>Preço por unidade</span><b>${money(q.price)}</b></div><div class="row"><span>Subtotal</span><b>${money(gross)}</b></div>${discount>0?`<div class="row discount"><span>Desconto ${q.discountPercent!=null?`(${Number(q.discountPercent).toLocaleString("pt-BR",{maximumFractionDigits:2})}%)`:q.discountMode==="percent"?`(${Number(q.discountInput||0).toLocaleString("pt-BR",{maximumFractionDigits:2})}%)`:""}</span><b>- ${money(discount)}</b></div>`:""}${freight>0?`<div class="row freight"><span>Frete</span><b>+ ${money(freight)}</b></div>`:""}<div class="row"><span><b>Total final</b></span><b class="total">${money(finalTotal)}</b></div></div>
  ${q.details?`<div class="box"><b>Observações</b><div style="margin-top:8px">${esc(q.details)}</div></div>`:""}${q.thankYou?`<div class="box thanks"><b>${esc(q.thankYou)}</b></div>`:""}<div class="foot">Orçamento gerado pelo Gestor 3D.</div></div><script>window.onload=()=>window.print();<\/script></body></html>`;
  const w=window.open("","_blank","width=900,height=800"); if(!w){alert("Permita pop-ups para imprimir o orçamento.");return;} w.document.write(html); w.document.close();
 }
@@ -2407,20 +2407,31 @@ function getQuoteAdjustments(){
  const override=document.getElementById("calcQuoteUnitPrice")?.value;
  const unitPrice=override!==""&&override!=null?Math.max(0,+override||0):calculated;
  const gross=unitPrice*qty;
- const discount=Math.max(0,+document.getElementById("calcDiscount")?.value||0);
+ const discountInput=Math.max(0,+document.getElementById("calcDiscount")?.value||0);
+ const discountMode=document.getElementById("calcDiscountMode")?.value||"value";
+ const discount=discountMode==="percent"?Math.min(gross,gross*Math.min(100,discountInput)/100):Math.min(gross,discountInput);
+ const discountPercent=gross>0?(discount/gross)*100:0;
  const freight=Math.max(0,+document.getElementById("calcFreight")?.value||0);
  const finalTotal=Math.max(0,gross-discount+freight);
- return {qty,unitPrice,gross,discount,freight,finalTotal};
+ return {qty,unitPrice,gross,discount,discountMode,discountInput,discountPercent,freight,finalTotal};
+}
+function updateQuoteDiscountLabel(){
+ const mode=document.getElementById("calcDiscountMode")?.value||"value";
+ const hint=document.getElementById("calcDiscountHint");
+ const input=document.getElementById("calcDiscount");
+ if(input)input.max=mode==="percent"?"100":"";
+ if(hint)hint.textContent=mode==="percent"?"Informe o percentual de desconto (0 a 100%).":"Informe o desconto em reais.";
 }
 function updateQuoteAdjustments(){
  const a=getQuoteAdjustments();
  const el=document.getElementById("quoteAdjustmentPreview");
- if(el)el.innerHTML=`Subtotal: <b>${money(a.gross)}</b> • Desconto: <b>${money(a.discount)}</b> • Frete: <b>${money(a.freight)}</b> • <strong>Total final: ${money(a.finalTotal)}</strong>`;
+ if(el)el.innerHTML=`Subtotal: <b>${money(a.gross)}</b> • Desconto (${a.discountPercent.toLocaleString("pt-BR",{maximumFractionDigits:2})}%): <b>- ${money(a.discount)}</b> • Frete: <b>+ ${money(a.freight)}</b> • <strong>Total final: ${money(a.finalTotal)}</strong>`;
 }
 function clearQuoteAdjustments(){
  editingQuoteId=null;
  ["calcBuyerName","calcQuoteUnitPrice","calcDiscount","calcFreight","calcThankYou"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
- const d=document.getElementById("calcDiscount"); if(d)d.value=0;
+ const mode=document.getElementById("calcDiscountMode");if(mode)mode.value="value";
+ const d=document.getElementById("calcDiscount"); if(d)d.value=0;updateQuoteDiscountLabel();
  const f=document.getElementById("calcFreight"); if(f)f.value=0;
  updateQuoteAdjustments();
 }
@@ -2435,7 +2446,9 @@ function editQuote(id){
  document.getElementById("calcDetails").value=q.details||"";
  document.getElementById("calcBuyerName").value=q.buyerName||"";
  document.getElementById("calcQuoteUnitPrice").value=q.price??"";
- document.getElementById("calcDiscount").value=q.discount||0;
+ document.getElementById("calcDiscountMode").value=q.discountMode||"value";
+ document.getElementById("calcDiscount").value=q.discountInput??q.discount??0;
+ updateQuoteDiscountLabel();
  document.getElementById("calcFreight").value=q.freight||0;
  document.getElementById("calcThankYou").value=q.thankYou||"";
 
@@ -2508,7 +2521,7 @@ function saveQuote(status){
  const matchedProduct=(db.products||[]).find(p=>String(p.name||"").trim().toLocaleLowerCase("pt-BR")===name.toLocaleLowerCase("pt-BR"));
  const quoteData={
    date:new Date().toLocaleDateString("pt-BR"),
-   name,qty,price:a.unitPrice,grossPrice:a.gross,discount:a.discount,freight:a.freight,finalTotal:a.finalTotal,
+   name,qty,price:a.unitPrice,grossPrice:a.gross,discount:a.discount,discountMode:a.discountMode,discountInput:a.discountInput,discountPercent:a.discountPercent,freight:a.freight,finalTotal:a.finalTotal,
    profit:Number(c.profit)||0,
    colors:document.getElementById("calcColors").value.trim(),
    details:document.getElementById("calcDetails").value.trim(),
@@ -3916,7 +3929,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '124';
+const GESTOR_APP_VERSION = '125';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
