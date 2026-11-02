@@ -3301,7 +3301,7 @@ function renderProductsRanking(period){
  box.innerHTML=ranked.slice(0,8).map((x,i)=>`<div class="ranking-row product-ranking-row"><span class="ranking-rank">${i+1}</span><span class="product-ranking-name" title="${x.name}">${x.name}</span><div class="ranking-bar"><i style="width:${Math.max(6,Math.round(x.qty/max*100))}%"></i></div><span class="ranking-value">${x.qty}</span></div>`).join("");
 }
 function setDashboardPeriod(value){const p=populateDashboardPeriods(value||document.getElementById("dashboardPeriod")?.value||currentReportMonth());const a=document.getElementById("dashboardPeriod");if(a)a.value=p;renderDashboardSummary(p);renderProductsRanking(p);}
-function setStateMapPeriod(value){const p=value||document.getElementById("stateMapPeriod")?.value||"total";const a=document.getElementById("stateMapPeriod");if(a)a.value=p;renderStateMap(p);}
+function setStateMapPeriod(value){const p=value||document.getElementById("stateMapPeriod")?.value||"total";const a=document.getElementById("stateMapPeriod");if(a)a.value=p;renderStateMap(p);renderProductsRanking(p);}
 
 function reportMonthFromSale(s){
  const iso=String(s?.dateISO||"");
@@ -3919,7 +3919,7 @@ function render(){
  const dashboardPeriod=populateDashboardPeriods(currentReportMonth());
  renderDashboardSummary(dashboardPeriod);
  renderStateMap("total");
- renderProductsRanking(document.getElementById("dashboardPeriod")?.value||"total");
+ renderProductsRanking(document.getElementById("stateMapPeriod")?.value||"total");
  const reportMonth=getReportMonth();
  const reportMonthInput=document.getElementById("reportMonth"); if(reportMonthInput)reportMonthInput.value=reportMonth;
  const financeMonthInput=document.getElementById("financeMonth"); if(financeMonthInput)financeMonthInput.value=reportMonth;
