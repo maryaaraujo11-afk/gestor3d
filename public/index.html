@@ -3281,7 +3281,7 @@ function renderProductsRanking(period){
  const max=ranked[0].qty;
  box.innerHTML=ranked.slice(0,8).map((x,i)=>`<div class="ranking-row product-ranking-row"><span class="ranking-rank">${i+1}</span><span class="product-ranking-name" title="${x.name}">${x.name}</span><div class="ranking-bar"><i style="width:${Math.max(6,Math.round(x.qty/max*100))}%"></i></div><span class="ranking-value">${x.qty}</span></div>`).join("");
 }
-function setDashboardPeriod(value){const p=populateDashboardPeriods(value||currentReportMonth());const a=document.getElementById("dashboardPeriod");if(a)a.value=p;renderDashboardSummary(p);}
+function setDashboardPeriod(value){const p=populateDashboardPeriods(currentReportMonth());const a=document.getElementById("dashboardPeriod");if(a)a.value=p;renderDashboardSummary(p);renderStateMap(document.getElementById("stateMapPeriod")?.value||"total");renderProductsRanking("total");}
 
 function reportMonthFromSale(s){
  const iso=String(s?.dateISO||"");
@@ -3898,7 +3898,7 @@ function render(){
  db.materials=db.materials||[]; db.movements=db.movements||[]; db.quotes=db.quotes||[]; db.purchases=db.purchases||[]; db.expenses=db.expenses||[]; db.marketingAds=Array.isArray(db.marketingAds)?db.marketingAds:[]; db.sales=db.sales||[]; db.products=db.products||[]; db.customers=db.customers||[]; db.directSales=Array.isArray(db.directSales)?db.directSales:[]; db.directPayments=Array.isArray(db.directPayments)?db.directPayments:[];
  const dashboardPeriod=populateDashboardPeriods();
  renderDashboardSummary(dashboardPeriod);
- renderStateMap(document.getElementById("stateMapPeriod")?.value||"total");
+ renderStateMap("total");
  renderProductsRanking("total");
  const reportMonth=getReportMonth();
  const reportMonthInput=document.getElementById("reportMonth"); if(reportMonthInput)reportMonthInput.value=reportMonth;
@@ -3940,7 +3940,7 @@ db.products.forEach(p=>{
  const reportMonthName=reportMonthLabel(selectedReportMonth);
  const activeSales=reportSales().filter(s=>s.status!=="Cancelado");
  let revenue=activeSales.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0), netRevenue=activeSales.reduce((a,s)=>{const gross=Number(s.grossValue??s.value)||0; const fee=Number(s.fee); const net=Number(s.netValue); return a+(Number.isFinite(net)&&net>0?net:Math.max(0,gross-(Number.isFinite(fee)?fee:0)));},0), totalProductCosts=activeSales.reduce((a,s)=>a+(Number(s.cost)||0),0), fees=activeSales.reduce((a,s)=>a+(Number(s.fee)||0),0);
- const ds=document.getElementById("dashStock"); if(ds)ds.textContent=db.products.reduce((a,p)=>a+(+p.stock||0),0)+(db.materials||[]).length; renderDashboardSummary(dashboardPeriod); renderStateMap(dashboardPeriod);
+ const ds=document.getElementById("dashStock"); if(ds)ds.textContent=db.products.reduce((a,p)=>a+(+p.stock||0),0)+(db.materials||[]).length; renderDashboardSummary(currentReportMonth()); renderStateMap("total"); renderProductsRanking("total");
  renderProductsTable();
  const stockTable=document.getElementById("stockTable"); if(stockTable) stockTable.innerHTML=[...(db.materials||[]).map(m=>`<tr><td>${m.name}</td><td>${m.category}</td><td>${m.stock} ${m.unit}</td><td>${m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td></tr>`),...db.products.map(p=>`<tr><td>${p.name}</td><td>Produto acabado</td><td>${p.stock||0} un.</td><td>${(p.stock||0)<=2?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td></tr>`)].join('')||'<tr><td colspan="4">Nenhum item.</td></tr>';
  const lowStock=document.getElementById("lowStock"); if(lowStock){const lp=db.products.filter(p=>(+p.stock||0)<=2).map(p=>`<div style="padding:9px 0;border-bottom:1px solid #eee">${p.name} <span class="tag warn">${p.stock||0} un.</span></div>`);const lm=db.materials.filter(m=>(+m.stock||0)<=m.minStock).map(m=>`<div style="padding:9px 0;border-bottom:1px solid #eee">${m.name} <span class="tag warn">${m.stock} ${m.unit}</span></div>`);lowStock.innerHTML=[...lp,...lm].join('')||'<div class="sub">Nenhum estoque crítico.</div>'; }
