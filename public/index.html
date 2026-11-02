@@ -3255,7 +3255,6 @@ function renderDailySalesChart(period){
 }
 function renderDashboardSummary(period){
  const p=period||document.getElementById("dashboardPeriod")?.value||"total";
- renderProductsRanking(p);
  renderDailySalesChart(p);
  const sales=dashboardSales(p);
  const revenue=sales.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0);
@@ -3285,13 +3284,17 @@ function renderDashboardSummary(period){
 function renderStateMap(period){const box=document.getElementById("stateMapCounts");if(!box)return;const p=period||document.getElementById("stateMapPeriod")?.value||"total";const sales=dashboardSales(p);const counts=Object.fromEntries(STATE_ORDER.map(uf=>[uf,0]));sales.forEach(s=>{const uf=saleStateCode(s);if(uf)counts[uf]++;});box.innerHTML=STATE_ORDER.map(uf=>{const pos=STATE_POS[uf]||[50,50],count=counts[uf];return `<div class="map-label ${count===0?'zero':''} ${uf==='SP'?'dark-state':''}" title="${STATE_NAMES[uf]}: ${count} ${count===1?'venda':'vendas'}" style="left:${pos[0]}%;top:${pos[1]}%"><span class="map-uf">${uf}</span><span class="map-count">${count}</span></div>`;}).join("");const total=sales.length,withSales=STATE_ORDER.filter(uf=>counts[uf]>0).length;const totalEl=document.getElementById("stateMapTotal");if(totalEl)totalEl.textContent=`${total} ${total===1?'pedido':'pedidos'} no período • ${withSales} estado${withSales===1?'':'s'} com vendas`;const totalOrders=document.getElementById("stateMapTotalOrders"),stateCount=document.getElementById("stateMapStatesWithSales");if(totalOrders)totalOrders.textContent=total;if(stateCount)stateCount.textContent=withSales;const ranking=document.getElementById("stateRanking");if(ranking){const ranked=STATE_ORDER.map(uf=>({uf,count:counts[uf]})).filter(x=>x.count>0).sort((a,b)=>b.count-a.count||a.uf.localeCompare(b.uf));if(!ranked.length)ranking.innerHTML='<div class="ranking-empty">Nenhuma venda encontrada neste período.</div>';else{const max=ranked[0].count;ranking.innerHTML=ranked.slice(0,8).map((x,i)=>`<div class="ranking-row"><span class="ranking-rank">${i+1}</span><span class="ranking-uf">${x.uf}</span><div class="ranking-bar"><i style="width:${Math.max(6,Math.round(x.count/max*100))}%"></i></div><span class="ranking-value">${x.count}</span></div>`).join("");}}}
 function renderProductsRanking(period){
  const box=document.getElementById("productsRanking"); if(!box)return;
- const sales=dashboardSales(period||"total");
+ const selected=period||document.getElementById("stateMapPeriod")?.value||"total";
+ const sales=dashboardSales(selected);
  const counts={};
  sales.forEach(s=>{
-   const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,qty:s.qty}];
+   const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,productName:s.productName,qty:s.qty,quantity:s.quantity}];
    items.forEach(item=>{
-     const name=item.product||((db.products||[]).find(p=>String(p.id)===String(item.productId))?.name)||"Produto";
-     const qty=Math.max(0,Number(item.qty)||0);
+     const productId=item.productId||item.product_id||item.internalProductId||s.productId||s.product_id;
+     const product=(db.products||[]).find(p=>String(p.id)===String(productId));
+     const name=String(item.product||item.productName||item.name||product?.name||s.product||s.productName||"Produto").trim();
+     const rawQty=item.qty??item.quantity??item.units??s.qty??s.quantity??1;
+     const qty=Math.max(0,Number(rawQty)||0);
      if(qty)counts[name]=(counts[name]||0)+qty;
    });
  });
@@ -3300,7 +3303,7 @@ function renderProductsRanking(period){
  const max=ranked[0].qty;
  box.innerHTML=ranked.slice(0,8).map((x,i)=>`<div class="ranking-row product-ranking-row"><span class="ranking-rank">${i+1}</span><span class="product-ranking-name" title="${x.name}">${x.name}</span><div class="ranking-bar"><i style="width:${Math.max(6,Math.round(x.qty/max*100))}%"></i></div><span class="ranking-value">${x.qty}</span></div>`).join("");
 }
-function setDashboardPeriod(value){const p=populateDashboardPeriods(value||document.getElementById("dashboardPeriod")?.value||currentReportMonth());const a=document.getElementById("dashboardPeriod");if(a)a.value=p;renderDashboardSummary(p);renderProductsRanking(p);}
+function setDashboardPeriod(value){const p=populateDashboardPeriods(value||document.getElementById("dashboardPeriod")?.value||currentReportMonth());const a=document.getElementById("dashboardPeriod");if(a)a.value=p;renderDashboardSummary(p);}
 function setStateMapPeriod(value){const p=value||document.getElementById("stateMapPeriod")?.value||"total";const a=document.getElementById("stateMapPeriod");if(a)a.value=p;renderStateMap(p);renderProductsRanking(p);}
 
 function reportMonthFromSale(s){
