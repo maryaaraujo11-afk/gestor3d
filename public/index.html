@@ -294,7 +294,7 @@ table td,table th{border-bottom-color:#f0e7e0}
 </div>
 
 <div class="panel state-map-panel dashboard-map-panel">
-<div class="state-map-head"><div class="state-map-title"><div class="map-title-icon">⌖</div><div><h2>Vendas por estado</h2><div class="sub">Quantidade total de vendas por estado</div></div></div><div class="state-map-filter"><span class="map-filter-icon">▣</span><select id="stateMapPeriod" onchange="setDashboardPeriod(this.value)"></select></div></div>
+<div class="state-map-head"><div class="state-map-title"><div class="map-title-icon">⌖</div><div><h2>Vendas por estado</h2><div class="sub">Quantidade total de vendas por estado</div></div></div><div class="state-map-filter"><span class="map-filter-icon">▣</span><select id="stateMapPeriod" onchange="setStateMapPeriod(this.value)"></select></div></div>
 <div class="state-map-layout">
   <div class="map-area">
     <div id="stateMapTotal" class="map-total"></div>
@@ -3281,7 +3281,8 @@ function renderProductsRanking(period){
  const max=ranked[0].qty;
  box.innerHTML=ranked.slice(0,8).map((x,i)=>`<div class="ranking-row product-ranking-row"><span class="ranking-rank">${i+1}</span><span class="product-ranking-name" title="${x.name}">${x.name}</span><div class="ranking-bar"><i style="width:${Math.max(6,Math.round(x.qty/max*100))}%"></i></div><span class="ranking-value">${x.qty}</span></div>`).join("");
 }
-function setDashboardPeriod(value){const p=populateDashboardPeriods(currentReportMonth());const a=document.getElementById("dashboardPeriod");if(a)a.value=p;renderDashboardSummary(p);renderStateMap(document.getElementById("stateMapPeriod")?.value||"total");renderProductsRanking("total");}
+function setDashboardPeriod(value){const p=populateDashboardPeriods(value||document.getElementById("dashboardPeriod")?.value||currentReportMonth());const a=document.getElementById("dashboardPeriod");if(a)a.value=p;renderDashboardSummary(p);renderProductsRanking(p);}
+function setStateMapPeriod(value){const p=value||document.getElementById("stateMapPeriod")?.value||"total";const a=document.getElementById("stateMapPeriod");if(a)a.value=p;renderStateMap(p);}
 
 function reportMonthFromSale(s){
  const iso=String(s?.dateISO||"");
@@ -3899,7 +3900,7 @@ function render(){
  const dashboardPeriod=populateDashboardPeriods(currentReportMonth());
  renderDashboardSummary(dashboardPeriod);
  renderStateMap("total");
- renderProductsRanking("total");
+ renderProductsRanking(document.getElementById("dashboardPeriod")?.value||"total");
  const reportMonth=getReportMonth();
  const reportMonthInput=document.getElementById("reportMonth"); if(reportMonthInput)reportMonthInput.value=reportMonth;
  const financeMonthInput=document.getElementById("financeMonth"); if(financeMonthInput)financeMonthInput.value=reportMonth;
@@ -3940,7 +3941,7 @@ db.products.forEach(p=>{
  const reportMonthName=reportMonthLabel(selectedReportMonth);
  const activeSales=reportSales().filter(s=>s.status!=="Cancelado");
  let revenue=activeSales.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0), netRevenue=activeSales.reduce((a,s)=>{const gross=Number(s.grossValue??s.value)||0; const fee=Number(s.fee); const net=Number(s.netValue); return a+(Number.isFinite(net)&&net>0?net:Math.max(0,gross-(Number.isFinite(fee)?fee:0)));},0), totalProductCosts=activeSales.reduce((a,s)=>a+(Number(s.cost)||0),0), fees=activeSales.reduce((a,s)=>a+(Number(s.fee)||0),0);
- const ds=document.getElementById("dashStock"); if(ds)ds.textContent=db.products.reduce((a,p)=>a+(+p.stock||0),0)+(db.materials||[]).length; renderDashboardSummary(currentReportMonth()); renderStateMap("total"); renderProductsRanking("total");
+ const ds=document.getElementById("dashStock"); if(ds)ds.textContent=db.products.reduce((a,p)=>a+(+p.stock||0),0)+(db.materials||[]).length; renderDashboardSummary(currentReportMonth()); renderStateMap("total"); renderProductsRanking(document.getElementById("dashboardPeriod")?.value||"total");
  renderProductsTable();
  const stockTable=document.getElementById("stockTable"); if(stockTable) stockTable.innerHTML=[...(db.materials||[]).map(m=>`<tr><td>${m.name}</td><td>${m.category}</td><td>${m.stock} ${m.unit}</td><td>${m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td></tr>`),...db.products.map(p=>`<tr><td>${p.name}</td><td>Produto acabado</td><td>${p.stock||0} un.</td><td>${(p.stock||0)<=2?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td></tr>`)].join('')||'<tr><td colspan="4">Nenhum item.</td></tr>';
  const lowStock=document.getElementById("lowStock"); if(lowStock){const lp=db.products.filter(p=>(+p.stock||0)<=2).map(p=>`<div style="padding:9px 0;border-bottom:1px solid #eee">${p.name} <span class="tag warn">${p.stock||0} un.</span></div>`);const lm=db.materials.filter(m=>(+m.stock||0)<=m.minStock).map(m=>`<div style="padding:9px 0;border-bottom:1px solid #eee">${m.name} <span class="tag warn">${m.stock} ${m.unit}</span></div>`);lowStock.innerHTML=[...lp,...lm].join('')||'<div class="sub">Nenhum estoque crítico.</div>'; }
