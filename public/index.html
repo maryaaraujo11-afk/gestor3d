@@ -253,7 +253,7 @@ table td,table th{border-bottom-color:#f0e7e0}
     <div class="nav-title">GESTÃO</div>
     <button onclick="show('customers',this)">👤 <span>Clientes</span></button>
     <button onclick="show('products',this)">▣ <span>Produtos</span></button>
-    <button onclick="show('sales',this)">▤ <span>Vendas & Pedidos</span></button>
+    <button onclick="show('sales',this)">▤ <span>Vendas & Pedidos</span></button><button onclick="show('directSales',this);renderDirectSales()">▤ <span>Vendas Diretas</span></button>
     <button onclick="show('production',this);renderProductionQueue()">▣ <span>Fila de produção</span></button>
     <button onclick="show('finance',this)">$ <span>Financeiro</span></button>
     <button onclick="show('stock',this)">▥ <span>Estoque</span></button>
@@ -757,6 +757,21 @@ table td,table th{border-bottom-color:#f0e7e0}
 <div id="productionQueueEmpty" class="sub" style="padding:12px;display:none">Não há produtos pendentes de confecção.</div></div>
 </section>
 
+
+<section id="directSales" class="hidden">
+<div class="top"><div><h1>Vendas Diretas</h1><div class="sub">Vendas feitas diretamente ao cliente, com orçamento e controle de pagamentos.</div></div><div class="actions"><button class="btn" onclick="newDirectSale()">＋ Nova venda direta</button></div></div>
+<div class="cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+<div class="card"><div class="label">Vendas diretas</div><div class="value" id="dsCount">0</div></div><div class="card"><div class="label">Total vendido</div><div class="value" id="dsTotal">R$ 0,00</div></div><div class="card"><div class="label">A receber</div><div class="value" id="dsDue">R$ 0,00</div></div></div>
+<div class="panel"><h2 id="dsFormTitle">Cadastrar venda direta</h2><div class="formgrid">
+<div class="field"><label>Cliente</label><input id="dsClient" placeholder="Nome do cliente"></div><div class="field"><label>Contato</label><input id="dsContact" placeholder="Telefone ou e-mail"></div>
+<div class="field"><label>Produto / descrição</label><input id="dsProduct" placeholder="Produto, personalização..."></div><div class="field"><label>Quantidade</label><input id="dsQty" type="number" min="1" value="1"></div>
+<div class="field"><label>Valor total (R$)</label><input id="dsAmount" type="number" min="0" step="0.01"></div><div class="field"><label>Prazo de entrega</label><input id="dsDeadline" type="date"></div>
+<div class="field"><label>Status</label><select id="dsStatus"><option>Em aberto</option><option>Em produção</option><option>Pronto</option><option>Entregue</option><option>Cancelado</option></select></div>
+<div class="field"><label>Observações</label><input id="dsNotes" placeholder="Desconto, detalhes, etc."></div></div>
+<div class="actions" style="margin-top:12px"><button class="btn" onclick="saveDirectSale()">Salvar venda</button><button class="btn outline" onclick="cancelDirectEdit()">Cancelar</button></div></div>
+<div class="panel"><h2>Vendas cadastradas</h2><div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Produto</th><th>Prazo</th><th>Total</th><th>Recebido</th><th>Saldo</th><th>Status</th><th>Ações</th></tr></thead><tbody id="dsTable"></tbody></table></div></div>
+<div class="panel"><h2 id="dsPaymentTitle">Registrar pagamento</h2><div class="formgrid"><div class="field"><label>Venda</label><select id="dsPaySale"></select></div><div class="field"><label>Valor recebido (R$)</label><input id="dsPayAmount" type="number" min="0.01" step="0.01"></div><div class="field"><label>Data</label><input id="dsPayDate" type="date"></div><div class="field"><label>Forma de pagamento</label><select id="dsPayMethod"><option>Pix</option><option>Dinheiro</option><option>Cartão</option><option>Transferência</option><option>Outro</option></select></div></div><div class="actions" style="margin-top:12px"><button class="btn" onclick="saveDirectPayment()">Registrar pagamento</button><button class="btn outline" onclick="cancelDirectPaymentEdit()">Cancelar</button></div><div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Data</th><th>Cliente</th><th>Valor</th><th>Forma</th><th>Ações</th></tr></thead><tbody id="dsPayments"></tbody></table></div></div>
+</section>
 <section id="sales" class="hidden">
 <div class="top"><div><h1>Vendas & Pedidos</h1><div class="sub">Registre, acompanhe e finalize seus pedidos.</div></div></div>
 <div class="cards" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px">
@@ -3733,8 +3748,33 @@ async function importShopeeAds(){
   if(button){button.disabled=false;button.textContent="↓ Importar desempenho da Shopee";}
  }
 }
+
+let editingDirectSaleId=null, editingDirectPaymentId=null;
+function directSales(){db.directSales=Array.isArray(db.directSales)?db.directSales:[];return db.directSales;}
+function directPayments(){db.directPayments=Array.isArray(db.directPayments)?db.directPayments:[];return db.directPayments;}
+function dsMoney(v){return money(Number(v)||0);}
+function dsReceived(id){return directPayments().filter(p=>String(p.saleId)===String(id)).reduce((a,p)=>a+(Number(p.amount)||0),0);}
+function dsBalance(s){return Math.max(0,(Number(s.amount)||0)-dsReceived(s.id));}
+function renderDirectSales(){
+ const sales=directSales(), pay=directPayments();
+ const c=document.getElementById("dsCount"),t=document.getElementById("dsTotal"),d=document.getElementById("dsDue");
+ if(c)c.textContent=sales.length;if(t)t.textContent=dsMoney(sales.reduce((a,s)=>a+(Number(s.amount)||0),0));if(d)d.textContent=dsMoney(sales.reduce((a,s)=>a+dsBalance(s),0));
+ const tb=document.getElementById("dsTable");if(tb)tb.innerHTML=sales.map(s=>'<tr><td>'+escapeHtml(s.client||"—")+'</td><td>'+escapeHtml(s.product||"—")+'</td><td>'+(s.deadline||"—")+'</td><td>'+dsMoney(s.amount)+'</td><td>'+dsMoney(dsReceived(s.id))+'</td><td><b>'+dsMoney(dsBalance(s))+'</b></td><td>'+escapeHtml(s.status||"Em aberto")+'</td><td><button class="btn xs outline" onclick="editDirectSale(\''+s.id+'\')">Editar</button> <button class="btn xs outline" onclick="deleteDirectSale(\''+s.id+'\')">Excluir</button></td></tr>').join("")||'<tr><td colspan="8">Nenhuma venda direta cadastrada.</td></tr>';
+ const sel=document.getElementById("dsPaySale");if(sel){const old=sel.value;sel.innerHTML=sales.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.client||"Cliente")+' — '+escapeHtml(s.product||"Venda")+'</option>').join("");if(old)sel.value=old;}
+ const pt=document.getElementById("dsPayments");if(pt)pt.innerHTML=pay.map(p=>{const sale=sales.find(s=>String(s.id)===String(p.saleId));return '<tr><td>'+escapeHtml(p.date||"—")+'</td><td>'+escapeHtml(sale?.client||"Venda removida")+'</td><td>'+dsMoney(p.amount)+'</td><td>'+escapeHtml(p.method||"—")+'</td><td><button class="btn xs outline" onclick="editDirectPayment(\''+p.id+'\')">Editar</button> <button class="btn xs outline" onclick="deleteDirectPayment(\''+p.id+'\')">Excluir</button></td></tr>';}).join("")||'<tr><td colspan="5">Nenhum pagamento registrado.</td></tr>';
+}
+function newDirectSale(){editingDirectSaleId=null;["dsClient","dsContact","dsProduct","dsAmount","dsDeadline","dsNotes"].forEach(id=>document.getElementById(id).value="");document.getElementById("dsQty").value=1;document.getElementById("dsStatus").value="Em aberto";document.getElementById("dsFormTitle").textContent="Cadastrar venda direta";}
+function cancelDirectEdit(){newDirectSale();}
+function saveDirectSale(){const client=document.getElementById("dsClient").value.trim(),product=document.getElementById("dsProduct").value.trim(),amount=Number(document.getElementById("dsAmount").value);if(!client||!product||!Number.isFinite(amount)||amount<0){alert("Informe cliente, produto e valor total válido.");return;}const arr=directSales();let item=arr.find(s=>String(s.id)===String(editingDirectSaleId));if(!item){item={id:"ds_"+Date.now(),createdAt:new Date().toISOString(),payments:[]};arr.push(item);}Object.assign(item,{client,contact:document.getElementById("dsContact").value.trim(),product,qty:Math.max(1,Number(document.getElementById("dsQty").value)||1),amount,deadline:document.getElementById("dsDeadline").value,status:document.getElementById("dsStatus").value,notes:document.getElementById("dsNotes").value.trim()});editingDirectSaleId=null;save();renderDirectSales();}
+function editDirectSale(id){const s=directSales().find(x=>String(x.id)===String(id));if(!s)return;editingDirectSaleId=s.id;document.getElementById("dsClient").value=s.client||"";document.getElementById("dsContact").value=s.contact||"";document.getElementById("dsProduct").value=s.product||"";document.getElementById("dsQty").value=s.qty||1;document.getElementById("dsAmount").value=s.amount||0;document.getElementById("dsDeadline").value=s.deadline||"";document.getElementById("dsStatus").value=s.status||"Em aberto";document.getElementById("dsNotes").value=s.notes||"";document.getElementById("dsFormTitle").textContent="Editar venda direta";}
+function deleteDirectSale(id){const linked=directPayments().filter(p=>String(p.saleId)===String(id)).length;if(!confirm("Excluir esta venda direta?"+(linked?" Os "+linked+" pagamento(s) vinculados também serão excluídos.":"")))return;db.directSales=directSales().filter(s=>String(s.id)!==String(id));db.directPayments=directPayments().filter(p=>String(p.saleId)!==String(id));save();renderDirectSales();}
+function saveDirectPayment(){const saleId=document.getElementById("dsPaySale").value,amount=Number(document.getElementById("dsPayAmount").value);if(!saleId||!Number.isFinite(amount)||amount<=0){alert("Selecione uma venda e informe um valor recebido válido.");return;}const arr=directPayments();let p=arr.find(x=>String(x.id)===String(editingDirectPaymentId));if(!p){p={id:"dp_"+Date.now()};arr.push(p);}Object.assign(p,{saleId,amount,date:document.getElementById("dsPayDate").value||new Date().toISOString().slice(0,10),method:document.getElementById("dsPayMethod").value});editingDirectPaymentId=null;save();renderDirectSales();}
+function editDirectPayment(id){const p=directPayments().find(x=>String(x.id)===String(id));if(!p)return;editingDirectPaymentId=p.id;document.getElementById("dsPaySale").value=p.saleId;document.getElementById("dsPayAmount").value=p.amount;document.getElementById("dsPayDate").value=p.date||"";document.getElementById("dsPayMethod").value=p.method||"Pix";document.getElementById("dsPaymentTitle").textContent="Editar pagamento";}
+function cancelDirectPaymentEdit(){editingDirectPaymentId=null;document.getElementById("dsPayAmount").value="";document.getElementById("dsPaymentTitle").textContent="Registrar pagamento";}
+function deleteDirectPayment(id){if(!confirm("Excluir este pagamento? O saldo da venda será recalculado."))return;db.directPayments=directPayments().filter(p=>String(p.id)!==String(id));save();renderDirectSales();}
+
 function render(){
- db.materials=db.materials||[]; db.movements=db.movements||[]; db.quotes=db.quotes||[]; db.purchases=db.purchases||[]; db.expenses=db.expenses||[]; db.marketingAds=Array.isArray(db.marketingAds)?db.marketingAds:[]; db.sales=db.sales||[]; db.products=db.products||[]; db.customers=db.customers||[];
+ db.materials=db.materials||[]; db.movements=db.movements||[]; db.quotes=db.quotes||[]; db.purchases=db.purchases||[]; db.expenses=db.expenses||[]; db.marketingAds=Array.isArray(db.marketingAds)?db.marketingAds:[]; db.sales=db.sales||[]; db.products=db.products||[]; db.customers=db.customers||[]; db.directSales=Array.isArray(db.directSales)?db.directSales:[]; db.directPayments=Array.isArray(db.directPayments)?db.directPayments:[];
  const dashboardPeriod=populateDashboardPeriods();
  renderDashboardSummary(dashboardPeriod);
  renderStateMap(dashboardPeriod);
