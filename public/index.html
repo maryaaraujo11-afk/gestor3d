@@ -2228,7 +2228,9 @@ function syncProductionQuotesToDirectSales(){
      amount:Number.isFinite(amount)?amount:0,
      deadline:sale.deadline||"",
      status:sale.status||"Em produção",
-     notes:[sale.notes||"", "Convertido automaticamente do orçamento #"+quoteId].filter(Boolean).join(" · ")
+     notes:(String(sale.notes||"").includes("Convertido automaticamente do orçamento #"+quoteId)
+       ?String(sale.notes||"")
+       :[sale.notes||"", "Convertido automaticamente do orçamento #"+quoteId].filter(Boolean).join(" · "))
    });
    changed=true;
  });
