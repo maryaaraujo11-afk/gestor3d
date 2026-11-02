@@ -3197,7 +3197,7 @@ function saleStateCode(s){const raw=String(s?.state||s?.uf||"").trim();if(!raw)r
 function mapMonthKey(s){if(s?.dateISO&&/^\d{4}-\d{2}/.test(s.dateISO))return s.dateISO.slice(0,7);const d=String(s?.date||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return d?`${d[3]}-${d[2]}`:"";}
 function mapMonthLabel(k){if(!k)return"Total geral";const[y,m]=k.split("-");return new Date(Number(y),Number(m)-1,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"}).replace(/^./,c=>c.toUpperCase());}
 function dashboardPeriods(){return[...new Set([...((db.sales||[])),...((db.directSales||[]).map(s=>({...s,dateISO:String(s.dateISO||s.createdAt||"").slice(0,10)})))].map(mapMonthKey).filter(Boolean))].sort().reverse();}
-function populateDashboardPeriods(selected){const months=dashboardPeriods();const current=selected||document.getElementById("dashboardPeriod")?.value||"total";["dashboardPeriod","stateMapPeriod"].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.innerHTML='<option value="total">Total geral</option>'+months.map(k=>`<option value="${k}">${mapMonthLabel(k)}</option>`).join("");el.value=current==="total"||months.includes(current)?current:"total";});return document.getElementById("dashboardPeriod")?.value||"total";}
+function populateDashboardPeriods(selected){const months=dashboardPeriods();const dashboardEl=document.getElementById("dashboardPeriod"),mapEl=document.getElementById("stateMapPeriod");if(dashboardEl){const current=selected||dashboardEl.value||currentReportMonth();dashboardEl.innerHTML='<option value="total">Total geral</option>'+months.map(k=>`<option value="${k}">${mapMonthLabel(k)}</option>`).join("");dashboardEl.value=months.includes(current)?current:(months.includes(currentReportMonth())?currentReportMonth():"total");}if(mapEl){const mapCurrent=mapEl.value||"total";mapEl.innerHTML='<option value="total">Total geral</option>'+months.map(k=>`<option value="${k}">${mapMonthLabel(k)}</option>`).join("");mapEl.value=mapCurrent==="total"||months.includes(mapCurrent)?mapCurrent:"total";}return dashboardEl?.value||currentReportMonth();}
 function dashboardSales(period){const regular=(db.sales||[]).filter(s=>!["Cancelado","Cancelada","Pendente"].includes(String(s.status||"").trim()));const direct=(db.directSales||[]).filter(s=>!["Cancelado","Cancelada"].includes(String(s.status||"").trim())).map(s=>{const dateISO=String(s.dateISO||s.createdAt||"").slice(0,10);return {...s,dateISO,grossValue:Number(s.amount)||0,value:Number(s.amount)||0,netValue:Number(s.amount)||0,fee:0,cost:0,product:s.product||"Venda direta",qty:Number(s.qty)||1,items:[{product:s.product||"Venda direta",productId:s.productId,qty:Number(s.qty)||1}]};});return [...regular,...direct].filter(s=>period==="total"||mapMonthKey(s)===period);}
 function saleLaborAmount(s){
  try{
@@ -3281,7 +3281,7 @@ function renderProductsRanking(period){
  const max=ranked[0].qty;
  box.innerHTML=ranked.slice(0,8).map((x,i)=>`<div class="ranking-row product-ranking-row"><span class="ranking-rank">${i+1}</span><span class="product-ranking-name" title="${x.name}">${x.name}</span><div class="ranking-bar"><i style="width:${Math.max(6,Math.round(x.qty/max*100))}%"></i></div><span class="ranking-value">${x.qty}</span></div>`).join("");
 }
-function setDashboardPeriod(value){const p=populateDashboardPeriods(value||"total");const a=document.getElementById("dashboardPeriod"),b=document.getElementById("stateMapPeriod");if(a)a.value=p;if(b)b.value=p;renderDashboardSummary(p);renderStateMap(p);renderProductsRanking(p);}
+function setDashboardPeriod(value){const p=populateDashboardPeriods(value||currentReportMonth());const a=document.getElementById("dashboardPeriod");if(a)a.value=p;renderDashboardSummary(p);}
 
 function reportMonthFromSale(s){
  const iso=String(s?.dateISO||"");
@@ -3898,8 +3898,8 @@ function render(){
  db.materials=db.materials||[]; db.movements=db.movements||[]; db.quotes=db.quotes||[]; db.purchases=db.purchases||[]; db.expenses=db.expenses||[]; db.marketingAds=Array.isArray(db.marketingAds)?db.marketingAds:[]; db.sales=db.sales||[]; db.products=db.products||[]; db.customers=db.customers||[]; db.directSales=Array.isArray(db.directSales)?db.directSales:[]; db.directPayments=Array.isArray(db.directPayments)?db.directPayments:[];
  const dashboardPeriod=populateDashboardPeriods();
  renderDashboardSummary(dashboardPeriod);
- renderStateMap(dashboardPeriod);
- renderProductsRanking(dashboardPeriod);
+ renderStateMap(document.getElementById("stateMapPeriod")?.value||"total");
+ renderProductsRanking("total");
  const reportMonth=getReportMonth();
  const reportMonthInput=document.getElementById("reportMonth"); if(reportMonthInput)reportMonthInput.value=reportMonth;
  const financeMonthInput=document.getElementById("financeMonth"); if(financeMonthInput)financeMonthInput.value=reportMonth;
