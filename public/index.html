@@ -3215,22 +3215,29 @@ function saleLaborAmount(s){
 function renderDailySalesChart(period){
  const box=document.getElementById("dailySalesChart");if(!box)return;
  const p=period||document.getElementById("dashboardPeriod")?.value||"total";
- const monthKey=/^\d{4}-\d{2}$/.test(p)?p:todayISO().slice(0,7);
- const [year,month]=monthKey.split("-").map(Number);
- const days=new Date(year,month,0).getDate();
- const dates=Array.from({length:days},(_,i)=>monthKey+"-"+String(i+1).padStart(2,"0"));
- const eligible=[...(db.sales||[]),...(db.directSales||[]).map(s=>({...s,dateISO:String(s.dateISO||s.createdAt||"").slice(0,10),grossValue:Number(s.amount)||0,value:Number(s.amount)||0,qty:Number(s.qty)||1}))].filter(s=>!["Cancelado","Cancelada","Pendente"].includes(String(s.status||"").trim()));
- const values=dates.map(date=>({date,value:eligible.filter(s=>String(s.dateISO||"")===date).reduce((sum,s)=>sum+(Number(s.grossValue??s.value)||0),0),count:eligible.filter(s=>String(s.dateISO||"")===date).length}));
+ const eligible=[...(db.sales||[]),...(db.directSales||[]).map(s=>({...s,dateISO:String(s.dateISO||s.createdAt||"").slice(0,10),grossValue:Number(s.amount)||0,value:Number(s.amount)||0,qty:Number(s.qty)||1}))].filter(s=>!["Cancelado","Cancelada","Pendente"].includes(String(s.status||"").trim())&&/^\\d{4}-\\d{2}-\\d{2}$/.test(String(s.dateISO||"")));
+ let values=[],subtitle="";
+ if(p==="total"){
+  const grouped={};
+  eligible.forEach(s=>{const month=String(s.dateISO).slice(0,7);if(!grouped[month])grouped[month]={date:month,label:mapMonthLabel(month),value:0,count:0};grouped[month].value+=Number(s.grossValue??s.value)||0;grouped[month].count++;});
+  values=Object.values(grouped).sort((a,b)=>a.date.localeCompare(b.date));
+  subtitle="Valor bruto vendido por mês • Total geral";
+ }else{
+  const monthKey=/^\\d{4}-\\d{2}$/.test(p)?p:todayISO().slice(0,7);
+  const [year,month]=monthKey.split("-").map(Number),days=new Date(year,month,0).getDate();
+  const dates=Array.from({length:days},(_,i)=>monthKey+"-"+String(i+1).padStart(2,"0"));
+  values=dates.map(date=>{const daySales=eligible.filter(s=>String(s.dateISO||"")===date);return {date,label:date.slice(8,10)+"/"+date.slice(5,7),value:daySales.reduce((sum,s)=>sum+(Number(s.grossValue??s.value)||0),0),count:daySales.length};});
+  subtitle="Valor bruto vendido por dia • "+mapMonthLabel(monthKey);
+ }
  const max=Math.max(1,...values.map(x=>x.value)),total=values.reduce((sum,x)=>sum+x.value,0);
  const totalEl=document.getElementById("dailySalesTotal");if(totalEl)totalEl.textContent=money(total);
- const subtitle=document.getElementById("dailySalesSubtitle");if(subtitle)subtitle.textContent="Valor bruto vendido por dia • "+mapMonthLabel(monthKey);
+ const subtitleEl=document.getElementById("dailySalesSubtitle");if(subtitleEl)subtitleEl.textContent=subtitle;
  box.innerHTML=values.map(x=>{
-  const [y,m,d]=x.date.split("-").map(Number),label=String(d).padStart(2,"0")+"/"+String(m).padStart(2,"0");
   const height=x.value?Math.max(4,Math.round(x.value/max*70)):2;
-  return `<div title="${label}: ${money(x.value)} • ${x.count} pedido(s)" style="flex:1;min-width:22px;max-width:54px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px">
+  return `<div title="${x.label}: ${money(x.value)} • ${x.count} pedido(s)" style="flex:1;min-width:${p==="total"?"48px":"22px"};max-width:64px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px">
    <div style="font-size:10px;font-weight:750;color:#79523e;white-space:nowrap;min-height:12px">${x.value>=max*.18?money(x.value).replace(",00",""):""}</div>
    <div style="height:74px;width:100%;display:flex;align-items:flex-end;justify-content:center;border-bottom:1px solid #eadfd8"><div style="height:${height}px;width:min(100%,38px);border-radius:5px 5px 0 0;background:linear-gradient(180deg,#cda58f,#8b604d);opacity:${x.value?1:.18}"></div></div>
-   <div style="font-size:10px;color:#77665d;white-space:nowrap">${label}</div>
+   <div style="font-size:10px;color:#77665d;white-space:nowrap">${x.label}</div>
    <div style="font-size:10px;color:#9b8a80">${x.count||""}</div>
   </div>`;
  }).join("");
@@ -3971,7 +3978,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '127';
+const GESTOR_APP_VERSION = '128';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
