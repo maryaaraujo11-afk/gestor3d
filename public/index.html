@@ -2212,7 +2212,7 @@ function syncProductionQuotesToDirectSales(){
  const quotes=Array.isArray(db.quotes)?db.quotes:[];
  const sales=directSales();
  let changed=false;
- quotes.filter(q=>["produção","venda direta"].includes(String(q.status||"").toLocaleLowerCase("pt-BR"))).forEach(q=>{
+ quotes.filter(q=>!q.directSaleExcluded&&["produção","venda direta"].includes(String(q.status||"").toLocaleLowerCase("pt-BR"))).forEach(q=>{
    const quoteId=String(q.id);
    let sale=sales.find(s=>String(s.quoteId||"")===quoteId);
    const amount=Number(q.finalTotal??q.totalPrice??((Number(q.price)||0)*(Number(q.qty)||1)));
@@ -3827,7 +3827,15 @@ function newDirectSale(){editingDirectSaleId=null;["dsClient","dsContact","dsPro
 function cancelDirectEdit(){newDirectSale();}
 function saveDirectSale(){const client=document.getElementById("dsClient").value.trim(),product=document.getElementById("dsProduct").value.trim(),amount=Number(document.getElementById("dsAmount").value);if(!client||!product||!Number.isFinite(amount)||amount<0){alert("Informe cliente, produto e valor total válido.");return;}const arr=directSales();let item=arr.find(s=>String(s.id)===String(editingDirectSaleId));if(!item){item={id:"ds_"+Date.now(),createdAt:new Date().toISOString(),payments:[]};arr.push(item);}Object.assign(item,{client,contact:document.getElementById("dsContact").value.trim(),product,qty:Math.max(1,Number(document.getElementById("dsQty").value)||1),amount,deadline:document.getElementById("dsDeadline").value,status:document.getElementById("dsStatus").value,notes:document.getElementById("dsNotes").value.trim()});editingDirectSaleId=null;save();renderDirectSales();}
 function editDirectSale(id){const s=directSales().find(x=>String(x.id)===String(id));if(!s)return;editingDirectSaleId=s.id;document.getElementById("dsClient").value=s.client||"";document.getElementById("dsContact").value=s.contact||"";document.getElementById("dsProduct").value=s.product||"";document.getElementById("dsQty").value=s.qty||1;document.getElementById("dsAmount").value=s.amount||0;document.getElementById("dsDeadline").value=s.deadline||"";document.getElementById("dsStatus").value=s.status||"Em aberto";document.getElementById("dsNotes").value=s.notes||"";document.getElementById("dsFormTitle").textContent="Editar venda direta";}
-function deleteDirectSale(id){const linked=directPayments().filter(p=>String(p.saleId)===String(id)).length;if(!confirm("Excluir esta venda direta?"+(linked?" Os "+linked+" pagamento(s) vinculados também serão excluídos.":"")))return;db.directSales=directSales().filter(s=>String(s.id)!==String(id));db.directPayments=directPayments().filter(p=>String(p.saleId)!==String(id));save();renderDirectSales();}
+function deleteDirectSale(id){
+ const sale=directSales().find(s=>String(s.id)===String(id));if(!sale)return;
+ const linked=directPayments().filter(p=>String(p.saleId)===String(id)).length;
+ if(!confirm("Excluir esta venda direta?"+(linked?" Os "+linked+" pagamento(s) vinculados também serão excluídos.":"")+"\n\nO orçamento original será mantido e não será importado novamente."))return;
+ if(sale.quoteId)(db.quotes||[]).forEach(q=>{if(String(q.id)===String(sale.quoteId))q.directSaleExcluded=true;});
+ db.directSales=directSales().filter(s=>String(s.id)!==String(id));
+ db.directPayments=directPayments().filter(p=>String(p.saleId)!==String(id));
+ save();renderDirectSales();
+}
 function saveDirectPayment(){const saleId=document.getElementById("dsPaySale").value,amount=Number(document.getElementById("dsPayAmount").value);if(!saleId||!Number.isFinite(amount)||amount<=0){alert("Selecione uma venda e informe um valor recebido válido.");return;}const arr=directPayments();let p=arr.find(x=>String(x.id)===String(editingDirectPaymentId));if(!p){p={id:"dp_"+Date.now()};arr.push(p);}Object.assign(p,{saleId,amount,date:document.getElementById("dsPayDate").value||new Date().toISOString().slice(0,10),method:document.getElementById("dsPayMethod").value});editingDirectPaymentId=null;save();renderDirectSales();}
 function editDirectPayment(id){const p=directPayments().find(x=>String(x.id)===String(id));if(!p)return;editingDirectPaymentId=p.id;document.getElementById("dsPaySale").value=p.saleId;document.getElementById("dsPayAmount").value=p.amount;document.getElementById("dsPayDate").value=p.date||"";document.getElementById("dsPayMethod").value=p.method||"Pix";document.getElementById("dsPaymentTitle").textContent="Editar pagamento";}
 function cancelDirectPaymentEdit(){editingDirectPaymentId=null;document.getElementById("dsPayAmount").value="";document.getElementById("dsPaymentTitle").textContent="Registrar pagamento";}
@@ -3908,7 +3916,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '123';
+const GESTOR_APP_VERSION = '124';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
