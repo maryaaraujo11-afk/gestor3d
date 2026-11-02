@@ -1,4 +1,4 @@
-const CACHE = 'gestor3d-v142';;;
+const CACHE = 'gestor3d-v143';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -14,7 +14,8 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
@@ -22,18 +23,43 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const req = event.request;
   if (req.method !== 'GET') return;
+
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
-  // Sempre busca a interface mais recente no servidor; usa cache apenas se estiver offline.
-  if (req.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html' || url.pathname === '/sw.js' || url.pathname === '/manifest.webmanifest' || url.pathname === '/version.json') {
-    event.respondWith(fetch(req, {cache:'no-store'}).then(res => {
-      if (res.ok && req.method === 'GET') caches.open(CACHE).then(c => c.put(req, res.clone()));
-      return res;
-    }).catch(() => caches.match(req).then(r => r || caches.match('/index.html'))));
+
+  const isAppShell = req.mode === 'navigate' ||
+    ['/','/index.html','/sw.js','/manifest.webmanifest','/version.json'].includes(url.pathname);
+
+  if (isAppShell) {
+    event.respondWith(
+      fetch(req, { cache: 'no-store' })
+        .then(response => {
+          if (response.ok) {
+            // Clone synchronously, before any consumer can read the response body.
+            const cacheCopy = response.clone();
+            event.waitUntil(
+              caches.open(CACHE).then(cache => cache.put(req, cacheCopy)).catch(() => {})
+            );
+          }
+          return response;
+        })
+        .catch(() => caches.match(req).then(cached => cached || caches.match('/index.html')))
+    );
     return;
   }
-  event.respondWith(caches.match(req).then(cached => cached || fetch(req).then(res => {
-    if (res.ok) caches.open(CACHE).then(c => c.put(req, res.clone()));
-    return res;
-  })));
+
+  event.respondWith(
+    caches.match(req).then(cached => {
+      if (cached) return cached;
+      return fetch(req).then(response => {
+        if (response.ok) {
+          const cacheCopy = response.clone();
+          event.waitUntil(
+            caches.open(CACHE).then(cache => cache.put(req, cacheCopy)).catch(() => {})
+          );
+        }
+        return response;
+      });
+    })
+  );
 });
