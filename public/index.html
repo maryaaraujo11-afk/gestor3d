@@ -3215,7 +3215,18 @@ function saleLaborAmount(s){
 function renderDailySalesChart(period){
  const box=document.getElementById("dailySalesChart");if(!box)return;
  const p=period||document.getElementById("dashboardPeriod")?.value||"total";
- const eligible=[...(db.sales||[]),...(db.directSales||[]).map(s=>({...s,dateISO:String(s.dateISO||s.createdAt||"").slice(0,10),grossValue:Number(s.amount)||0,value:Number(s.amount)||0,qty:Number(s.qty)||1}))].filter(s=>!["Cancelado","Cancelada","Pendente"].includes(String(s.status||"").trim())&&/^\d{4}-\d{2}-\d{2}$/.test(String(s.dateISO||"")));
+ const regularSales=(db.sales||[]).filter(s=>!["Cancelado","Cancelada","Pendente"].includes(String(s.status||"").trim()));
+ const directById=new Map((db.directSales||[]).map(s=>[String(s.id),s]));
+ // Vendas diretas só entram no gráfico conforme os pagamentos realmente registrados.
+ // Pagamento parcial é contabilizado pelo valor e pela data de cada recebimento.
+ const receivedDirect=(db.directPayments||[]).flatMap(payment=>{
+  const sale=directById.get(String(payment.saleId));
+  const amount=Number(payment.amount)||0;
+  const dateISO=String(payment.date||"").slice(0,10);
+  if(!sale||sale.status==="Cancelado"||amount<=0||!/^\\d{4}-\\d{2}-\\d{2}$/.test(dateISO))return [];
+  return [{...sale,dateISO,grossValue:amount,value:amount,qty:Number(sale.qty)||1}];
+ });
+ const eligible=[...regularSales,...receivedDirect].filter(s=>/^\\d{4}-\\d{2}-\\d{2}$/.test(String(s.dateISO||"")));
  let values=[],subtitle="";
  if(p==="total"){
   const grouped={};
