@@ -3197,7 +3197,7 @@ function saleStateCode(s){const raw=String(s?.state||s?.uf||"").trim();if(!raw)r
 function mapMonthKey(s){if(s?.dateISO&&/^\d{4}-\d{2}/.test(s.dateISO))return s.dateISO.slice(0,7);const d=String(s?.date||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return d?`${d[3]}-${d[2]}`:"";}
 function mapMonthLabel(k){if(!k)return"Total geral";const[y,m]=k.split("-");return new Date(Number(y),Number(m)-1,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"}).replace(/^./,c=>c.toUpperCase());}
 function dashboardPeriods(){return[...new Set([...((db.sales||[])),...((db.directSales||[]).map(s=>({...s,dateISO:String(s.dateISO||s.createdAt||"").slice(0,10)})))].map(mapMonthKey).filter(Boolean))].sort().reverse();}
-function populateDashboardPeriods(selected){const months=dashboardPeriods();const dashboardEl=document.getElementById("dashboardPeriod"),mapEl=document.getElementById("stateMapPeriod");if(dashboardEl){const current=selected||dashboardEl.value||currentReportMonth();dashboardEl.innerHTML='<option value="total">Total geral</option>'+months.map(k=>`<option value="${k}">${mapMonthLabel(k)}</option>`).join("");dashboardEl.value=months.includes(current)?current:(months.includes(currentReportMonth())?currentReportMonth():"total");}if(mapEl){const mapCurrent=mapEl.value||"total";mapEl.innerHTML='<option value="total">Total geral</option>'+months.map(k=>`<option value="${k}">${mapMonthLabel(k)}</option>`).join("");mapEl.value=mapCurrent==="total"||months.includes(mapCurrent)?mapCurrent:"total";}return dashboardEl?.value||currentReportMonth();}
+function populateDashboardPeriods(selected){const months=dashboardPeriods();const dashboardEl=document.getElementById("dashboardPeriod"),mapEl=document.getElementById("stateMapPeriod");if(dashboardEl){const current=selected||dashboardEl.value||currentReportMonth();dashboardEl.innerHTML='<option value="total">Total geral</option>'+months.map(k=>`<option value="${k}">${mapMonthLabel(k)}</option>`).join("");dashboardEl.value=current==="total"?"total":(months.includes(current)?current:(months.includes(currentReportMonth())?currentReportMonth():"total"));}if(mapEl){const mapCurrent=mapEl.value||"total";mapEl.innerHTML='<option value="total">Total geral</option>'+months.map(k=>`<option value="${k}">${mapMonthLabel(k)}</option>`).join("");mapEl.value=mapCurrent==="total"||months.includes(mapCurrent)?mapCurrent:"total";}return dashboardEl?.value||"total";}
 function dashboardSales(period){const regular=(db.sales||[]).filter(s=>!["Cancelado","Cancelada","Pendente"].includes(String(s.status||"").trim()));const direct=(db.directSales||[]).filter(s=>!["Cancelado","Cancelada"].includes(String(s.status||"").trim())).map(s=>{const dateISO=String(s.dateISO||s.createdAt||"").slice(0,10);return {...s,dateISO,grossValue:Number(s.amount)||0,value:Number(s.amount)||0,netValue:Number(s.amount)||0,fee:0,cost:0,product:s.product||"Venda direta",qty:Number(s.qty)||1,items:[{product:s.product||"Venda direta",productId:s.productId,qty:Number(s.qty)||1}]};});return [...regular,...direct].filter(s=>period==="total"||mapMonthKey(s)===period);}
 function saleLaborAmount(s){
  try{
@@ -3215,7 +3215,7 @@ function saleLaborAmount(s){
 function renderDailySalesChart(period){
  const box=document.getElementById("dailySalesChart");if(!box)return;
  const p=period||document.getElementById("dashboardPeriod")?.value||"total";
- const eligible=[...(db.sales||[]),...(db.directSales||[]).map(s=>({...s,dateISO:String(s.dateISO||s.createdAt||"").slice(0,10),grossValue:Number(s.amount)||0,value:Number(s.amount)||0,qty:Number(s.qty)||1}))].filter(s=>!["Cancelado","Cancelada","Pendente"].includes(String(s.status||"").trim())&&/^\\d{4}-\\d{2}-\\d{2}$/.test(String(s.dateISO||"")));
+ const eligible=[...(db.sales||[]),...(db.directSales||[]).map(s=>({...s,dateISO:String(s.dateISO||s.createdAt||"").slice(0,10),grossValue:Number(s.amount)||0,value:Number(s.amount)||0,qty:Number(s.qty)||1}))].filter(s=>!["Cancelado","Cancelada","Pendente"].includes(String(s.status||"").trim())&&/^\d{4}-\d{2}-\d{2}$/.test(String(s.dateISO||"")));
  let values=[],subtitle="";
  if(p==="total"){
   const grouped={};
@@ -3223,7 +3223,7 @@ function renderDailySalesChart(period){
   values=Object.values(grouped).sort((a,b)=>a.date.localeCompare(b.date));
   subtitle="Valor bruto vendido por mês • Total geral";
  }else{
-  const monthKey=/^\\d{4}-\\d{2}$/.test(p)?p:todayISO().slice(0,7);
+  const monthKey=/^\d{4}-\d{2}$/.test(p)?p:todayISO().slice(0,7);
   const [year,month]=monthKey.split("-").map(Number),days=new Date(year,month,0).getDate();
   const dates=Array.from({length:days},(_,i)=>monthKey+"-"+String(i+1).padStart(2,"0"));
   values=dates.map(date=>{const daySales=eligible.filter(s=>String(s.dateISO||"")===date);return {date,label:date.slice(8,10)+"/"+date.slice(5,7),value:daySales.reduce((sum,s)=>sum+(Number(s.grossValue??s.value)||0),0),count:daySales.length};});
