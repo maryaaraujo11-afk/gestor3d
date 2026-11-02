@@ -3223,10 +3223,10 @@ function renderDailySalesChart(period){
   const sale=directById.get(String(payment.saleId));
   const amount=Number(payment.amount)||0;
   const dateISO=String(payment.date||"").slice(0,10);
-  if(!sale||sale.status==="Cancelado"||amount<=0||!/^\\d{4}-\\d{2}-\\d{2}$/.test(dateISO))return [];
+  if(!sale||sale.status==="Cancelado"||amount<=0||!/^\d{4}-\d{2}-\d{2}$/.test(dateISO))return [];
   return [{...sale,dateISO,grossValue:amount,value:amount,qty:Number(sale.qty)||1}];
  });
- const eligible=[...regularSales,...receivedDirect].filter(s=>/^\\d{4}-\\d{2}-\\d{2}$/.test(String(s.dateISO||"")));
+ const eligible=[...regularSales,...receivedDirect].filter(s=>/^\d{4}-\d{2}-\d{2}$/.test(String(s.dateISO||"")));
  let values=[],subtitle="";
  if(p==="total"){
   const grouped={};
