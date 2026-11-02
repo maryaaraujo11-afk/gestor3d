@@ -3896,7 +3896,7 @@ function deleteDirectPayment(id){if(!confirm("Excluir este pagamento? O saldo da
 
 function render(){
  db.materials=db.materials||[]; db.movements=db.movements||[]; db.quotes=db.quotes||[]; db.purchases=db.purchases||[]; db.expenses=db.expenses||[]; db.marketingAds=Array.isArray(db.marketingAds)?db.marketingAds:[]; db.sales=db.sales||[]; db.products=db.products||[]; db.customers=db.customers||[]; db.directSales=Array.isArray(db.directSales)?db.directSales:[]; db.directPayments=Array.isArray(db.directPayments)?db.directPayments:[];
- const dashboardPeriod=populateDashboardPeriods();
+ const dashboardPeriod=populateDashboardPeriods(currentReportMonth());
  renderDashboardSummary(dashboardPeriod);
  renderStateMap("total");
  renderProductsRanking("total");
