@@ -2247,12 +2247,25 @@ function renderQuotesPage(){
    <td>${q.name||"Projeto sem nome"}</td>
    <td>${q.qty||1}</td>   <td><b>${money(q.finalTotal??q.totalPrice??((+q.price||0)*(+q.qty||1)))}</b></td>
    <td><span class="tag">${q.status||"salvo"}</span></td>
-   <td><div class="row-actions"><button class="btn xs outline" onclick="editQuote('${q.id}')">✎ Editar</button><button class="btn xs outline" onclick="printQuote('${q.id}')">🖨 Imprimir</button></div></td>
+   <td><div class="row-actions"><button class="btn xs outline" onclick="editQuote('${q.id}')">✎ Editar</button><button class="btn xs outline" onclick="printQuote('${q.id}')">🖨 Imprimir</button><button class="btn xs outline danger" onclick="deleteQuote('${q.id}')">Excluir</button></div></td>
  </tr>`).join("")||'<tr><td colspan="7"><div class="empty-state">Nenhum orçamento salvo ainda.</div></td></tr>';
  const count=document.getElementById("quotesCount"), saved=document.getElementById("quotesSavedCount"), prod=document.getElementById("quotesProductionCount");
  if(count)count.textContent=quotes.length;
  if(saved)saved.textContent=quotes.filter(q=>q.status!=="produção").length;
  if(prod)prod.textContent=quotes.filter(q=>q.status==="produção").length;
+}
+function deleteQuote(id){
+ const quote=(db.quotes||[]).find(q=>String(q.id)===String(id));
+ if(!quote)return;
+ const label=(quote.name||"este orçamento")+" — "+(quote.buyerName||"Sem cliente");
+ if(!confirm("Excluir "+label+"? Esta ação não pode ser desfeita.\n\nSe houver uma venda direta vinculada, ela será mantida."))return;
+ db.quotes=(db.quotes||[]).filter(q=>String(q.id)!==String(id));
+ // Preserve a venda já criada: detach its reference before deleting the quote.
+ directSales().forEach(s=>{if(String(s.quoteId||"")===String(id)){s.quoteId=null;s.notes=[s.notes||"","Orçamento original excluído"].filter(Boolean).join(" · ");}});
+ save();
+ renderQuotesPage();
+ if(typeof renderDirectSales==="function")renderDirectSales();
+ alert("Orçamento excluído. Vendas diretas vinculadas foram mantidas.");
 }
 function printQuote(id){
  const q=(db.quotes||[]).find(x=>String(x.id)===String(id)); if(!q)return;
@@ -3895,7 +3908,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '122';
+const GESTOR_APP_VERSION = '123';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
