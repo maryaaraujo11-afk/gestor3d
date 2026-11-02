@@ -604,6 +604,7 @@ table td,table th{border-bottom-color:#f0e7e0}
           <div class="quote-actions">
             <button class="btn secondary" onclick="saveQuote('salvo')">💾 Salvar orçamento</button>
             <button class="btn" onclick="saveQuote('produção')">✓ Salvar + Produzir</button>
+            <button class="btn" style="background:#4f7662" onclick="saveQuote('venda direta')">↗ Salvar como venda direta</button>
           </div>
         </div>
       </div>
@@ -2211,7 +2212,7 @@ function syncProductionQuotesToDirectSales(){
  const quotes=Array.isArray(db.quotes)?db.quotes:[];
  const sales=directSales();
  let changed=false;
- quotes.filter(q=>String(q.status||"").toLocaleLowerCase("pt-BR")==="produção").forEach(q=>{
+ quotes.filter(q=>["produção","venda direta"].includes(String(q.status||"").toLocaleLowerCase("pt-BR"))).forEach(q=>{
    const quoteId=String(q.id);
    let sale=sales.find(s=>String(s.quoteId||"")===quoteId);
    const amount=Number(q.finalTotal??q.totalPrice??((Number(q.price)||0)*(Number(q.qty)||1)));
@@ -2227,7 +2228,7 @@ function syncProductionQuotesToDirectSales(){
      qty:Math.max(1,Number(q.qty)||1),
      amount:Number.isFinite(amount)?amount:0,
      deadline:sale.deadline||"",
-     status:sale.status||"Em produção",
+     status:sale.status||(String(q.status||"").toLocaleLowerCase("pt-BR")==="venda direta"?"Em aberto":"Em produção"),
      notes:(String(sale.notes||"").includes("Convertido automaticamente do orçamento #"+quoteId)
        ?String(sale.notes||"")
        :[sale.notes||"", "Convertido automaticamente do orçamento #"+quoteId].filter(Boolean).join(" · "))
@@ -2523,6 +2524,7 @@ function saveQuote(status){
  }else{
    db.quotes.unshift({id:Date.now(),...quoteData});
    if(status==="produção") alert("Orçamento salvo e marcado para produção.");
+   else if(status==="venda direta") alert("Projeto salvo e enviado para Vendas Diretas.");
    else alert("Orçamento salvo com sucesso.");
  }
  save();
@@ -3882,7 +3884,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '119';
+const GESTOR_APP_VERSION = '120';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
