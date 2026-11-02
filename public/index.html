@@ -2207,7 +2207,35 @@ function newQuote(){
  clearQuoteAdjustments();
  runCalc();
 }
+function syncProductionQuotesToDirectSales(){
+ const quotes=Array.isArray(db.quotes)?db.quotes:[];
+ const sales=directSales();
+ let changed=false;
+ quotes.filter(q=>String(q.status||"").toLocaleLowerCase("pt-BR")==="produção").forEach(q=>{
+   const quoteId=String(q.id);
+   let sale=sales.find(s=>String(s.quoteId||"")===quoteId);
+   const amount=Number(q.finalTotal??q.totalPrice??((Number(q.price)||0)*(Number(q.qty)||1)));
+   if(!sale){
+     sale={id:"ds_quote_"+quoteId,quoteId,createdAt:new Date().toISOString(),payments:[]};
+     sales.push(sale);
+   }
+   Object.assign(sale,{
+     quoteId,
+     client:String(q.buyerName||"").trim()||"Sem cliente",
+     contact:sale.contact||"",
+     product:String(q.name||"Projeto sem nome"),
+     qty:Math.max(1,Number(q.qty)||1),
+     amount:Number.isFinite(amount)?amount:0,
+     deadline:sale.deadline||"",
+     status:sale.status||"Em produção",
+     notes:[sale.notes||"", "Convertido automaticamente do orçamento #"+quoteId].filter(Boolean).join(" · ")
+   });
+   changed=true;
+ });
+ if(changed)save();
+}
 function renderQuotesPage(){
+ syncProductionQuotesToDirectSales();
  const quotes=db.quotes||[];
  const table=document.getElementById("quotesPageTable");
  if(table)table.innerHTML=quotes.map(q=>`<tr>
