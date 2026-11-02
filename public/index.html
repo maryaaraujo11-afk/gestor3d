@@ -3237,6 +3237,7 @@ function renderDailySalesChart(period){
 }
 function renderDashboardSummary(period){
  const p=period||document.getElementById("dashboardPeriod")?.value||"total";
+ renderProductsRanking(p);
  renderDailySalesChart(p);
  const sales=dashboardSales(p);
  const revenue=sales.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0);
