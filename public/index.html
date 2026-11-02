@@ -3310,9 +3310,27 @@ function reportMonthLabel(month){
 function normalizeCustomerName(name){return String(name||"").trim().replace(/\s+/g," ");}
 function customerKey(name){return normalizeCustomerName(name).toLocaleLowerCase("pt-BR");}
 function syncCustomersFromSales(){db.customers=Array.isArray(db.customers)?db.customers:[];(db.sales||[]).forEach(s=>{const name=normalizeCustomerName(s.customerName);if(!name)return;let c=db.customers.find(x=>customerKey(x.name)===customerKey(name));if(!c){c={id:String(Date.now()+Math.random()),name,state:s.state||"",createdAt:todayISO()};db.customers.push(c);}if(s.state)c.state=s.state;c.updatedAt=s.dateISO||todayISO();});}
+function syncCustomersFromDirectSales(){
+ db.customers=Array.isArray(db.customers)?db.customers:[];
+ (db.directSales||[]).forEach(s=>{
+  const name=normalizeCustomerName(s.client);if(!name)return;
+  let customer=db.customers.find(x=>customerKey(x.name)===customerKey(name));
+  if(!customer){
+   customer={id:"cust_ds_"+String(s.id||Date.now()),name,state:"",createdAt:todayISO()};
+   db.customers.push(customer);
+  }
+  const contact=String(s.contact||"").trim();
+  if(contact&&!customer.phone&&!customer.contact&&!customer.email){
+   if(contact.includes("@"))customer.email=contact;
+   else customer.phone=contact;
+  }
+  customer.updatedAt=s.createdAt||todayISO();
+ });
+}
 function customerSales(c){const k=customerKey(c.name);return(db.sales||[]).filter(s=>customerKey(s.customerName)===k);}
 function renderCustomers(){
  syncCustomersFromSales();
+ syncCustomersFromDirectSales();
  const sorted=[...(db.customers||[])].sort((a,b)=>normalizeCustomerName(a.name).localeCompare(normalizeCustomerName(b.name),"pt-BR",{sensitivity:"base"}));
  const rows=sorted.map(c=>{
    const sales=customerSales(c),active=sales.filter(s=>s.status!=="Cancelado"),total=active.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0),last=[...sales].sort((a,b)=>String(b.dateISO||"").localeCompare(String(a.dateISO||"")))[0];
@@ -3856,7 +3874,7 @@ function renderDirectSales(){
 function updateDirectSaleStatus(id,value){const sale=directSales().find(s=>String(s.id)===String(id));if(!sale)return;const allowed=["Em aberto","Em produção","Pronto","Entregue","Cancelado"];if(!allowed.includes(value))return;sale.status=value;if(value==="Entregue"&&!sale.completedDate)sale.completedDate=todayISO();save();renderDirectSales();}
 function newDirectSale(){editingDirectSaleId=null;populateDirectSaleProducts("");populateDirectSaleCustomers("");["dsClient","dsContact","dsProduct","dsAmount","dsDeadline","dsNotes"].forEach(id=>document.getElementById(id).value="");document.getElementById("dsQty").value=1;document.getElementById("dsStatus").value="Em aberto";document.getElementById("dsFormTitle").textContent="Cadastrar venda direta";}
 function cancelDirectEdit(){newDirectSale();}
-function saveDirectSale(){const client=document.getElementById("dsClient").value.trim(),product=document.getElementById("dsProduct").value.trim(),amount=Number(document.getElementById("dsAmount").value);if(!client||!product||!Number.isFinite(amount)||amount<0){alert("Informe cliente, produto e valor total válido.");return;}const arr=directSales();let item=arr.find(s=>String(s.id)===String(editingDirectSaleId));if(!item){item={id:"ds_"+Date.now(),createdAt:new Date().toISOString(),payments:[]};arr.push(item);}Object.assign(item,{client,contact:document.getElementById("dsContact").value.trim(),product,productId:document.getElementById("dsExistingProduct")?.value||"",qty:Math.max(1,Number(document.getElementById("dsQty").value)||1),amount,discount:Number(item.discount)||0,discountPercent:Number(item.discountPercent)||0,deadline:document.getElementById("dsDeadline").value,status:document.getElementById("dsStatus").value,notes:document.getElementById("dsNotes").value.trim()});editingDirectSaleId=null;save();renderDirectSales();}
+function saveDirectSale(){const client=document.getElementById("dsClient").value.trim(),product=document.getElementById("dsProduct").value.trim(),amount=Number(document.getElementById("dsAmount").value);if(!client||!product||!Number.isFinite(amount)||amount<0){alert("Informe cliente, produto e valor total válido.");return;}const arr=directSales();let item=arr.find(s=>String(s.id)===String(editingDirectSaleId));if(!item){item={id:"ds_"+Date.now(),createdAt:new Date().toISOString(),payments:[]};arr.push(item);}Object.assign(item,{client,contact:document.getElementById("dsContact").value.trim(),product,productId:document.getElementById("dsExistingProduct")?.value||"",qty:Math.max(1,Number(document.getElementById("dsQty").value)||1),amount,discount:Number(item.discount)||0,discountPercent:Number(item.discountPercent)||0,deadline:document.getElementById("dsDeadline").value,status:document.getElementById("dsStatus").value,notes:document.getElementById("dsNotes").value.trim()});editingDirectSaleId=null;syncCustomersFromDirectSales();save();renderDirectSales();}
 function editDirectSale(id){const s=directSales().find(x=>String(x.id)===String(id));if(!s)return;populateDirectSaleProducts(s.productId||"");populateDirectSaleCustomers(s.client||"");editingDirectSaleId=s.id;document.getElementById("dsClient").value=s.client||"";document.getElementById("dsContact").value=s.contact||"";document.getElementById("dsProduct").value=s.product||"";document.getElementById("dsQty").value=s.qty||1;document.getElementById("dsAmount").value=s.amount||0;document.getElementById("dsDeadline").value=s.deadline||"";document.getElementById("dsStatus").value=s.status||"Em aberto";document.getElementById("dsNotes").value=s.notes||"";document.getElementById("dsFormTitle").textContent="Editar venda direta";}
 function deleteDirectSale(id){
  const sale=directSales().find(s=>String(s.id)===String(id));if(!sale)return;
