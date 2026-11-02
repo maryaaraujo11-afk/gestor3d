@@ -2476,8 +2476,10 @@ function editQuote(id){
 function saveQuote(status){
  const name=(document.getElementById("calcProjectName").value||"Projeto sem nome").trim();
  const qty=Math.max(1,+document.getElementById("calcQty").value||1);
- const a=getQuoteAdjustments();
+ const originalAdjustments=getQuoteAdjustments();
  const c=window.lastCalc||{};
+ // Venda direta não inclui comissão/taxa fixa nem markup do marketplace.
+ const a=status==="venda direta"?{...originalAdjustments,unitPrice:Math.max(0,Number(c.unitBase)||originalAdjustments.unitPrice),gross:Math.max(0,Number(c.unitBase)||originalAdjustments.unitPrice)*qty,finalTotal:Math.max(0,(Math.max(0,Number(c.unitBase)||originalAdjustments.unitPrice)*qty)-originalAdjustments.discount+originalAdjustments.freight)}:originalAdjustments;
  const calcMaterials=[...document.querySelectorAll("#calcMaterials .material-row")].map(row=>{
    const materialId=row.querySelector(".calc-mat")?.value||"";
    const m=(db.materials||[]).find(x=>String(x.id)===String(materialId));
@@ -3788,6 +3790,15 @@ function dsEscape(v){return String(v==null?"":v).replace(/[&<>]/g,function(c){re
 function dsMoney(v){return money(Number(v)||0);}
 function dsReceived(id){return directPayments().filter(p=>String(p.saleId)===String(id)).reduce((a,p)=>a+(Number(p.amount)||0),0);}
 function dsBalance(s){return Math.max(0,(Number(s.amount)||0)-dsReceived(s.id));}
+function printDirectSale(id){
+ const sale=directSales().find(s=>String(s.id)===String(id));if(!sale)return;
+ const quote=(db.quotes||[]).find(q=>String(q.id)===String(sale.quoteId));
+ if(quote){printQuote(quote.id);return;}
+ const esc=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+ const logo=db.settings?.logo||"";
+ const html=`<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Orçamento - ${esc(sale.product)}</title><style>body{font-family:Arial,sans-serif;color:#2d2926;padding:32px}.sheet{max-width:780px;margin:auto}.head{display:flex;justify-content:space-between;border-bottom:2px solid #8b5e4a;padding-bottom:16px}.logo{max-width:180px;max-height:70px}.box{margin-top:24px;padding:18px;background:#f8f5f3}.row{display:flex;justify-content:space-between;padding:10px 0}.total{font-size:22px;color:#8b5e4a;font-weight:bold}@media print{body{padding:0}}</style></head><body><div class="sheet"><div class="head">${logo?`<img class="logo" src="${logo}">`:"<b>Gestor 3D</b>"}<b>ORÇAMENTO</b></div><p>Cliente: <b>${esc(sale.client)}</b></p><h2>${esc(sale.product)}</h2><div class="box"><div class="row"><span>Quantidade</span><b>${esc(sale.qty)}</b></div><div class="row"><span>Total</span><b class="total">${dsMoney(sale.amount)}</b></div>${sale.deadline?`<div class="row"><span>Prazo de entrega</span><b>${esc(sale.deadline)}</b></div>`:""}${sale.notes?`<p>${esc(sale.notes)}</p>`:""}</div></div><script>window.onload=()=>window.print();<\\/script></body></html>`;
+ const w=window.open("","_blank","width=900,height=800");if(!w){alert("Permita pop-ups para imprimir o orçamento.");return;}w.document.write(html);w.document.close();
+}
 function renderDirectSales(){
  // Ao entrar em Vendas Diretas, importa orçamentos já aceitos/marcados para produção.
  // Usa o ID do orçamento como vínculo para impedir vendas duplicadas.
@@ -3795,7 +3806,7 @@ function renderDirectSales(){
  const sales=directSales(), pay=directPayments();
  const c=document.getElementById("dsCount"),t=document.getElementById("dsTotal"),d=document.getElementById("dsDue");
  if(c)c.textContent=sales.length;if(t)t.textContent=dsMoney(sales.reduce((a,s)=>a+(Number(s.amount)||0),0));if(d)d.textContent=dsMoney(sales.reduce((a,s)=>a+dsBalance(s),0));
- const tb=document.getElementById("dsTable");if(tb)tb.innerHTML=sales.map(s=>'<tr><td>'+dsEscape(s.client||"—")+'</td><td>'+dsEscape(s.product||"—")+'</td><td>'+(s.deadline||"—")+'</td><td>'+dsMoney(s.amount)+'</td><td>'+dsMoney(dsReceived(s.id))+'</td><td><b>'+dsMoney(dsBalance(s))+'</b></td><td>'+dsEscape(s.status||"Em aberto")+'</td><td><button class="btn xs outline" onclick="editDirectSale(\''+s.id+'\')">Editar</button> <button class="btn xs outline" onclick="deleteDirectSale(\''+s.id+'\')">Excluir</button></td></tr>').join("")||'<tr><td colspan="8">Nenhuma venda direta cadastrada.</td></tr>';
+ const tb=document.getElementById("dsTable");if(tb)tb.innerHTML=sales.map(s=>'<tr><td>'+dsEscape(s.client||"—")+'</td><td>'+dsEscape(s.product||"—")+'</td><td>'+(s.deadline||"—")+'</td><td>'+dsMoney(s.amount)+'</td><td>'+dsMoney(dsReceived(s.id))+'</td><td><b>'+dsMoney(dsBalance(s))+'</b></td><td>'+dsEscape(s.status||"Em aberto")+'</td><td><button class="btn xs outline" onclick="editDirectSale(\''+s.id+'\')">Editar</button> <button class="btn xs outline" onclick="printDirectSale(\'"+s.id+"\')">Imprimir</button> <button class="btn xs outline" onclick="deleteDirectSale(\''+s.id+'\')">Excluir</button></td></tr>').join("")||'<tr><td colspan="8">Nenhuma venda direta cadastrada.</td></tr>';
  const sel=document.getElementById("dsPaySale");if(sel){const old=sel.value;sel.innerHTML=sales.map(s=>'<option value="'+s.id+'">'+dsEscape(s.client||"Cliente")+' — '+dsEscape(s.product||"Venda")+'</option>').join("");if(old)sel.value=old;}
  const pt=document.getElementById("dsPayments");if(pt)pt.innerHTML=pay.map(p=>{const sale=sales.find(s=>String(s.id)===String(p.saleId));return '<tr><td>'+dsEscape(p.date||"—")+'</td><td>'+dsEscape(sale?.client||"Venda removida")+'</td><td>'+dsMoney(p.amount)+'</td><td>'+dsEscape(p.method||"—")+'</td><td><button class="btn xs outline" onclick="editDirectPayment(\''+p.id+'\')">Editar</button> <button class="btn xs outline" onclick="deleteDirectPayment(\''+p.id+'\')">Excluir</button></td></tr>';}).join("")||'<tr><td colspan="5">Nenhum pagamento registrado.</td></tr>';
 }
@@ -3884,7 +3895,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '120';
+const GESTOR_APP_VERSION = '121';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
