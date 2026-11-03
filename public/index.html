@@ -296,6 +296,11 @@ table td,table th{border-bottom-color:#f0e7e0}
   <div class="sub" style="margin-top:8px">Considera pedidos não cancelados nem pendentes. Selecione o período do Dashboard para alterar o intervalo do gráfico.</div>
 </div>
 
+<div class="panel" id="dashboardPriorityPanel">
+  <div class="top" style="margin-bottom:12px"><div><h2 style="margin:0">Pedidos prioritários</h2><div class="sub">Pendentes e em produção, organizados por atraso e prazo de envio.</div></div><span class="tag" id="dashboardPriorityCount">0 pedidos</span></div>
+  <div class="table-wrap"><table><thead><tr><th>Prioridade</th><th>Cliente</th><th>Produto</th><th>Status</th><th>Prazo</th></tr></thead><tbody id="dashboardPriorityTable"><tr><td colspan="5">Nenhum pedido pendente ou em produção.</td></tr></tbody></table></div>
+</div>
+
 <div class="panel state-map-panel dashboard-map-panel">
 <div class="state-map-head"><div class="state-map-title"><div class="map-title-icon">⌖</div><div><h2>Vendas por estado</h2><div class="sub">Quantidade total de vendas por estado</div></div></div><div class="state-map-filter"><span class="map-filter-icon">▣</span><select id="stateMapPeriod" onchange="setStateMapPeriod(this.value)"></select></div></div>
 <div class="state-map-layout">
@@ -3266,6 +3271,29 @@ function renderDailySalesChart(period){
   </div>`;
  }).join("");
 }
+function renderDashboardPriorityOrders(){
+ const table=document.getElementById("dashboardPriorityTable");if(!table)return;
+ const today=typeof todayISO==="function"?todayISO():new Date().toISOString().slice(0,10);
+ const esc=v=>String(v==null?"—":v).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+ const rows=[];
+ (db.sales||[]).forEach(s=>{
+  const status=String(s.status||"").trim();
+  if(!["Pendente","Em produção"].includes(status))return;
+  const due=String(s.dueDate||"").slice(0,10);
+  rows.push({client:s.customerName||s.customer||"—",product:s.product||((s.items||[]).map(i=>i.product).filter(Boolean).join(", "))||"—",status,due,created:s.dateISO||"",late:!!due&&due<today,source:"sale",id:s.id});
+ });
+ (db.directSales||[]).forEach(s=>{
+  const status=String(s.status||"Em aberto").trim();
+  if(!["Em aberto","Pendente","Em produção"].includes(status))return;
+  const due=String(s.deadline||"").slice(0,10);
+  rows.push({client:s.client||"—",product:s.product||"Venda direta",status:status==="Em aberto"?"Pendente":status,due,created:String(s.dateISO||s.createdAt||"").slice(0,10),late:!!due&&due<today,source:"direct",id:s.id});
+ });
+ const rank=r=>r.late?0:1;
+ rows.sort((a,b)=>rank(a)-rank(b)||(a.due||"9999-12-31").localeCompare(b.due||"9999-12-31")||a.created.localeCompare(b.created));
+ const count=document.getElementById("dashboardPriorityCount");if(count)count.textContent=rows.length+" pedido"+(rows.length===1?"":"s");
+ table.innerHTML=rows.map(r=>'<tr><td><span class="tag '+(r.late?'warn':'')+'">'+(r.late?'Atrasado':'No prazo')+'</span></td><td>'+esc(r.client)+'</td><td>'+esc(r.product)+'</td><td>'+esc(r.status)+'</td><td>'+(r.due?esc(typeof formatDateISO==="function"?formatDateISO(r.due):r.due):"Sem prazo")+'</td></tr>').join("")||'<tr><td colspan="5">Nenhum pedido pendente ou em produção.</td></tr>';
+}
+
 function renderDashboardSummary(period){
  const p=period||document.getElementById("dashboardPeriod")?.value||"total";
  renderDailySalesChart(p);
@@ -3936,6 +3964,7 @@ function render(){
  db.materials=db.materials||[]; db.movements=db.movements||[]; db.quotes=db.quotes||[]; db.purchases=db.purchases||[]; db.expenses=db.expenses||[]; db.marketingAds=Array.isArray(db.marketingAds)?db.marketingAds:[]; db.sales=db.sales||[]; db.products=db.products||[]; db.customers=db.customers||[]; db.directSales=Array.isArray(db.directSales)?db.directSales:[]; db.directPayments=Array.isArray(db.directPayments)?db.directPayments:[];
  const dashboardPeriod=populateDashboardPeriods(currentReportMonth());
  renderDashboardSummary(dashboardPeriod);
+ renderDashboardPriorityOrders();
  renderStateMap("total");
  renderProductsRanking(document.getElementById("stateMapPeriod")?.value||"total");
  const reportMonth=getReportMonth();
