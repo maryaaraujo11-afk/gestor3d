@@ -1775,6 +1775,16 @@ function renderProductionQueue(){
    const g=groups.get(key);g.qty+=Math.max(0,Number(item.qty??s.qty)||1);g.orders.add(String(s.id));
   });
  });
+ // Inclui vendas diretas na fila de produção, sem duplicá-las em db.sales.
+ (db.directSales||[]).filter(s=>String(s.status||"").trim()==="Em produção").forEach(s=>{
+  const productId=String(s.productId||"").trim();
+  const name=String((db.products||[]).find(p=>String(p.id)===productId)?.name||s.product||"Produto sem nome");
+  const key=(productId||name)+"::";
+  if(!groups.has(key))groups.set(key,{key,productName:name,variant:"",qty:0,orders:new Set()});
+  const g=groups.get(key);
+  g.qty+=Math.max(1,Number(s.qty)||1);
+  g.orders.add("direct:"+String(s.id));
+ });
  db.productionStatuses=db.productionStatuses&&typeof db.productionStatuses==="object"?db.productionStatuses:{};
  const query=normalizeSearchText(document.getElementById("productionSearch")?.value||"");
  const all=[...groups.values()].sort((a,b)=>a.productName.localeCompare(b.productName,"pt-BR",{sensitivity:"base",numeric:true})||a.variant.localeCompare(b.variant,"pt-BR",{sensitivity:"base"}));
