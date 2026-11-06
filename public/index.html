@@ -1294,8 +1294,8 @@ function totalCost(p){
  return variantCosts.length?Math.min(...variantCosts):base;
 }
 function suggested(p){
- const cost=totalCost(p),margin=(Number(p?.margin)||0)/100;
- return shopeePriceForTarget(cost,margin,"margin",Number(p?.fee)>0);
+ const cost=totalCost(p),margin=(Number(p?.margin)||0)/100,markup=(Number(p?.markup)||0)/100,enabled=Number(p?.fee)>0;
+ return Math.max(shopeePriceForTarget(cost,margin,"margin",enabled),shopeePriceForTarget(cost,markup,"markup",enabled));
 }
 function addMaterialRow(materialId="",qty=""){
  const wrap=document.getElementById("materialsList");
@@ -2267,7 +2267,7 @@ function saveCalculatorAsProduct(){
  const p={id:Date.now(),name,sku:"",store:"",shopeeSku:"",shopeeName:"",materials,
    filamentCost:materials.reduce((sum,m)=>sum+(+m.qty||0)*(+m.unitCost||0),0),
    pack:+document.getElementById("calcPack")?.value||0,
-   labor:batch?((+document.getElementById("calcLabor")?.value||0)/batchQty):(+document.getElementById("calcLabor")?.value||0),
+   markup:+document.getElementById("calcMarkup")?.value||0,
    other:batch?((+document.getElementById("calcOther")?.value||0)/batchQty):(+document.getElementById("calcOther")?.value||0),
    fee:+document.getElementById("calcFee")?.value||0,margin:+document.getElementById("calcMargin")?.value||0,stock:0,
    printHours:batch?enteredHours/batchQty:enteredHours,productionBatchQty:batch?batchQty:1,productionBasis:batch?"batch":"unit",
