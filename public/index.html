@@ -895,7 +895,7 @@ table td,table th{border-bottom-color:#f0e7e0}
    <div id="financeCategoryChart" class="finance-category-chart"></div>
   </div>
  </div>
- <div class="panel" style="margin-bottom:14px"><div class="finance-panel-heading"><div><h2>Detalhamento de custos</h2><div class="sub">Custos estimados dos produtos vendidos no período selecionado. Mostra o custo consumido pelas vendas, não as compras de estoque.</div></div><a href="#" id="financeCostDetailLink" onclick="event.preventDefault();toggleFinanceCostDetails()">Ver detalhamento por produto ↓</a></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Categoria</th><th>Origem</th><th style="text-align:right">Valor</th><th style="text-align:right">Detalhes</th></tr></thead><tbody id="financeCostBreakdown"><tr><td colspan="4">Carregando custos…</td></tr></tbody></table></div><div id="financeCostDetails" class="hidden" style="margin-top:16px"><h3>Custos por produto vendido</h3><div class="sub" style="margin-bottom:8px">Cada linha mostra a estimativa por produto/variação. Taxas são distribuídas proporcionalmente ao valor bruto da venda. Valores sem ficha de custo podem aparecer zerados.</div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Data</th><th>Produto / variação</th><th>Qtd.</th><th>Filamentos</th><th>Outros insumos</th><th>Mão de obra</th><th>Energia</th><th>Manutenção</th><th>Depreciação</th><th>Taxas</th><th>Total estimado</th></tr></thead><tbody id="financeCostDetailsBody"></tbody></table></div></div><div class="sub" style="margin-top:8px">Custos operacionais estimados por vendas. Compras de estoque e despesas pagas já aparecem nos indicadores de caixa acima.</div><div class="panel" style="margin-top:12px;padding:14px;background:#fbf6f2;border:1px dashed #d8b9a8"><div style="font-weight:800;margin-bottom:5px">Valor estimado do seu trabalho (informativo)</div><div id="financeLaborSummary" style="font-size:22px;font-weight:800;color:#8b604d">R$ 0,00</div><div class="sub" style="margin-top:5px">Este valor representa a mão de obra calculada nas fichas dos produtos. Não é descontado como despesa nem reduz o lucro estimado, pois é uma estimativa do valor do seu próprio trabalho. Se pagar alguém para produzir, registre esse pagamento como despesa real.</div></div></div>
+ <div class="panel" style="margin-bottom:14px"><div class="finance-panel-heading"><div><h2>Detalhamento de custos</h2><div class="sub">Custos estimados dos produtos vendidos no período selecionado. Mostra o custo consumido pelas vendas, não as compras de estoque.</div></div><a href="#" id="financeCostDetailLink" onclick="event.preventDefault();toggleFinanceCostDetails()">Ver detalhamento por produto ↓</a></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Categoria</th><th>Origem</th><th style="text-align:right">Valor</th><th style="text-align:right">Detalhes</th></tr></thead><tbody id="financeCostBreakdown"><tr><td colspan="4">Carregando custos…</td></tr></tbody></table></div><div id="financeCostDetails" class="hidden" style="margin-top:16px"><h3>Custos por produto vendido</h3><div class="sub" style="margin-bottom:8px">Cada linha mostra a estimativa por produto/variação. Taxas são distribuídas proporcionalmente ao valor bruto da venda. Valores sem ficha de custo podem aparecer zerados.</div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Data</th><th>Produto / variação</th><th>Qtd.</th><th>Filamentos</th><th>Outros insumos</th><th>Energia</th><th>Manutenção</th><th>Depreciação</th><th>Taxas</th><th>Total estimado</th></tr></thead><tbody id="financeCostDetailsBody"></tbody></table></div></div><div class="sub" style="margin-top:8px">Custos operacionais estimados por vendas. Compras de estoque e despesas pagas já aparecem nos indicadores de caixa acima.</div></div>
  <div class="finance-workspace">
   <div class="panel finance-transactions-panel">
    <div class="finance-panel-heading finance-transactions-heading">
@@ -2132,7 +2132,7 @@ function openTechModal(id){
   const ms=Array.isArray(v.materials)&&v.materials.length?v.materials:(v.materialId?[v]:[]);
   const vh=Number(v.printHours)>0?formatHoursInput(Number(v.printHours)):(Number(p.printHours)>0?formatHoursInput(Number(p.printHours)):"Tempo não informado");
   const materialsText=ms.map(m=>'<small class="sub" style="display:block">'+(Number(m.qty)||0)+' '+financeEscape(m.unit||"")+' — '+financeEscape(m.materialName||m.name||"Material")+'</small>').join("");
-  const details='Materiais '+money(d.materials)+' · Componentes '+money(d.components)+' · Máquina '+money(d.machine)+' · Mão de obra '+money(d.labor)+' · Outros '+money(d.other);
+  const details='Materiais '+money(d.materials)+' · Componentes '+money(d.components)+' · Máquina '+money(d.machine)+' · Outros '+money(d.other);
   return '<div class="tech-row tech-variant-cost-row"><span><b>'+financeEscape(v.name||"Variação")+'</b><small class="sub" style="display:block">⏱ '+financeEscape(vh)+'</small>'+materialsText+'<small class="sub tech-breakdown-note" style="display:block;margin-top:5px">'+details+'</small></span><b>'+money(d.total)+'</b></div>';
  }).join("")+'</div>':"";
  const selectedLabel=breakdownVariant?" (base: "+(breakdownVariant.name||"variação de menor custo")+")":"";
@@ -2158,7 +2158,7 @@ function openTechModal(id){
    '<div class="tech-row"><span>Depreciação da impressora</span><b>'+money(breakdown.depreciation)+'</b></div>'+
    '<div class="tech-row"><span>Desgaste da máquina</span><b>'+money(breakdown.wear)+'</b></div>'+
    '<div class="tech-row"><span>Outros custos por unidade</span><b>'+money(breakdown.other)+'</b></div>'+
-   '<div class="tech-row"><span>Mão de obra ('+breakdown.laborPercent+'%)</span><b>'+money(breakdown.labor)+'</b></div>'+
+   
    '<div class="tech-row"><span>Embalagem do pedido <small class="sub">por pedido, separada do custo de produção por unidade</small></span><b>'+money(p.pack||0)+'</b></div>'+
    '<div class="tech-row"><span><b>Custo total de produção por unidade</b></span><b>'+money(breakdown.total)+'</b></div>'+
   '</div>'+
@@ -3677,7 +3677,7 @@ function showFinanceCostCategory(category){
      rows.push({date:sale.dateISO||sale.date,product:p.name||item.product||"Produto",variant:item.variantName||item.color||item.variant||variantForSale(p,variant)?.name||"—",qty,material:name,amount,unit:linked?.unit||r.unit||"",unitCost,cost,issue:!linked?"Material não vinculado ao cadastro":unitCost<=0?"Custo unitário não cadastrado":""});
     });
     if(categorySupplies)(p.components||[]).forEach(c=>{const amount=(Number(c.qty)||0)*qty,cost=amount*(Number(c.unitCost)||0);rows.push({date:sale.dateISO||sale.date,product:p.name||"Produto",variant:item.variantName||item.color||item.variant||"—",qty,material:c.name||c.materialName||"Componente",amount,unit:c.unit||"un.",unitCost:Number(c.unitCost)||0,cost,issue:Number(c.unitCost)>0?"":"Custo do componente não cadastrado"});});
-   } else if(category==="Mão de obra"){const cost=saleLaborAmount({...sale,items:[{...item,productId:p.id,qty}],productId:p.id,qty});rows.push({date:sale.dateISO||sale.date,product:p.name,variant:item.variantName||item.color||"—",qty,material:"Mão de obra estimada",amount:qty,unit:"un.",unitCost:cost/qty,cost,issue:""});}
+   }
    else if(["Energia elétrica","Manutenção / desgaste","Depreciação da impressora"].includes(category)){const hours=salePrintHours(p,variant),parts=machineUnitCost({...p,printHours:hours}),per=category==="Energia elétrica"?parts.energy:category==="Manutenção / desgaste"?parts.wear:parts.depreciation,cost=Math.max(0,Number(per)||0)*qty;rows.push({date:sale.dateISO||sale.date,product:p.name,variant:item.variantName||item.color||"—",qty,material:category,amount:hours*qty,unit:"hora",unitCost:Number(per)||0,cost,issue:Number(hours)>0?"":"Horas de impressão não cadastradas"});}
    else if(category==="Taxas e descontos"){const gross=Number(sale.grossValue??sale.value)||0,net=Number(sale.netValue),cost=Number(sale.fee)>0?Number(sale.fee):Number.isFinite(net)?Math.max(0,gross-net):0;rows.push({date:sale.dateISO||sale.date,product:p.name,variant:item.variantName||item.color||"—",qty,material:"Taxa/desconto da venda",amount:qty,unit:"rateio",unitCost:cost/Math.max(1,qty),cost:cost*(gross?Math.max(0,Number(item.price)||gross)/gross:1),issue:""});}
   });
@@ -3737,7 +3737,7 @@ function renderFinancePanel(){
   "Depreciação da impressora":{value:salesDepreciation,source:"Depreciação estimada pelas horas de impressão"}
  };
  const costBody=document.getElementById("financeCostBreakdown");if(costBody){costBody.innerHTML=Object.entries(costBreakdown).map(([name,item])=>`<tr><td><b>${name}</b></td><td>${item.source}</td><td style="text-align:right;white-space:nowrap">${money(item.value)}</td><td style="text-align:right"><button class="btn xs outline" onclick="showFinanceCostCategory(${JSON.stringify(name).replaceAll('"','&quot;')})">Ver detalhamento</button></td></tr>`).join("");}
- const laborSummary=document.getElementById("financeLaborSummary");if(laborSummary)laborSummary.textContent=money(salesLabor);
+ 
  const detailsBody=document.getElementById("financeCostDetailsBody");
  if(detailsBody){
   const saleGrossTotal=costSales.reduce((sum,s)=>sum+Math.max(0,Number(s.grossValue??s.value)||0),0);
@@ -3747,13 +3747,13 @@ function renderFinancePanel(){
    let filament=0,supplies=0;
    saleRecipeMaterials(p,variant).forEach(r=>{const c=materialConsumptionForSale(p,r,qty)*recipeMaterialUnitCost(r);if(isFilamentRecipeMaterial(r))filament+=c;else supplies+=c;});
    supplies+=componentCost(p)*qty;
-   const labor=saleLaborAmount({...sale,items:[{...item,qty}],productId:item.productId,qty});
+   
    const parts=machineUnitCost({...p,printHours:salePrintHours(p,variant)});
    const energy=Math.max(0,Number(parts.energy)||0)*qty,maintenance=Math.max(0,Number(parts.wear)||0)*qty,depreciation=Math.max(0,Number(parts.depreciation)||0)*qty;
    const gross=Math.max(0,Number(sale.grossValue??sale.value)||0),feeTotal=Number(sale.fee)>0?Number(sale.fee):Math.max(0,gross-(Number(sale.netValue)||0)),fee=saleGrossTotal>0?feeTotal*(gross/saleGrossTotal):0;
-   const total=filament+supplies+labor+energy+maintenance+depreciation+fee;
+   const total=filament+supplies+energy+maintenance+depreciation+fee;
    const nm=(p.name||item.product||"Produto")+(item.variantName||item.color||item.variant?" / "+(item.variantName||item.color||item.variant):"");
-   return "<tr><td>"+formatDateISO(sale.dateISO||sale.date||"")+"</td><td>"+nm+"</td><td>"+qty+"</td><td>"+money(filament)+"</td><td>"+money(supplies)+"</td><td>"+money(labor)+"</td><td>"+money(energy)+"</td><td>"+money(maintenance)+"</td><td>"+money(depreciation)+"</td><td>"+money(fee)+"</td><td><b>"+money(total)+"</b></td></tr>";
+   return "<tr><td>"+formatDateISO(sale.dateISO||sale.date||"")+"</td><td>"+nm+"</td><td>"+qty+"</td><td>"+money(filament)+"</td><td>"+money(supplies)+"</td><td>"+money(energy)+"</td><td>"+money(maintenance)+"</td><td>"+money(depreciation)+"</td><td>"+money(fee)+"</td><td><b>"+money(total)+"</b></td></tr>";
   }).join("")||'<tr><td colspan="11">Nenhum produto vendido no período.</td></tr>';
  }
  const put=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=money(val);};
@@ -4057,7 +4057,7 @@ db.products.forEach(p=>{
  const saleDateEl=document.getElementById("sDate"); if(saleDateEl)saleDateEl.onchange=updatePostDate; const saleDaysEl=document.getElementById("sPostDays"); if(saleDaysEl){saleDaysEl.onchange=updatePostDate;saleDaysEl.oninput=updatePostDate;} const saleProductEl=document.getElementById("sProduct"); if(saleProductEl)saleProductEl.onchange=updateSalePreview; const saleQtyEl=document.getElementById("sQty"); if(saleQtyEl)saleQtyEl.oninput=updateSalePreview;
  const saleGrossEl=document.getElementById("sGross"); if(saleGrossEl)saleGrossEl.oninput=()=>{saleGrossEl.dataset.manual="1";updateSalePreview();}; const saleNetEl=document.getElementById("sNet"); if(saleNetEl)saleNetEl.oninput=()=>{saleNetEl.dataset.manual="1";};
  populateCalcProductSelect(); updateSalePreview();
- const finRevenue=document.getElementById("finRevenue"),finCost=document.getElementById("finCost"),finFees=document.getElementById("finFees"),finProfit=document.getElementById("finProfit"); if(finRevenue)finRevenue.textContent=money(revenue);if(finCost)finCost.textContent=money(totalProductCosts);if(finFees)finFees.textContent=money(fees);if(finProfit)finProfit.textContent=money(netRevenue-totalProductCosts+activeSales.reduce((a,s)=>a+saleLaborAmount(s),0)); renderFinancePanel(); renderMarketing(); calc();
+ const finRevenue=document.getElementById("finRevenue"),finCost=document.getElementById("finCost"),finFees=document.getElementById("finFees"),finProfit=document.getElementById("finProfit"); if(finRevenue)finRevenue.textContent=money(revenue);if(finCost)finCost.textContent=money(totalProductCosts);if(finFees)finFees.textContent=money(fees);if(finProfit)finProfit.textContent=money(netRevenue-totalProductCosts); renderFinancePanel(); renderMarketing(); calc();
 }function calc(){runCalc();}
 addMaterialRow();
 addCalcMaterial();
