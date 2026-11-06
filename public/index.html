@@ -1909,7 +1909,7 @@ function toggleSaleCostDetails(id){
    const linked=(db.materials||[]).find(m=>String(m.id)===String(recipe.materialId));
    materialRows+='<tr><td>'+esc(linked?.name||recipe.name||'Material')+'</td><td>'+used.toLocaleString('pt-BR',{maximumFractionDigits:4})+' '+esc(linked?.unit||recipe.unit||'un.')+'</td><td>'+fmt(unitCost)+'</td><td><b>'+fmt(lineCost)+'</b></td></tr>';
   });
-  if(itemMaterials===0&&recipes.length===0)itemMaterials=Math.max(0,materialCost(product)*qty);
+  if(itemMaterials===0)itemMaterials=Math.max(0,materialCost(product)*qty);
   const components=Array.isArray(product.components)?product.components.reduce((sum,c)=>sum+(Number(c.qty)||0)*(Number(c.unitCost)||0)*qty,0):0;
   const hours=salePrintHours(product,saleItem)*qty;
   const machine=machineUnitCost({...product,printHours:hours});
@@ -1923,7 +1923,7 @@ function toggleSaleCostDetails(id){
  const packaging=Math.max(0,Number(sale.packaging)||0);
  const fee=Math.max(0,Number(sale.fee)||0);
  const gross=Math.max(0,Number(sale.grossValue??sale.value)||0);
- const net=Math.max(0,Number(sale.netValue)||0);
+ const net=Math.max(0,Number(sale.netValue)||Math.max(0,gross-fee));
  const tr=document.createElement('tr');tr.id=detailId;tr.className='sale-cost-detail-row';
  tr.innerHTML='<td colspan="13"><div class="sale-cost-detail"><div class="sale-cost-heading"><b>Detalhamento dos custos do pedido</b><span>Valores calculados conforme a ficha técnica e os custos cadastrados</span></div>'+productHtml+'<div class="sale-cost-summary"><div><span>Materiais</span><b>'+fmt(materialsTotal)+'</b></div><div><span>Componentes e insumos</span><b>'+fmt(componentsTotal)+'</b></div><div><span>Energia</span><b>'+fmt(energyTotal)+'</b></div><div><span>Depreciação</span><b>'+fmt(depreciationTotal)+'</b></div><div><span>Desgaste da impressora</span><b>'+fmt(wearTotal)+'</b></div><div><span>Mão de obra</span><b>'+fmt(laborTotal)+'</b></div><div><span>Outros custos</span><b>'+fmt(otherTotal)+'</b></div><div><span>Embalagem</span><b>'+fmt(packaging)+'</b></div><div><span>Custo de produção</span><b>'+fmt(productionTotal+packaging)+'</b></div><div><span>Taxas e comissões registradas</span><b>'+fmt(fee)+'</b></div><div><span>Valor bruto da venda</span><b>'+fmt(gross)+'</b></div><div><span>Valor líquido registrado</span><b>'+fmt(net)+'</b></div></div><p class="sale-cost-note">As taxas são mostradas conforme o valor salvo no pedido. Este detalhamento é informativo e não cria despesas nem movimentações financeiras.</p></div></td>';
  mainRow.insertAdjacentElement('afterend',tr);
