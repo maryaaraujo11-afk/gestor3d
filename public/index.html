@@ -496,7 +496,18 @@ table td,table th{border-bottom-color:#f0e7e0}
   <div class="actions"><button class="btn" onclick="saveMaterial()">Salvar material</button><button type="button" class="btn secondary" onclick="closeMaterialForm()">Cancelar</button></div>
 </div>
 
-<div id="materialRestockForm" class="panel hidden"><h2>Adicionar compra a material existente</h2><div class="sub">A quantidade será somada ao estoque e a compra aparecerá no Financeiro.</div><div class="formgrid"><div class="field"><label>Material existente</label><select id="mrMaterial"></select></div><div class="field"><label>Quantidade adicionada</label><input id="mrQty" type="number" min="0.01" step="0.01"></div><div class="field"><label>Valor total da compra (R$)</label><input id="mrPrice" type="number" min="0" step="0.01"></div><div class="field"><label>Fornecedor</label><input id="mrSupplier"></div><div class="field"><label>Data da compra</label><input id="mrDate" type="date"></div></div><div id="mrPreview" class="notice" style="margin-top:12px"></div><br><div class="actions"><button class="btn" onclick="addStockToExistingMaterial()">Registrar compra e atualizar estoque</button><button class="btn secondary" onclick="closeMaterialRestock()">Cancelar</button></div></div><div id="categoryManager" class="panel hidden category-manager">
+<div id="materialRestockForm" class="panel hidden"><h2>Adicionar compra a material existente</h2><div class="sub">A quantidade será somada ao estoque e a compra aparecerá no Financeiro.</div><div class="formgrid"><div class="field"><label>Material existente</label><select id="mrMaterial"></select></div><div class="field"><label>Quantidade adicionada</label><input id="mrQty" type="number" min="0.01" step="0.01"></div><div class="field"><label>Valor total da compra (R$)</label><input id="mrPrice" type="number" min="0" step="0.01"></div><div class="field"><label>Fornecedor</label><input id="mrSupplier"></div><div class="field"><label>Data da compra</label><input id="mrDate" type="date"></div></div><div id="mrPreview" class="notice" style="margin-top:12px"></div><br><div class="actions"><button class="btn" onclick="addStockToExistingMaterial()">Registrar compra e atualizar estoque</button><button class="btn secondary" onclick="closeMaterialRestock()">Cancelar</button></div></div>
+<div class="panel" id="replaceFilamentPanel" style="margin-bottom:16px">
+ <div class="top" style="margin-bottom:10px"><div><h2 style="margin:0">🔄 Substituir filamento nos anúncios</h2><div class="sub">Troque um filamento por outro da mesma cor em todas as fichas técnicas vinculadas, sem precisar editar produto por produto.</div></div></div>
+ <div class="formgrid" style="grid-template-columns:repeat(2,minmax(220px,1fr));align-items:end">
+  <div class="field"><label>Filamento que será substituído</label><select id="replaceFilamentOld" onchange="previewFilamentReplacement()"><option value="">Selecione o filamento atual</option></select></div>
+  <div class="field"><label>Novo filamento da mesma cor</label><select id="replaceFilamentNew" onchange="previewFilamentReplacement()"><option value="">Selecione o novo filamento</option></select></div>
+ </div>
+ <div class="notice" id="replaceFilamentPreview" style="margin-top:12px">Selecione os dois filamentos para visualizar quantos anúncios serão atualizados.</div>
+ <div class="actions" style="margin-top:12px"><button class="btn" type="button" onclick="applyFilamentReplacement()">Substituir em todos os anúncios</button></div>
+ <div class="sub" style="margin-top:8px">A troca atualiza as fichas técnicas e as cores dos produtos. Vendas já registradas e seus históricos não serão alterados. O filamento antigo permanece cadastrado no estoque.</div>
+</div>
+<div id="categoryManager" class="panel hidden category-manager">
   <div class="top" style="margin-bottom:12px"><div><h2 style="margin:0">Categorias</h2><div class="sub">Defina o nome e a cor usada para identificar os materiais no estoque.</div></div></div>
   <div class="formgrid">
     <div class="field"><label>Nova categoria</label><input id="newCategoryName" placeholder="Ex.: Papelaria"></div>
@@ -3564,6 +3575,69 @@ function renderProductsTable(){
    const productNameCell=productImage?'<div style="display:flex;align-items:center;gap:10px"><img src="'+productImage+'" alt="" loading="lazy" style="width:46px;height:46px;object-fit:cover;border-radius:9px;border:1px solid #eadfd8;background:#fff;"><b>'+productName+'</b></div>':'<b>'+productName+'</b>';
    return '<tr><td><input type="checkbox" class="merge-product-check" value="'+String(p.id)+'"></td><td>'+productNameCell+'</td><td>'+String(p.sku||"-")+'</td><td>'+String(p.store||"—")+'</td><td>'+materialsText+'</td><td>'+money(totalCost(p))+'</td><td>'+money(suggested(p))+'</td><td>'+String(p.stock||0)+'</td><td><button class="btn secondary" onclick="openTechModal('+String(p.id)+')">Ver ficha</button></td><td><button class="btn secondary" onclick="editProduct('+String(p.id)+')">✏️ Editar</button></td></tr>';
  }).join("")||'<tr><td colspan="10">Nenhum produto encontrado.</td></tr>';
+}
+function filamentReplacementReferences(oldId){
+ const products=Array.isArray(db.products)?db.products:[];
+ const refs=[];
+ const has=(v)=>v!==undefined&&v!==null&&String(v)===String(oldId);
+ products.forEach(p=>{
+  let found=false;
+  (p.materials||[]).forEach(r=>{if(has(r.materialId)){found=true;}});
+  (p.variants||[]).forEach(v=>{
+   if(has(v.materialId)||has(v.colorMaterialId))found=true;
+   (v.materials||[]).forEach(r=>{if(has(r.materialId))found=true;});
+  });
+  (p.colors||[]).forEach(color=>{if(has(color.materialId))found=true;});
+  if(found)refs.push(p);
+ });
+ return refs;
+}
+function populateFilamentReplacement(){
+ const old=document.getElementById("replaceFilamentOld"),next=document.getElementById("replaceFilamentNew");
+ if(!old||!next)return;
+ const list=(db.materials||[]).filter(m=>/filamento|pla|petg|abs|tpu/i.test([m.category,m.type,m.name].join(" ")));
+ const options=list.map(m=>'<option value="'+String(m.id)+'">'+esc(m.name)+' — '+esc(m.brand||"Sem marca")+(m.color?" • "+esc(m.color):"")+'</option>').join("");
+ old.innerHTML='<option value="">Selecione o filamento atual</option>'+options;
+ next.innerHTML='<option value="">Selecione o novo filamento</option>'+options;
+ previewFilamentReplacement();
+}
+function previewFilamentReplacement(){
+ const oldId=document.getElementById("replaceFilamentOld")?.value,newId=document.getElementById("replaceFilamentNew")?.value,box=document.getElementById("replaceFilamentPreview");
+ if(!box)return;
+ const old=(db.materials||[]).find(m=>String(m.id)===String(oldId)),next=(db.materials||[]).find(m=>String(m.id)===String(newId));
+ if(!old||!next){box.textContent="Selecione os dois filamentos para visualizar quantos anúncios serão atualizados.";return;}
+ if(String(oldId)===String(newId)){box.textContent="Escolha dois filamentos diferentes.";return;}
+ const refs=filamentReplacementReferences(oldId);
+ const unitsMatch=String(old.unit||"")===String(next.unit||"");
+ box.textContent=refs.length+" produto(s)/anúncio(s) usam "+old.name+". A troca passará a usar "+next.name+". "+(unitsMatch?"As unidades de controle são compatíveis.":"Atenção: as unidades são diferentes ("+old.unit+" → "+next.unit+"). Confira antes de confirmar.");
+}
+function applyFilamentReplacement(){
+ const oldId=document.getElementById("replaceFilamentOld")?.value,newId=document.getElementById("replaceFilamentNew")?.value;
+ const old=(db.materials||[]).find(m=>String(m.id)===String(oldId)),next=(db.materials||[]).find(m=>String(m.id)===String(newId));
+ if(!old||!next){alert("Selecione o filamento atual e o novo filamento.");return;}
+ if(String(oldId)===String(newId)){alert("Escolha dois filamentos diferentes.");return;}
+ if(String(old.unit||"")!==String(next.unit||"")){alert("Não é possível fazer a troca automática porque as unidades são diferentes. Cadastre o novo filamento com a mesma unidade do antigo.");return;}
+ const refs=filamentReplacementReferences(oldId);
+ if(!refs.length){alert("Nenhum produto/anúncio utiliza o filamento selecionado.");return;}
+ const message="Substituir "+old.name+" por "+next.name+" em "+refs.length+" produto(s)/anúncio(s)?\n\nAs fichas técnicas, variações e cores vinculadas serão atualizadas. Vendas já registradas não serão alteradas.";
+ if(!confirm(message))return;
+ let changes=0;
+ const replace=(obj)=>{if(obj&&String(obj.materialId)===String(oldId)){obj.materialId=next.id;obj.name=next.name;obj.materialName=next.name;obj.unit=next.unit;obj.unitCost=Number(next.unitCost)||0;changes++;}};
+ refs.forEach(p=>{
+  (p.materials||[]).forEach(replace);
+  (p.variants||[]).forEach(v=>{
+   if(String(v.materialId)===String(oldId)){v.materialId=next.id;v.materialName=next.name;v.unit=next.unit;v.unitCost=Number(next.unitCost)||0;changes++;}
+   if(String(v.colorMaterialId)===String(oldId)){v.colorMaterialId=next.id;changes++;}
+   (v.materials||[]).forEach(replace);
+  });
+  (p.colors||[]).forEach(color=>{if(String(color.materialId)===String(oldId)){color.materialId=next.id;changes++;}});
+  p.filamentCost=(p.materials||[]).reduce((sum,m)=>sum+(Number(m.qty)||0)*(Number(m.unitCost)||0),0);
+ });
+ save();
+ renderMaterialsTable();
+ renderProductsTable();
+ populateFilamentReplacement();
+ alert("Substituição concluída! "+changes+" vínculo(s) atualizado(s) em "+refs.length+" produto(s)/anúncio(s).");
 }
 function renderMaterialsTable(){
  const table=document.getElementById("materialsTable"); if(!table)return;
