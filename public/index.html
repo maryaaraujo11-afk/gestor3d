@@ -297,7 +297,7 @@ table td,table th{border-bottom-color:#f0e7e0}
 </div>
 
 <div class="panel" id="dashboardPriorityPanel">
-  <div class="top" style="margin-bottom:12px"><div><h2 style="margin:0">Pedidos prioritários</h2><div class="sub">Pedidos em andamento, organizados por atraso e prazo. Clique em uma linha para abrir o pedido.</div></div><span class="tag" id="dashboardPriorityCount">0 pedidos</span></div>
+  <div class="top" style="margin-bottom:12px"><div><h2 style="margin:0">Pedidos prioritários</h2><div class="sub">Pendentes e em produção, organizados por atraso e prazo de envio.</div></div><span class="tag" id="dashboardPriorityCount">0 pedidos</span></div>
   <div class="table-wrap"><table><thead><tr><th>Prioridade</th><th>Cliente</th><th>Produto</th><th>Status</th><th>Prazo</th></tr></thead><tbody id="dashboardPriorityTable"><tr><td colspan="5">Nenhum pedido pendente ou em produção.</td></tr></tbody></table></div>
 </div>
 
@@ -3316,32 +3316,29 @@ function renderDailySalesChart(period){
   </div>`;
  }).join("");
 }
-function openDashboardPriorityOrder(source,id){
- if(source==='direct'){show('directSales');setTimeout(()=>editDirectSale(id),0);return;}
- show('sales');setTimeout(()=>startEditSale(id),0);
-}
 function renderDashboardPriorityOrders(){
- const table=document.getElementById('dashboardPriorityTable');if(!table)return;
- const today=typeof todayISO==='function'?todayISO():new Date().toISOString().slice(0,10);
- const esc=v=>String(v==null?'—':v).replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
+ const table=document.getElementById("dashboardPriorityTable");if(!table)return;
+ const today=typeof todayISO==="function"?todayISO():new Date().toISOString().slice(0,10);
+ const esc=v=>String(v==null?"—":v).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
  const rows=[];
- const finalStatuses=['Enviado','Entregue','Cancelado','Cancelada','Concluído','Concluída'];
- (Array.isArray(db.sales)?db.sales:[]).forEach(s=>{
-  const status=String(s.status||'Pendente').trim();if(finalStatuses.includes(status))return;
-  const due=String(s.dueDate||'').slice(0,10);
-  const products=Array.isArray(s.items)?s.items.map(i=>i.product).filter(Boolean).join(', '):'';
-  rows.push({client:s.customerName||s.customer||'—',product:s.product||products||'—',status,due,created:s.dateISO||'',late:!!due&&due<today,source:'sale',id:s.id});
+ (db.sales||[]).forEach(s=>{
+  const status=String(s.status||"").trim();
+  if(!["Pendente","Em produção"].includes(status))return;
+  const due=String(s.dueDate||"").slice(0,10);
+  rows.push({client:s.customerName||s.customer||"—",product:s.product||((s.items||[]).map(i=>i.product).filter(Boolean).join(", "))||"—",status,due,created:s.dateISO||"",late:!!due&&due<today,source:"sale",id:s.id});
  });
- directSales().forEach(s=>{
-  const status=String(s.status||'Em aberto').trim();if(finalStatuses.includes(status))return;
-  const due=String(s.deadline||'').slice(0,10);
-  rows.push({client:s.client||'—',product:s.product||'Venda direta',status:status==='Em aberto'?'Pendente':status,due,created:String(s.dateISO||s.createdAt||'').slice(0,10),late:!!due&&due<today,source:'direct',id:s.id});
+ (db.directSales||[]).forEach(s=>{
+  const status=String(s.status||"Em aberto").trim();
+  if(!["Em aberto","Pendente","Em produção"].includes(status))return;
+  const due=String(s.deadline||"").slice(0,10);
+  rows.push({client:s.client||"—",product:s.product||"Venda direta",status:status==="Em aberto"?"Pendente":status,due,created:String(s.dateISO||s.createdAt||"").slice(0,10),late:!!due&&due<today,source:"direct",id:s.id});
  });
  const rank=r=>r.late?0:1;
- rows.sort((a,b)=>rank(a)-rank(b)||(a.due||'9999-12-31').localeCompare(b.due||'9999-12-31')||a.created.localeCompare(b.created));
- const count=document.getElementById('dashboardPriorityCount');if(count)count.textContent=rows.length+' pedido'+(rows.length===1?'':'s');
- table.innerHTML=rows.map(r=>'<tr class="dashboard-priority-clickable" role="button" tabindex="0" title="Clique para abrir este pedido" onclick="openDashboardPriorityOrder(\''+r.source+'\',\''+String(r.id).replace(/['\"]/g,'')+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openDashboardPriorityOrder(\''+r.source+'\',\''+String(r.id).replace(/['\"]/g,'')+'\')}"><td><span class="tag '+(r.late?'warn':'')+'">'+(r.late?'Atrasado':'No prazo')+'</span></td><td>'+esc(r.client)+'</td><td>'+esc(r.product)+'</td><td>'+esc(r.status)+'</td><td>'+(r.due?esc(typeof formatDateISO==='function'?formatDateISO(r.due):r.due):'Sem prazo')+'</td></tr>').join('')||'<tr><td colspan="5">Nenhum pedido em andamento.</td></tr>';
+ rows.sort((a,b)=>rank(a)-rank(b)||(a.due||"9999-12-31").localeCompare(b.due||"9999-12-31")||a.created.localeCompare(b.created));
+ const count=document.getElementById("dashboardPriorityCount");if(count)count.textContent=rows.length+" pedido"+(rows.length===1?"":"s");
+ table.innerHTML=rows.map(r=>'<tr><td><span class="tag '+(r.late?'warn':'')+'">'+(r.late?'Atrasado':'No prazo')+'</span></td><td>'+esc(r.client)+'</td><td>'+esc(r.product)+'</td><td>'+esc(r.status)+'</td><td>'+(r.due?esc(typeof formatDateISO==="function"?formatDateISO(r.due):r.due):"Sem prazo")+'</td></tr>').join("")||'<tr><td colspan="5">Nenhum pedido pendente ou em produção.</td></tr>';
 }
+
 function renderDashboardSummary(period){
  const p=period||document.getElementById("dashboardPeriod")?.value||"total";
  renderDailySalesChart(p);
@@ -3966,7 +3963,6 @@ function printDirectSale(id){
  const freight=Math.max(0,Number(quote?.freight??sale.freight)||0),finalTotal=Number(sale.amount??quote?.finalTotal??Math.max(0,gross-discount+freight));
  const row=(label,value,cls="")=>'<div class="row '+cls+'"><span>'+label+'</span><b>'+value+'</b></div>';
  const html='<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Orçamento - '+esc(sale.product)+'</title><style>body{font-family:Arial,sans-serif;color:#2d2926;padding:32px}.sheet{max-width:780px;margin:auto}.head{display:flex;justify-content:space-between;border-bottom:2px solid #8b5e4a;padding-bottom:16px}.logo{max-width:180px;max-height:70px}.box{margin-top:24px;padding:18px;background:#f8f5f3}.row{display:flex;justify-content:space-between;gap:18px;padding:10px 0;border-bottom:1px solid #e9e3df}.row:last-child{border:0}.discount{color:#b54b4b}.freight{color:#4d7d65}.total{font-size:22px;color:#8b5e4a;font-weight:bold}@media print{body{padding:0}}.sale-cost-detail-row>td{padding:12px 14px!important;background:var(--panel,#faf8f6);}.sale-cost-detail{border:1px solid var(--border,#e5ddd6);border-radius:10px;padding:14px;background:var(--card,#fff);min-width:0;}.sale-cost-heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;margin-bottom:12px;}.sale-cost-heading span,.sale-cost-note{font-size:12px;color:var(--muted,#777);}.sale-cost-product{padding:12px 0;border-top:1px solid var(--border,#eee);}.sale-cost-scroll{overflow-x:auto;margin-top:8px;}.sale-cost-table{width:100%;border-collapse:collapse;font-size:12px;}.sale-cost-table th,.sale-cost-table td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--border,#eee);white-space:nowrap;}.sale-cost-subtotals{display:flex;flex-wrap:wrap;gap:7px 18px;margin-top:10px;font-size:12px;}.sale-cost-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:14px;}.sale-cost-summary>div{display:flex;flex-direction:column;gap:4px;padding:9px 10px;border:1px solid var(--border,#eee);border-radius:8px;font-size:12px;}.sale-cost-summary>div span{color:var(--muted,#777);}.sale-cost-summary>div b{font-size:14px;}.sale-cost-note{margin:12px 0 0;}
-.dashboard-priority-clickable{cursor:pointer;transition:background .15s}.dashboard-priority-clickable:hover{background:#f7eee8}.dashboard-priority-clickable:focus{outline:2px solid #9b705b;outline-offset:-2px}
 </style></head><body><div class="sheet"><div class="head">'+(logo?'<img class="logo" src="'+logo+'">':'<b>Gestor 3D</b>')+'<b>ORÇAMENTO</b></div><p>Cliente: <b>'+esc(sale.client)+'</b></p><h2>'+esc(sale.product)+'</h2><div class="box">'+row('Quantidade',esc(sale.qty))+(gross>0?row('Subtotal',dsMoney(gross)):'')+(discount>0?row('Desconto'+(discountPercent>0?' ('+discountPercent.toLocaleString('pt-BR',{maximumFractionDigits:2})+'%)':''),'− '+dsMoney(discount),'discount'):'')+(freight>0?row('Frete','+ '+dsMoney(freight),'freight'):'')+row('Total',dsMoney(finalTotal),'total')+(sale.deadline?row('Prazo de entrega',esc(sale.deadline)):'')+(sale.notes?'<p>'+esc(sale.notes)+'</p>':'')+'</div></div><script>window.onload=()=>window.print();<\/script></body></html>';
  const w=window.open("","_blank","width=900,height=800");if(!w){alert("Permita pop-ups para imprimir o orçamento.");return;}w.document.write(html);w.document.close();
 }
