@@ -3596,7 +3596,8 @@ function populateFilamentReplacement(){
  const old=document.getElementById("replaceFilamentOld"),next=document.getElementById("replaceFilamentNew");
  if(!old||!next)return;
  const list=(db.materials||[]).filter(m=>/filamento|pla|petg|abs|tpu/i.test([m.category,m.type,m.name].join(" ")));
- const options=list.map(m=>'<option value="'+String(m.id)+'">'+esc(m.name)+' — '+esc(m.brand||"Sem marca")+(m.color?" • "+esc(m.color):"")+'</option>').join("");
+ const safeText=v=>String(v??"").replace(/[&<>"\']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","\'":"&#39;"}[ch]));
+ const options=list.map(m=>'<option value="'+safeText(m.id)+'">'+safeText(m.name)+' — '+safeText(m.brand||"Sem marca")+(m.color?" • "+safeText(m.color):"")+'</option>').join("");
  old.innerHTML='<option value="">Selecione o filamento atual</option>'+options;
  next.innerHTML='<option value="">Selecione o novo filamento</option>'+options;
  previewFilamentReplacement();
