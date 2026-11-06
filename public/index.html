@@ -1070,7 +1070,7 @@ function suggestedOrderGross(items,channel,packaging=0){
  if(channel==="Direta")return Math.ceil((totalCost/Math.max(0.0001,1-margin)-1e-9)*100)/100;
  const enabled=rows.some(r=>Number(r.p.fee)>0);
  if(!enabled)return Math.ceil((totalCost/Math.max(0.0001,1-margin)-1e-9)*100)/100;
- for(const tier of SHOPEE_FEE_TIERS){
+ for(const tier of SHOPEE_FEE_TIERS.map((t,i)=>{const saved=currentCostSettings().feeTiers[i]||{};return {...t,rate:(Number(saved.rate)||0)/100,fixed:Number(saved.fixed)||0,fixedRatio:(Number(saved.ratio)||0)/100};})){
   const denom=1-tier.rate-(tier.fixedRatio||0)-margin;
   if(denom<=0)continue;
   const raw=(totalCost+(tier.fixedRatio?0:tier.fixed))/denom;
@@ -1078,7 +1078,7 @@ function suggestedOrderGross(items,channel,packaging=0){
   const candidate=Math.ceil((raw-1e-9)*100)/100;
   if(candidate>=tier.min&&candidate<=tier.max)return candidate;
  }
- const last={...SHOPEE_FEE_TIERS[SHOPEE_FEE_TIERS.length-1],rate:(Number(currentCostSettings().feeTiers[4]?.rate)||0)/100,fixed:Number(currentCostSettings().feeTiers[4]?.fixed)||0,ratio:(Number(currentCostSettings().feeTiers[4]?.ratio)||0)/100},denom=1-last.rate-last.ratio-margin;
+ const last={...SHOPEE_FEE_TIERS[SHOPEE_FEE_TIERS.length-1],rate:(Number(currentCostSettings().feeTiers[4]?.rate)||0)/100,fixed:Number(currentCostSettings().feeTiers[4]?.fixed)||0,fixedRatio:(Number(currentCostSettings().feeTiers[4]?.ratio)||0)/100},denom=1-last.rate-last.fixedRatio-margin;
  return denom>0?Math.ceil(((totalCost+last.fixed)/denom-1e-9)*100)/100:0;
 }
 // Compatibilidade: evita que uma referência antiga a "cost" interrompa o salvamento do pedido.
@@ -1271,7 +1271,7 @@ function productCostBreakdown(p,variant=null){
  const hours=variant&&Number(variant.printHours)>0?Number(variant.printHours):Number(p.printHours)||0;
  const machineParts=machineUnitCost({...p,printHours:hours});
  const energy=Number(machineParts.energy)||0,depreciation=Number(machineParts.depreciation)||0,wear=Number(machineParts.wear)||0;
- const machine=energy+depreciation+wear,other=Math.max(0,Number(p.other)||0);
+ const machine=energy+depreciation+wear,other=p.other!==undefined&&p.other!==null&&p.other!==''?Math.max(0,Number(p.other)||0):Math.max(0,Number(currentCostSettings().otherCost)||0);
  const laborPercent=productLaborPercent(p),labor=(materials+components+machine+other)*laborPercent/100;
  return {materials,components,energy,depreciation,wear,machine,labor,other,total:materials+components+machine+other+labor,laborPercent};
 }
@@ -1917,7 +1917,7 @@ function toggleSaleCostDetails(id){
   const components=Array.isArray(product.components)?product.components.reduce((sum,c)=>sum+(Number(c.qty)||0)*(Number(c.unitCost)||0)*qty,0):0;
   const hours=salePrintHours(product,saleItem)*qty;
   const machine=machineUnitCost({...product,printHours:hours});
-  const other=Math.max(0,Number(product.other)||0)*qty;
+  const other=(product.other!==undefined&&product.other!==null&&product.other!==''?Math.max(0,Number(product.other)||0):Math.max(0,Number(currentCostSettings().otherCost)||0))*qty;
   const labor=(itemMaterials+components+machine.total+other)*productLaborPercent(product)/100;
   materialsTotal+=itemMaterials;componentsTotal+=components;energyTotal+=machine.energy;depreciationTotal+=machine.depreciation;wearTotal+=machine.wear;laborTotal+=labor;otherTotal+=other;
   const label=(items.length>1?'Item '+(index+1)+' — ':'')+(product.name||item.product||sale.product||'Produto');
