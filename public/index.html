@@ -593,6 +593,7 @@ table td,table th{border-bottom-color:#f0e7e0}
           <div class="calc-title">💰 FORMAÇÃO DO PREÇO</div>
           <div class="formgrid">
             
+            <div class="field"><label>Markup (%)</label><input id="calcMarkup" type="number" min="0" max="500" step=".1" value="50" oninput="runCalc()"><div class="sub" style="margin-top:5px">Acréscimo sobre o custo para formar o preço.</div></div>
             <div class="field"><label>Margem desejada (%)</label><input id="calcMargin" type="number" min="0" max="99" step=".1" value="33" oninput="runCalc()"></div>
             <div class="field"><label>Comissão Shopee automática (%)</label><input id="calcFee" type="number" min="0" max="99" step=".1" value="20" readonly oninput="runCalc()"><div class="sub" style="margin-top:5px">Tabela padrão para CNPJ ou CPF com até 450 pedidos em 90 dias. Itens abaixo de R$ 9 têm tarifa fixa proporcional.</div></div>
           </div>
@@ -2110,6 +2111,7 @@ function loadProductToCalc(){
  document.getElementById("calcPack").value=p.pack||0;
  document.getElementById("calcOther").value=p.other||0;
  document.getElementById("calcFee").value=p.fee??20;
+  document.getElementById("calcMarkup").value=p.markup??50;
  document.getElementById("calcMargin").value=p.margin??30;
  const basis=document.getElementById("calcBasis");
  if(basis) basis.value="unit";
@@ -2202,7 +2204,7 @@ function runCalc(){
  const unitBase=materialsUnit+energyUnit+depreciationUnit+wearUnit+laborUnit+otherUnit;
  const orderPackaging=packEntered;
  const totalBase=unitBase*qty+orderPackaging;
- const markup=0, margin=(+calcMargin.value||0)/100, feeEnabled=Number(calcFee.value)>0;
+ const markup=(+document.getElementById("calcMarkup")?.value||0)/100, margin=(+calcMargin.value||0)/100, feeEnabled=Number(calcFee.value)>0;
  const unitCostWithPackaging=unitBase+orderPackaging/qty;
  const unitPriceByMarkup=shopeePriceForTarget(unitCostWithPackaging,markup,"markup",feeEnabled);
  const unitPriceByMargin=shopeePriceForTarget(unitCostWithPackaging,margin,"margin",feeEnabled);
