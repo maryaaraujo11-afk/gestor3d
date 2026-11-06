@@ -592,7 +592,7 @@ table td,table th{border-bottom-color:#f0e7e0}
         <div class="calc-block">
           <div class="calc-title">💰 FORMAÇÃO DO PREÇO</div>
           <div class="formgrid">
-            <div class="field"><label>Markup sobre o custo (%)</label><input id="calcMarkup" type="number" min="0" step=".1" value="50" oninput="runCalc()"></div>
+            
             <div class="field"><label>Margem desejada (%)</label><input id="calcMargin" type="number" min="0" max="99" step=".1" value="33" oninput="runCalc()"></div>
             <div class="field"><label>Comissão Shopee automática (%)</label><input id="calcFee" type="number" min="0" max="99" step=".1" value="20" readonly oninput="runCalc()"><div class="sub" style="margin-top:5px">Tabela padrão para CNPJ ou CPF com até 450 pedidos em 90 dias. Itens abaixo de R$ 9 têm tarifa fixa proporcional.</div></div>
           </div>
@@ -625,7 +625,7 @@ table td,table th{border-bottom-color:#f0e7e0}
         <div class="result-label">PREÇO DE VENDA SUGERIDO</div>
         <div class="result-price" id="calcPrice">R$ 0,00</div>
         <div class="result-pills">
-          <span>MARKUP <b id="resMarkup">50%</b></span>
+          
           <span>LUCRO <b id="resProfit">R$ 0,00</b></span>
           <span>MARGEM <b id="resMargin">0%</b></span>
         </div>
@@ -2200,7 +2200,7 @@ function runCalc(){
  const unitBase=materialsUnit+energyUnit+depreciationUnit+wearUnit+laborUnit+otherUnit;
  const orderPackaging=packEntered;
  const totalBase=unitBase*qty+orderPackaging;
- const markup=(+calcMarkup.value||0)/100, margin=(+calcMargin.value||0)/100, feeEnabled=Number(calcFee.value)>0;
+ const markup=0, margin=(+calcMargin.value||0)/100, feeEnabled=Number(calcFee.value)>0;
  const unitCostWithPackaging=unitBase+orderPackaging/qty;
  const unitPriceByMarkup=shopeePriceForTarget(unitCostWithPackaging,markup,"markup",feeEnabled);
  const unitPriceByMargin=shopeePriceForTarget(unitCostWithPackaging,margin,"margin",feeEnabled);
@@ -2213,7 +2213,7 @@ function runCalc(){
  const marketplace=percentageFee+fixedFee, profit=totalPrice-totalBase-marketplace, actualMargin=totalPrice>0?profit/totalPrice:0;
  calcPrice.textContent=money(unitPrice);
  calcTopPrice.textContent=money(unitPrice);
- resMarkup.textContent=unitBase>0?Math.round((unitPrice/unitBase-1)*100)+"%":"0%";
+ 
  resProfit.textContent=money(profit);
  resMargin.textContent=Math.round(actualMargin*100)+"%";
  calcSummary.textContent=`${qty} unidade${qty===1?"":"s"} • custo total ${money(totalBase)} • venda total ${money(totalPrice)} • lucro ${money(profit)}`;
