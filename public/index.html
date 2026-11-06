@@ -1889,7 +1889,7 @@ function toggleSaleCostDetails(id){
  const esc=value=>String(value==null?'':value).replace(/[&<>\"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[char]));
  const fmt=value=>money(Number(value)||0);
  const items=Array.isArray(sale.items)&&sale.items.length?sale.items:[{productId:sale.productId,variantId:sale.variantId,colorId:sale.colorId,qty:sale.qty,product:sale.product}];
- let materialsTotal=0,componentsTotal=0,energyTotal=0,depreciationTotal=0,wearTotal=0,laborTotal=0,otherTotal=0;
+ let materialsTotal=0,componentsTotal=0,energyTotal=0,depreciationTotal=0,wearTotal=0,otherTotal=0;
  let productHtml='';
  items.forEach((item,index)=>{
   const product=(db.products||[]).find(p=>String(p.id)===String(item.productId));
@@ -1911,18 +1911,17 @@ function toggleSaleCostDetails(id){
   const hours=salePrintHours(product,saleItem)*qty;
   const machine=machineUnitCost({...product,printHours:hours});
   const other=(product.other!==undefined&&product.other!==null&&product.other!==''?Math.max(0,Number(product.other)||0):Math.max(0,Number(currentCostSettings().otherCost)||0))*qty;
-  const labor=(itemMaterials+components+machine.total+other)*productLaborPercent(product)/100;
-  materialsTotal+=itemMaterials;componentsTotal+=components;energyTotal+=machine.energy;depreciationTotal+=machine.depreciation;wearTotal+=machine.wear;laborTotal+=labor;otherTotal+=other;
+  materialsTotal+=itemMaterials;componentsTotal+=components;energyTotal+=machine.energy;depreciationTotal+=machine.depreciation;wearTotal+=machine.wear;otherTotal+=other;
   const label=(items.length>1?'Item '+(index+1)+' — ':'')+(product.name||item.product||sale.product||'Produto');
-  productHtml+='<div class="sale-cost-product"><b>'+esc(label)+' (Qtd.: '+qty+')</b>'+(materialRows?'<div class="sale-cost-scroll"><table class="sale-cost-table"><thead><tr><th>Material</th><th>Consumo</th><th>Custo unitário</th><th>Total</th></tr></thead><tbody>'+materialRows+'</tbody></table></div>':'<p class="sub">Nenhum material detalhado na ficha técnica.</p>')+'<div class="sale-cost-subtotals"><span>Materiais: <b>'+fmt(itemMaterials)+'</b></span><span>Componentes: <b>'+fmt(components)+'</b></span><span>Energia: <b>'+fmt(machine.energy)+'</b></span><span>Depreciação: <b>'+fmt(machine.depreciation)+'</b></span><span>Desgaste: <b>'+fmt(machine.wear)+'</b></span><span>Outros custos: <b>'+fmt(other)+'</b></span><span>Mão de obra ('+productLaborPercent(product)+'%): <b>'+fmt(labor)+'</b></span></div></div>';
+  productHtml+='<div class="sale-cost-product"><b>'+esc(label)+' (Qtd.: '+qty+')</b>'+(materialRows?'<div class="sale-cost-scroll"><table class="sale-cost-table"><thead><tr><th>Material</th><th>Consumo</th><th>Custo unitário</th><th>Total</th></tr></thead><tbody>'+materialRows+'</tbody></table></div>':'<p class="sub">Nenhum material detalhado na ficha técnica.</p>')+'<div class="sale-cost-subtotals"><span>Materiais: <b>'+fmt(itemMaterials)+'</b></span><span>Componentes: <b>'+fmt(components)+'</b></span><span>Energia: <b>'+fmt(machine.energy)+'</b></span><span>Depreciação: <b>'+fmt(machine.depreciation)+'</b></span><span>Desgaste: <b>'+fmt(machine.wear)+'</b></span><span>Outros custos: <b>'+fmt(other)+'</b></span></div></div>';
  });
- const productionTotal=materialsTotal+componentsTotal+energyTotal+depreciationTotal+wearTotal+laborTotal+otherTotal;
+ const productionTotal=materialsTotal+componentsTotal+energyTotal+depreciationTotal+wearTotal+otherTotal;
  const packaging=Math.max(0,Number(sale.packaging)||0);
  const fee=Math.max(0,Number(sale.fee)||0);
  const gross=Math.max(0,Number(sale.grossValue??sale.value)||0);
  const net=Math.max(0,Number(sale.netValue)||Math.max(0,gross-fee));
  const tr=document.createElement('tr');tr.id=detailId;tr.className='sale-cost-detail-row';
- tr.innerHTML='<td colspan="13"><div class="sale-cost-detail"><div class="sale-cost-heading"><b>Detalhamento dos custos do pedido</b><span>Valores calculados conforme a ficha técnica e os custos cadastrados</span></div>'+productHtml+'<div class="sale-cost-summary"><div><span>Materiais</span><b>'+fmt(materialsTotal)+'</b></div><div><span>Componentes e insumos</span><b>'+fmt(componentsTotal)+'</b></div><div><span>Energia</span><b>'+fmt(energyTotal)+'</b></div><div><span>Depreciação</span><b>'+fmt(depreciationTotal)+'</b></div><div><span>Desgaste da impressora</span><b>'+fmt(wearTotal)+'</b></div><div><span>Mão de obra</span><b>'+fmt(laborTotal)+'</b></div><div><span>Outros custos</span><b>'+fmt(otherTotal)+'</b></div><div><span>Embalagem</span><b>'+fmt(packaging)+'</b></div><div><span>Custo de produção</span><b>'+fmt(productionTotal+packaging)+'</b></div><div><span>Taxas e comissões registradas</span><b>'+fmt(fee)+'</b></div><div><span>Valor bruto da venda</span><b>'+fmt(gross)+'</b></div><div><span>Valor líquido registrado</span><b>'+fmt(net)+'</b></div></div><p class="sale-cost-note">As taxas são mostradas conforme o valor salvo no pedido. Este detalhamento é informativo e não cria despesas nem movimentações financeiras.</p></div></td>';
+ tr.innerHTML='<td colspan="13"><div class="sale-cost-detail"><div class="sale-cost-heading"><b>Detalhamento dos custos do pedido</b><span>Valores calculados conforme a ficha técnica e os custos cadastrados</span></div>'+productHtml+'<div class="sale-cost-summary"><div><span>Materiais</span><b>'+fmt(materialsTotal)+'</b></div><div><span>Componentes e insumos</span><b>'+fmt(componentsTotal)+'</b></div><div><span>Energia</span><b>'+fmt(energyTotal)+'</b></div><div><span>Depreciação</span><b>'+fmt(depreciationTotal)+'</b></div><div><span>Desgaste da impressora</span><b>'+fmt(wearTotal)+'</b></div><div><span>Outros custos</span><b>'+fmt(otherTotal)+'</b></div><div><span>Embalagem</span><b>'+fmt(packaging)+'</b></div><div><span>Custo de produção</span><b>'+fmt(productionTotal+packaging)+'</b></div><div><span>Taxas e comissões registradas</span><b>'+fmt(fee)+'</b></div><div><span>Valor bruto da venda</span><b>'+fmt(gross)+'</b></div><div><span>Valor líquido registrado</span><b>'+fmt(net)+'</b></div></div><p class="sale-cost-note">As taxas são mostradas conforme o valor salvo no pedido. Este detalhamento é informativo e não cria despesas nem movimentações financeiras.</p></div></td>';
  mainRow.insertAdjacentElement('afterend',tr);
 }
 function renderSalesTable(){
@@ -2220,7 +2219,7 @@ function runCalc(){
 }
 
 
-function costSettingsDefaults(){return {machineValue:3000,machineLife:5000,machineWatts:200,machineKwh:0.90,machineWear:0.20,otherCost:0,laborPercent:20,feeTiers:[{rate:20,fixed:0,ratio:50},{rate:20,fixed:4.5,ratio:0},{rate:14,fixed:16,ratio:0},{rate:14,fixed:20,ratio:0},{rate:14,fixed:26,ratio:0}]};}
+function costSettingsDefaults(){return {machineValue:3000,machineLife:5000,machineWatts:200,machineKwh:0.90,machineWear:0.20,otherCost:0,feeTiers:[{rate:20,fixed:0,ratio:50},{rate:20,fixed:4.5,ratio:0},{rate:14,fixed:16,ratio:0},{rate:14,fixed:20,ratio:0},{rate:14,fixed:26,ratio:0}]};}
 function currentCostSettings(){const d=costSettingsDefaults(),v=db.settings?.costs||{};return {...d,...v,feeTiers:d.feeTiers.map((x,i)=>({...x,...(v.feeTiers?.[i]||{})}))};}
 function renderCostSettings(){const c=currentCostSettings();const fields={cfgMachineValue:c.machineValue,cfgMachineLife:c.machineLife,cfgMachineWatts:c.machineWatts,cfgMachineKwh:c.machineKwh,cfgMachineWear:c.machineWear,cfgOtherCost:c.otherCost};Object.entries(fields).forEach(([id,value])=>{const el=document.getElementById(id);if(el&&document.activeElement!==el)el.value=value;});c.feeTiers.forEach((t,i)=>{[['cfgFeeRate',Number(t.rate)||0],['cfgFeeFixed',Number(t.fixed)||0],['cfgFeeRatio',Number(t.ratio)||0]].forEach(([prefix,value])=>{const el=document.getElementById(prefix+i);if(el&&document.activeElement!==el)el.value=value;});});}
 function saveCostSettings(){const number=id=>{const el=document.getElementById(id);return el?Number(el.value):0;};const ids=['cfgMachineValue','cfgMachineLife','cfgMachineWatts','cfgMachineKwh','cfgMachineWear','cfgOtherCost'];for(const id of ids){const el=document.getElementById(id);if(!el||el.value===''||!Number.isFinite(Number(el.value))||Number(el.value)<0){alert('Confira os valores dos custos. Eles devem ser números iguais ou maiores que zero.');return;}}if(number('cfgMachineLife')<1){alert('A vida útil da impressora deve ser de pelo menos 1 hora.');return;}const feeTiers=[];for(let i=0;i<5;i++){const rate=number('cfgFeeRate'+i),fixed=number('cfgFeeFixed'+i),ratio=number('cfgFeeRatio'+i);if(rate<0||rate>100||fixed<0||ratio<0||ratio>100){alert('Confira as taxas Shopee. Percentuais devem ficar entre 0 e 100.');return;}feeTiers.push({rate,fixed,ratio});}db.settings=db.settings||{};db.settings.costs={machineValue:number('cfgMachineValue'),machineLife:number('cfgMachineLife'),machineWatts:number('cfgMachineWatts'),machineKwh:number('cfgMachineKwh'),machineWear:number('cfgMachineWear'),otherCost:number('cfgOtherCost'),feeTiers};save();const msg=document.getElementById('costSettingsFeedback');if(msg)msg.textContent='Custos e taxas salvos. Os cálculos serão atualizados.';}
@@ -2261,7 +2260,7 @@ function saveCalculatorAsProduct(){
    fee:+document.getElementById("calcFee")?.value||0,margin:+document.getElementById("calcMargin")?.value||0,stock:0,
    printHours:batch?enteredHours/batchQty:enteredHours,productionBatchQty:batch?batchQty:1,productionBasis:batch?"batch":"unit",
    productionSourceHours:enteredHours,productionSourcePack:+document.getElementById("calcPack")?.value||0,
-   productionSourceLabor:+document.getElementById("calcLabor")?.value||0,productionSourceOther:+document.getElementById("calcOther")?.value||0,
+   productionSourceOther:+document.getElementById("calcOther")?.value||0,
    productionSourceMaterials:batch?materials.map(m=>({materialId:m.materialId,sourceQty:m.sourceQty})):null,stockManaged:false};
  db.products=db.products||[]; db.products.push(p); save(); populateCalcProductSelect(); document.getElementById("calcProductSelect").value=p.id; alert("Produto salvo com sucesso. A ficha atual da calculadora foi cadastrada em Produtos."); render();
 }
@@ -2932,7 +2931,7 @@ function buildImportedShopeeProduct(item,store){
   shopeeImageUrl,shopeeImages,fee:20,margin:30,pack:0,labor:0,other:0,
   machineKwh:0.2,machineLife:5000,machineWear:0,machineValue:3000,machineWatts:200,
   printHours:0,productionBasis:"unit",productionBatchQty:1,
-  productionSourceHours:0,productionSourcePack:0,productionSourceLabor:0,productionSourceOther:0,
+  productionSourceHours:0,productionSourcePack:0,productionSourceOther:0,
   productionSourceMaterials:[],materials:[],components:[],variants:[],colors:[],
   importedFromShopee:true
  };
@@ -3338,8 +3337,7 @@ function renderDashboardSummary(period){
  const sales=dashboardSales(p);
  const revenue=sales.reduce((a,s)=>a+(Number(s.grossValue??s.value)||0),0);
  const netBase=sales.reduce((a,s)=>{const gross=Number(s.grossValue??s.value)||0;const fee=Number(s.fee)||0;const nv=Number(s.netValue);return a+(Number.isFinite(nv)&&nv>0?nv:Math.max(0,gross-fee));},0);
- const labor=sales.reduce((a,s)=>a+saleLaborAmount(s),0);
- const net=netBase+labor;
+ const net=netBase;
  const costs=sales.reduce((a,s)=>a+(Number(s.cost)||0),0);
  const fees=sales.reduce((a,s)=>a+(Number(s.fee)||0),0);
  const today=todayISO();
@@ -3483,7 +3481,7 @@ function mergeProductRecords(target,source){
  const targetHasRecipe=(Array.isArray(target.materials)&&target.materials.length)||(Array.isArray(target.variants)&&target.variants.length)||(Array.isArray(target.components)&&target.components.length);
  const sourceHasRecipe=(Array.isArray(source.materials)&&source.materials.length)||(Array.isArray(source.variants)&&source.variants.length)||(Array.isArray(source.components)&&source.components.length);
  if(!targetHasRecipe&&sourceHasRecipe){
-   ["materials","variants","components","colors","printHours","productionBasis","productionBatchQty","productionSourceHours","productionSourcePack","productionSourceLabor","productionSourceOther","productionSourceMaterials","pack","labor","other","fee","margin","machineWatts","machineKwh","machineValue","machineLife","machineWear","stockManaged"].forEach(k=>{if(source[k]!==undefined)target[k]=source[k];});
+   ["materials","variants","components","colors","printHours","productionBasis","productionBatchQty","productionSourceHours","productionSourcePack","productionSourceOther","productionSourceMaterials","pack","labor","other","fee","margin","machineWatts","machineKwh","machineValue","machineLife","machineWear","stockManaged"].forEach(k=>{if(source[k]!==undefined)target[k]=source[k];});
  }
  if(!target.sku&&source.sku)target.sku=source.sku;
  if(!target.store&&source.store)target.store=source.store;
@@ -3710,8 +3708,7 @@ function renderFinancePanel(){
  const out=materialOut+expenseOut, balance=inflow-out;
  const activeSales=reportSales().filter(s=>s.status!=="Cancelado"&&s.status!=="Pendente");
  const production=activeSales.reduce((a,s)=>a+(Number(s.cost)||0),0);
- const labor=activeSales.reduce((a,s)=>a+saleLaborAmount(s),0);
- const operating=inflow-production+labor-expenseOut;
+ const operating=inflow-production-expenseOut;
  const costSales=activeSales;
  const consumedMaterials=soldItems.reduce((tot,item)=>{
   const sale=item._sale||{},p=financeProductForItem(item);if(!p)return tot;
@@ -3723,7 +3720,6 @@ function renderFinancePanel(){
   return tot;
  },{filament:0,supplies:0});
  const salesComponentCost=soldItems.reduce((sum,item)=>{const p=financeProductForItem(item);return sum+(p?componentCost(p)*Math.max(0,Number(item.qty)||0):0);},0);
- const salesLabor=costSales.reduce((sum,s)=>sum+saleLaborAmount(s),0);
  const salesFees=costSales.reduce((sum,s)=>{const gross=Number(s.grossValue??s.value)||0,net=Number(s.netValue);return sum+(Number(s.fee)>0?Number(s.fee):Number.isFinite(net)&&net>=0?Math.max(0,gross-net):0);},0);
  const salesEnergy=soldItems.reduce((sum,item)=>{const sale=item._sale||{},p=financeProductForItem(item);if(!p)return sum;const q=Math.max(0,Number(item.qty)||0),variant={...sale,...item,variantId:item.variantId||sale.variantId,colorId:item.colorId||sale.colorId};const parts=machineUnitCost({...p,printHours:salePrintHours(p,variant)});return sum+Math.max(0,Number(parts.energy)||0)*q;},0);
  const salesMaintenance=soldItems.reduce((sum,item)=>{const sale=item._sale||{},p=financeProductForItem(item);if(!p)return sum;const q=Math.max(0,Number(item.qty)||0),variant={...sale,...item,variantId:item.variantId||sale.variantId,colorId:item.colorId||sale.colorId},parts=machineUnitCost({...p,printHours:salePrintHours(p,variant)});return sum+Math.max(0,Number(parts.wear)||0)*q;},0);
