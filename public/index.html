@@ -508,13 +508,13 @@ table td,table th{border-bottom-color:#f0e7e0}
  <div class="sub" style="margin-top:8px">A troca atualiza as fichas técnicas e as cores dos produtos. Vendas já registradas e seus históricos não serão alterados. O filamento antigo permanece cadastrado no estoque.</div>
 </div>
 <div class="panel" id="mergeFilamentPanel" style="margin-bottom:16px">
- <div class="top" style="margin-bottom:10px"><div><h2 style="margin:0">🧩 Mesclar filamentos</h2><div class="sub">Una dois cadastros do mesmo tipo/cor em um único material, somando o estoque e preservando os vínculos dos produtos.</div></div></div>
+ <div class="top" style="margin-bottom:10px"><div><h2 style="margin:0">🧩 Mesclar filamentos</h2><div class="sub">Ao mesclar, todos os cadastros da mesma cor e tipo (ex.: Vermelho PLA) serão reunidos. Cores e tipos diferentes (ex.: Vermelho PETG) permanecem separados.</div></div></div>
  <div class="formgrid" style="grid-template-columns:repeat(2,minmax(220px,1fr));align-items:end">
   <div class="field"><label>Filamento que será incorporado</label><select id="mergeFilamentSource" onchange="previewFilamentMerge()"><option value="">Selecione o cadastro que será unido</option></select></div>
   <div class="field"><label>Filamento principal (manter)</label><select id="mergeFilamentTarget" onchange="previewFilamentMerge()"><option value="">Selecione o cadastro principal</option></select></div>
  </div>
  <div class="notice" id="mergeFilamentPreview" style="margin-top:12px">Escolha os dois cadastros para visualizar o resultado da mesclagem.</div>
- <div class="actions" style="margin-top:12px"><button class="btn secondary" type="button" onclick="applyFilamentMerge()">Mesclar filamentos</button></div>
+ <div class="actions" style="margin-top:12px"><button class="btn secondary" type="button" onclick="applyFilamentMerge()">Mesclar todos da mesma cor e tipo</button></div>
  <div class="sub" style="margin-top:8px">O estoque e o custo médio serão consolidados no filamento principal. As fichas técnicas e variações serão vinculadas a ele. O cadastro incorporado será removido; compras antigas permanecem no histórico.</div>
 </div>
 <div id="categoryManager" class="panel hidden category-manager">
@@ -3667,7 +3667,7 @@ function previewFilamentMerge(){
  const a=(db.materials||[]).find(m=>String(m.id)===String(sid)),b=(db.materials||[]).find(m=>String(m.id)===String(tid));
  if(!a||!b){box.textContent="Escolha os dois cadastros para visualizar o resultado da mesclagem.";return;}
  if(String(a.id)===String(b.id)){box.textContent="Selecione dois cadastros diferentes.";return;}
- const key=materialFilamentGroupKey(a),group=(db.materials||[]).filter(m=>materialFilamentGroupKey(m)===key),unit=String(b.unit||"");
+ const key=materialFilamentGroupKey(a),group=(db.materials||[]).filter(m=>isFilamentMaterial(m)&&materialFilamentGroupKey(m)===key),unit=String(b.unit||"");
  if(String(a.unit||"")!==unit||group.some(m=>String(m.unit||"")!==unit)){box.textContent="Não é possível mesclar: os materiais do grupo precisam usar a mesma unidade.";return;}
  const total=group.reduce((n,m)=>n+(Number(m.stock)||0),0),value=group.reduce((n,m)=>n+(Number(m.stock)||0)*(Number(m.unitCost)||0),0),cost=total>0?value/total:0;
  const brands=group.flatMap(m=>materialBrandLots(m).map(l=>({brand:l.brand||m.brand||"Marca não informada",stock:Number(l.stock)||0})));
@@ -3699,6 +3699,7 @@ function changeMaterialBrandStock(m,qty,direction,preferredBrand){
  }
  syncMaterialBrandLots(m);
 }
+function isFilamentMaterial(m){return /filamento|pla|petg|abs|asa|tpu|nylon/i.test([m?.category,m?.type,m?.name].join(" "));}
 function materialFilamentGroupKey(m){
  const norm=v=>normalizeSearchText(String(v||"").trim()).replace(/\s+/g," ");
  return norm(m?.color)+"::"+norm(m?.type);
@@ -3710,7 +3711,7 @@ function applyFilamentMerge(){
  if(String(source.id)===String(target.id)){alert("Escolha dois cadastros diferentes.");return;}
  const groupKey=materialFilamentGroupKey(source);
  if(groupKey!==materialFilamentGroupKey(target)){alert("Só é possível mesclar materiais da mesma cor e do mesmo tipo. Vermelho PLA com Vermelho PLA; Vermelho PETG permanece separado.");return;}
- const group=(db.materials||[]).filter(m=>materialFilamentGroupKey(m)===groupKey);
+ const group=(db.materials||[]).filter(m=>isFilamentMaterial(m)&&materialFilamentGroupKey(m)===groupKey);
  if(group.some(m=>String(m.unit||"")!==String(target.unit||""))){alert("Todos os materiais desse grupo precisam usar a mesma unidade.");return;}
  const sourceIds=new Set(group.filter(m=>String(m.id)!==String(target.id)).map(m=>String(m.id)));
  if(!sourceIds.size){alert("Não há outros cadastros dessa cor e tipo para mesclar.");return;}
