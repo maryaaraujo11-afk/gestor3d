@@ -3667,10 +3667,11 @@ function previewFilamentMerge(){
  const a=(db.materials||[]).find(m=>String(m.id)===String(sid)),b=(db.materials||[]).find(m=>String(m.id)===String(tid));
  if(!a||!b){box.textContent="Escolha os dois cadastros para visualizar o resultado da mesclagem.";return;}
  if(String(a.id)===String(b.id)){box.textContent="Selecione dois cadastros diferentes.";return;}
- const sa=Math.max(0,Number(a.stock)||0),sb=Math.max(0,Number(b.stock)||0),ua=String(a.unit||""),ub=String(b.unit||"");
- if(ua!==ub){box.textContent="Não é possível mesclar: as unidades são diferentes ("+ua+" e "+ub+").";return;}
- const total=sa+sb,cost=total>0?(sa*(Number(a.unitCost)||0)+sb*(Number(b.unitCost)||0))/total:0;
- box.textContent="Estoque total: "+total+" "+ub+". "+(b.brand||"Marca principal")+": "+sb+" "+ub+" • "+(a.brand||"Marca incorporada")+": "+sa+" "+ub+". Custo médio estimado: "+money(cost)+" por "+ub+". As quantidades de cada marca continuarão separadas.";
+ const key=materialFilamentGroupKey(a),group=(db.materials||[]).filter(m=>materialFilamentGroupKey(m)===key),unit=String(b.unit||"");
+ if(String(a.unit||"")!==unit||group.some(m=>String(m.unit||"")!==unit)){box.textContent="Não é possível mesclar: os materiais do grupo precisam usar a mesma unidade.";return;}
+ const total=group.reduce((n,m)=>n+(Number(m.stock)||0),0),value=group.reduce((n,m)=>n+(Number(m.stock)||0)*(Number(m.unitCost)||0),0),cost=total>0?value/total:0;
+ const brands=group.flatMap(m=>materialBrandLots(m).map(l=>({brand:l.brand||m.brand||"Marca não informada",stock:Number(l.stock)||0})));
+ box.textContent="Grupo: "+(a.color||"Cor não informada")+" • "+(a.type||"Tipo não informado")+". "+group.length+" cadastro(s) serão reunidos. Estoque por marca: "+brands.map(l=>l.brand+": "+l.stock+" "+unit).join(" • ")+". Total: "+total+" "+unit+"; custo médio: "+money(cost)+". Outros tipos e cores ficam separados.";
 }
 function materialBrandLots(m){
  if(!Array.isArray(m.brandStocks)||!m.brandStocks.length){
@@ -3698,53 +3699,48 @@ function changeMaterialBrandStock(m,qty,direction,preferredBrand){
  }
  syncMaterialBrandLots(m);
 }
+function materialFilamentGroupKey(m){
+ const norm=v=>normalizeSearchText(String(v||"").trim()).replace(/\s+/g," ");
+ return norm(m?.color)+"::"+norm(m?.type);
+}
 function applyFilamentMerge(){
  const sid=document.getElementById("mergeFilamentSource")?.value,tid=document.getElementById("mergeFilamentTarget")?.value;
  const source=(db.materials||[]).find(m=>String(m.id)===String(sid)),target=(db.materials||[]).find(m=>String(m.id)===String(tid));
  if(!source||!target){alert("Selecione os dois filamentos.");return;}
  if(String(source.id)===String(target.id)){alert("Escolha dois cadastros diferentes.");return;}
- if(String(source.unit||"")!==String(target.unit||"")){alert("Não é possível mesclar filamentos com unidades diferentes.");return;}
- const sourceLots=materialBrandLots(source).map(l=>({...l,brand:l.brand||source.brand||"Marca não informada"}));
- const targetLots=materialBrandLots(target).map(l=>({...l,brand:l.brand||target.brand||"Marca não informada"}));
- const sourceStock=sourceLots.reduce((n,l)=>n+(Number(l.stock)||0),0),targetStock=targetLots.reduce((n,l)=>n+(Number(l.stock)||0),0);
- const sourceId=String(source.id),targetId=target.id;
- const breakdown=[...targetLots,...sourceLots].map(l=>l.brand+": "+(Number(l.stock)||0)+" "+target.unit).join("\n");
- const message="Mesclar "+source.name+" em "+target.name+"?\n\nEstoque por marca após a mesclagem:\n"+breakdown+"\n\nO estoque continuará separado por marca. O custo médio geral será calculado com base nas quantidades. O cadastro de origem será removido.";
- if(!confirm(message))return;
- target.brandStocks=[...targetLots,...sourceLots];
+ const groupKey=materialFilamentGroupKey(source);
+ if(groupKey!==materialFilamentGroupKey(target)){alert("Só é possível mesclar materiais da mesma cor e do mesmo tipo. Vermelho PLA com Vermelho PLA; Vermelho PETG permanece separado.");return;}
+ const group=(db.materials||[]).filter(m=>materialFilamentGroupKey(m)===groupKey);
+ if(group.some(m=>String(m.unit||"")!==String(target.unit||""))){alert("Todos os materiais desse grupo precisam usar a mesma unidade.");return;}
+ const sourceIds=new Set(group.filter(m=>String(m.id)!==String(target.id)).map(m=>String(m.id)));
+ if(!sourceIds.size){alert("Não há outros cadastros dessa cor e tipo para mesclar.");return;}
+ const lots=group.flatMap(m=>materialBrandLots(m).map(l=>({...l,brand:l.brand||m.brand||"Marca não informada",stock:Number(l.stock)||0,unitCost:Number(l.unitCost)||0})));
  const consolidated=[];
- target.brandStocks.forEach(l=>{
-  const existing=consolidated.find(x=>x.brand===l.brand);
-  if(existing){
-   const oldQty=Number(existing.stock)||0,newQty=Number(l.stock)||0,total=oldQty+newQty;
-   existing.unitCost=total>0?(oldQty*(Number(existing.unitCost)||0)+newQty*(Number(l.unitCost)||0))/total:0;
-   existing.stock=total;
-  }else consolidated.push({...l,stock:Number(l.stock)||0,unitCost:Number(l.unitCost)||0});
+ lots.forEach(l=>{
+  const old=consolidated.find(x=>normalizeSearchText(x.brand)===normalizeSearchText(l.brand));
+  if(old){const total=old.stock+l.stock;old.unitCost=total>0?(old.stock*old.unitCost+l.stock*l.unitCost)/total:0;old.stock=total;}
+  else consolidated.push({...l});
  });
- target.brandStocks=consolidated;
- syncMaterialBrandLots(target);
+ const total=consolidated.reduce((n,l)=>n+l.stock,0),value=consolidated.reduce((n,l)=>n+l.stock*l.unitCost,0);
+ const label=(source.color||"Cor não informada")+" • "+(source.type||"Tipo não informado");
+ const detail=consolidated.map(l=>l.brand+": "+l.stock+" "+target.unit).join("\n");
+ if(!confirm("Mesclar todos os "+group.length+" cadastros do grupo "+label+" em "+target.name+"?\n\nEstoque por marca:\n"+detail+"\n\nTotal: "+total+" "+target.unit+"\nCusto médio: "+money(total>0?value/total:0)+"\n\nOutras cores e tipos não serão alterados."))return;
+ target.brandStocks=consolidated;syncMaterialBrandLots(target);
  let links=0;
- const walk=(node)=>{
+ const walk=node=>{
   if(!node||typeof node!=="object")return;
   if(Array.isArray(node)){node.forEach(walk);return;}
-  if(String(node.materialId??"")===sourceId){
-   node.materialId=targetId;
-   if("name" in node)node.name=target.name;
-   if("materialName" in node)node.materialName=target.name;
-   if("unit" in node)node.unit=target.unit;
-   if("unitCost" in node)node.unitCost=Number(target.unitCost)||0;
-   links++;
-  }
+  if(sourceIds.has(String(node.materialId??""))){node.materialId=target.id;if("name" in node)node.name=target.name;if("materialName" in node)node.materialName=target.name;if("unit" in node)node.unit=target.unit;if("unitCost" in node)node.unitCost=Number(target.unitCost)||0;links++;}
   Object.keys(node).forEach(k=>{if(k!=="materialId")walk(node[k]);});
  };
  (db.products||[]).forEach(p=>walk(p));
- target.purchaseQty=(Number(target.purchaseQty)||0)+(Number(source.purchaseQty)||0);
- target.purchasePrice=(Number(target.purchasePrice)||0)+(Number(source.purchasePrice)||0);
- target.minStock=(Number(target.minStock)||0)+(Number(source.minStock)||0);
- if(!target.supplier&&source.supplier)target.supplier=source.supplier;
- db.materials=(db.materials||[]).filter(m=>String(m.id)!==sourceId);
+ target.purchaseQty=group.reduce((n,m)=>n+(Number(m.purchaseQty)||0),0);
+ target.purchasePrice=group.reduce((n,m)=>n+(Number(m.purchasePrice)||0),0);
+ target.minStock=group.reduce((n,m)=>n+(Number(m.minStock)||0),0);
+ if(!target.supplier)target.supplier=group.find(m=>m.supplier)?.supplier||"";
+ db.materials=(db.materials||[]).filter(m=>!sourceIds.has(String(m.id)));
  save();renderMaterialsTable();renderProductsTable();populateFilamentReplacement();populateFilamentMerge();
- alert("Mesclagem concluída! Estoque separado por marca: "+target.brandStocks.map(l=>l.brand+" ("+l.stock+" "+target.unit+")").join(", ")+". "+links+" vínculo(s) atualizado(s).");
+ alert("Grupo "+label+" mesclado! "+group.length+" cadastros reunidos, estoque separado por marca e "+links+" vínculo(s) de produto atualizado(s).");
 }
 function renderMaterialsTable(){
  const table=document.getElementById("materialsTable"); if(!table)return;
