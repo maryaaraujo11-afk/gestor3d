@@ -1357,7 +1357,7 @@ function updateMaterialRestockPreview(){
 function addStockToExistingMaterial(){
  const m=(db.materials||[]).find(x=>String(x.id)===String(document.getElementById("mrMaterial")?.value));const q=Number(document.getElementById("mrQty")?.value)||0;const price=Number(document.getElementById("mrPrice")?.value)||0;const supplier=document.getElementById("mrSupplier")?.value.trim()||"";const date=document.getElementById("mrDate")?.value||todayISO();
  if(!m){alert("Selecione um material.");return;}if(q<=0||price<0){alert("Informe quantidade e valor válidos.");return;}
- const stock=Math.max(0,Number(m.stock)||0);const total=stock+q;m.unitCost=total>0?(stock*(Number(m.unitCost)||0)+price)/total:price/q;m.stock=total;m.purchaseQty=(Number(m.purchaseQty)||0)+q;m.purchasePrice=(Number(m.purchasePrice)||0)+price;if(supplier)m.supplier=supplier;
+ const stock=Math.max(0,Number(m.stock)||0);materialBrandLots(m);const total=stock+q;const brand=m.brand||"Marca não informada";let lot=m.brandStocks.find(x=>x.brand===brand);if(!lot){lot={brand,stock:0,unitCost:price/q};m.brandStocks.push(lot);}const oldLotStock=Number(lot.stock)||0;lot.unitCost=(oldLotStock*(Number(lot.unitCost)||0)+price)/(oldLotStock+q);lot.stock=oldLotStock+q;syncMaterialBrandLots(m);m.purchaseQty=(Number(m.purchaseQty)||0)+q;m.purchasePrice=(Number(m.purchasePrice)||0)+price;if(supplier)m.supplier=supplier;
  db.purchases=Array.isArray(db.purchases)?db.purchases:[];db.purchases.unshift({id:Date.now()+1,date:formatDateISO(date),dateISO:date,material:m.name,qty:q,unit:m.unit,value:price,supplier:supplier});save();closeMaterialRestock();renderMaterialsTable();renderFinancePanel();alert("Compra registrada e estoque atualizado.");
 }
 document.addEventListener("input",function(e){if(e.target&&["mrQty","mrPrice"].includes(e.target.id))updateMaterialRestockPreview();});
@@ -1620,9 +1620,10 @@ function addMovement(){
  if(!m || qty<=0){alert("Selecione um material e informe uma quantidade válida.");return}
  const type=mvType.value;
  const before=+m.stock||0;
- if(type==="entrada")m.stock=before+qty;
- else if(type==="saida")m.stock=Math.max(0,before-qty);
- else m.stock=qty;
+ if(type==="entrada")changeMaterialBrandStock(m,qty,1);
+ else if(type==="saida")changeMaterialBrandStock(m,qty,-1);
+ else {materialBrandLots(m).forEach(l=>l.stock=0);changeMaterialBrandStock(m,qty,1);}
+ const after=m.stock;
  db.movements.unshift({id:Date.now(),date:new Date().toLocaleString("pt-BR"),materialId:m.id,material:m.name,type,qty,note:mvNote.value.trim(),before,after:m.stock});
  mvQty.value="";mvNote.value="";save();
 }
@@ -1752,7 +1753,7 @@ function adjustStockForSale(s, direction, note){
  saleRecipeMaterials(p,s).forEach(r=>{
    const m=db.materials.find(x=>String(x.id)===String(r.materialId)); if(!m)return;
    const use=materialConsumptionForSale(p,r,qty); const before=Number(m.stock)||0;
-   m.stock=Math.max(0,before+direction*use);
+   changeMaterialBrandStock(m,use,direction);
    db.movements.unshift({id:Date.now()+Math.random(),date:new Date().toLocaleString("pt-BR"),materialId:m.id,material:m.name,type:direction<0?"saída":"entrada",qty:Math.abs(use),note, before, after:m.stock});
  });
 }
@@ -3669,7 +3670,33 @@ function previewFilamentMerge(){
  const sa=Math.max(0,Number(a.stock)||0),sb=Math.max(0,Number(b.stock)||0),ua=String(a.unit||""),ub=String(b.unit||"");
  if(ua!==ub){box.textContent="Não é possível mesclar: as unidades são diferentes ("+ua+" e "+ub+").";return;}
  const total=sa+sb,cost=total>0?(sa*(Number(a.unitCost)||0)+sb*(Number(b.unitCost)||0))/total:0;
- box.textContent="Estoque final em "+b.name+": "+total+" "+ub+". Custo médio estimado: "+money(cost)+" por "+ub+". O cadastro "+a.name+" será incorporado ao cadastro principal.";
+ box.textContent="Estoque total: "+total+" "+ub+". "+(b.brand||"Marca principal")+": "+sb+" "+ub+" • "+(a.brand||"Marca incorporada")+": "+sa+" "+ub+". Custo médio estimado: "+money(cost)+" por "+ub+". As quantidades de cada marca continuarão separadas.";
+}
+function materialBrandLots(m){
+ if(!Array.isArray(m.brandStocks)||!m.brandStocks.length){
+  const brand=m.brand||"Marca não informada";
+  m.brandStocks=[{brand,stock:Math.max(0,Number(m.stock)||0),unitCost:Math.max(0,Number(m.unitCost)||0)}];
+ }
+ return m.brandStocks;
+}
+function syncMaterialBrandLots(m){
+ const lots=materialBrandLots(m);
+ lots.forEach(l=>{l.stock=Math.max(0,Number(l.stock)||0);l.unitCost=Math.max(0,Number(l.unitCost)||0);});
+ m.stock=lots.reduce((sum,l)=>sum+l.stock,0);
+ const value=lots.reduce((sum,l)=>sum+l.stock*l.unitCost,0);
+ if(m.stock>0)m.unitCost=value/m.stock;
+}
+function changeMaterialBrandStock(m,qty,direction,preferredBrand){
+ const lots=materialBrandLots(m),amount=Math.max(0,Number(qty)||0);
+ if(direction<0){
+  let remaining=amount;
+  lots.forEach(l=>{if(remaining<=0)return;const take=Math.min(l.stock,remaining);l.stock-=take;remaining-=take;});
+ }else{
+  let lot=lots.find(l=>l.brand===(preferredBrand||m.brand||"Marca não informada"));
+  if(!lot){lot={brand:preferredBrand||m.brand||"Marca não informada",stock:0,unitCost:Number(m.unitCost)||0};lots.push(lot);}
+  lot.stock+=amount;
+ }
+ syncMaterialBrandLots(m);
 }
 function applyFilamentMerge(){
  const sid=document.getElementById("mergeFilamentSource")?.value,tid=document.getElementById("mergeFilamentTarget")?.value;
@@ -3677,10 +3704,12 @@ function applyFilamentMerge(){
  if(!source||!target){alert("Selecione os dois filamentos.");return;}
  if(String(source.id)===String(target.id)){alert("Escolha dois cadastros diferentes.");return;}
  if(String(source.unit||"")!==String(target.unit||"")){alert("Não é possível mesclar filamentos com unidades diferentes.");return;}
- const sourceStock=Math.max(0,Number(source.stock)||0),targetStock=Math.max(0,Number(target.stock)||0),totalStock=sourceStock+targetStock;
- const weightedCost=totalStock>0?(sourceStock*(Number(source.unitCost)||0)+targetStock*(Number(target.unitCost)||0))/totalStock:0;
+ const sourceLots=materialBrandLots(source).map(l=>({...l,brand:l.brand||source.brand||"Marca não informada"}));
+ const targetLots=materialBrandLots(target).map(l=>({...l,brand:l.brand||target.brand||"Marca não informada"}));
+ const sourceStock=sourceLots.reduce((n,l)=>n+(Number(l.stock)||0),0),targetStock=targetLots.reduce((n,l)=>n+(Number(l.stock)||0),0);
  const sourceId=String(source.id),targetId=target.id;
- const message="Mesclar "+source.name+" em "+target.name+"?\n\nEstoque atual: "+sourceStock+" + "+targetStock+" = "+totalStock+" "+target.unit+"\nNovo custo médio: "+money(weightedCost)+"\n\nOs produtos e variações que usam "+source.name+" serão vinculados a "+target.name+". O cadastro de origem será removido.";
+ const breakdown=[...targetLots,...sourceLots].map(l=>l.brand+": "+(Number(l.stock)||0)+" "+target.unit).join("\n");
+ const message="Mesclar "+source.name+" em "+target.name+"?\n\nEstoque por marca após a mesclagem:\n"+breakdown+"\n\nO estoque continuará separado por marca. O custo médio geral será calculado com base nas quantidades. O cadastro de origem será removido.";
  if(!confirm(message))return;
  let links=0;
  const walk=(node)=>{
@@ -3691,25 +3720,21 @@ function applyFilamentMerge(){
    if("name" in node)node.name=target.name;
    if("materialName" in node)node.materialName=target.name;
    if("unit" in node)node.unit=target.unit;
-   if("unitCost" in node)node.unitCost=weightedCost;
+   if("unitCost" in node)node.unitCost=Number(target.unitCost)||0;
    links++;
   }
   Object.keys(node).forEach(k=>{if(k!=="materialId")walk(node[k]);});
  };
  (db.products||[]).forEach(p=>walk(p));
- target.stock=totalStock;
- target.unitCost=weightedCost;
+ target.brandStocks=[...targetLots,...sourceLots];
+ syncMaterialBrandLots(target);
  target.purchaseQty=(Number(target.purchaseQty)||0)+(Number(source.purchaseQty)||0);
  target.purchasePrice=(Number(target.purchasePrice)||0)+(Number(source.purchasePrice)||0);
  target.minStock=(Number(target.minStock)||0)+(Number(source.minStock)||0);
  if(!target.supplier&&source.supplier)target.supplier=source.supplier;
  db.materials=(db.materials||[]).filter(m=>String(m.id)!==sourceId);
- save();
- renderMaterialsTable();
- renderProductsTable();
- populateFilamentReplacement();
- populateFilamentMerge();
- alert("Mesclagem concluída! Estoques consolidados, "+links+" vínculo(s) atualizado(s). O histórico de compras foi preservado.");
+ save();renderMaterialsTable();renderProductsTable();populateFilamentReplacement();populateFilamentMerge();
+ alert("Mesclagem concluída! Estoque separado por marca: "+target.brandStocks.map(l=>l.brand+" ("+l.stock+" "+target.unit+")").join(", ")+". "+links+" vínculo(s) atualizado(s).");
 }
 function renderMaterialsTable(){
  const table=document.getElementById("materialsTable"); if(!table)return;
@@ -3718,7 +3743,7 @@ function renderMaterialsTable(){
    if(!query)return true;
    return [m.name,m.category,m.brand,m.type,m.color].some(v=>normalizeSearchText(v).includes(query));
  }).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR"));
- table.innerHTML=rows.map(m=>`<tr><td><b>${m.name}</b>${m.color?`<div class="sub">${m.color}</div>`:""}</td><td>${categoryBadge(m.category)}</td><td>${[m.brand,m.type].filter(Boolean).join(" • ")||"—"}</td><td>${m.unit}</td><td>${money(m.unitCost)}</td><td>${m.stock}</td><td>${m.stock<=0?'<span class="tag warn">Sem estoque</span>':m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td><td><div class="row-actions"><button class="btn xs outline" onclick="editMaterial('${m.id}')">Editar</button><button class="btn xs danger" onclick="deleteMaterial('${m.id}')">Excluir</button></div></td></tr>`).join("")||'<tr><td colspan="8">Nenhum material encontrado.</td></tr>';
+ table.innerHTML=rows.map(m=>`<tr><td><b>${m.name}</b>${m.color?`<div class="sub">${m.color}</div>`:""}</td><td>${categoryBadge(m.category)}</td><td>${[m.brand,m.type].filter(Boolean).join(" • ")||"—"}</td><td>${m.unit}</td><td>${money(m.unitCost)}</td><td>${m.stock}${Array.isArray(m.brandStocks)&&m.brandStocks.length>1?`<div class="sub">${m.brandStocks.map(l=>`${l.brand}: ${l.stock} ${m.unit}`).join("<br>")}</div>`:""}</td><td>${m.stock<=0?'<span class="tag warn">Sem estoque</span>':m.stock<=m.minStock?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td><td><div class="row-actions"><button class="btn xs outline" onclick="editMaterial('${m.id}')">Editar</button><button class="btn xs danger" onclick="deleteMaterial('${m.id}')">Excluir</button></div></td></tr>`).join("")||'<tr><td colspan="8">Nenhum material encontrado.</td></tr>';
 }
 
 function financeISODate(value){
