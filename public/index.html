@@ -3691,7 +3691,7 @@ function applyFilamentMerge(){
    if("name" in node)node.name=target.name;
    if("materialName" in node)node.materialName=target.name;
    if("unit" in node)node.unit=target.unit;
-   if("unitCost" in node)node.unitCost=Number(target.unitCost)||weightedCost;
+   if("unitCost" in node)node.unitCost=weightedCost;
    links++;
   }
   Object.keys(node).forEach(k=>{if(k!=="materialId")walk(node[k]);});
