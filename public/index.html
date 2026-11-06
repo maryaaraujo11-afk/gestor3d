@@ -507,6 +507,16 @@ table td,table th{border-bottom-color:#f0e7e0}
  <div class="actions" style="margin-top:12px"><button class="btn" type="button" onclick="applyFilamentReplacement()">Substituir em todos os anúncios</button></div>
  <div class="sub" style="margin-top:8px">A troca atualiza as fichas técnicas e as cores dos produtos. Vendas já registradas e seus históricos não serão alterados. O filamento antigo permanece cadastrado no estoque.</div>
 </div>
+<div class="panel" id="mergeFilamentPanel" style="margin-bottom:16px">
+ <div class="top" style="margin-bottom:10px"><div><h2 style="margin:0">🧩 Mesclar filamentos</h2><div class="sub">Una dois cadastros do mesmo tipo/cor em um único material, somando o estoque e preservando os vínculos dos produtos.</div></div></div>
+ <div class="formgrid" style="grid-template-columns:repeat(2,minmax(220px,1fr));align-items:end">
+  <div class="field"><label>Filamento que será incorporado</label><select id="mergeFilamentSource" onchange="previewFilamentMerge()"><option value="">Selecione o cadastro que será unido</option></select></div>
+  <div class="field"><label>Filamento principal (manter)</label><select id="mergeFilamentTarget" onchange="previewFilamentMerge()"><option value="">Selecione o cadastro principal</option></select></div>
+ </div>
+ <div class="notice" id="mergeFilamentPreview" style="margin-top:12px">Escolha os dois cadastros para visualizar o resultado da mesclagem.</div>
+ <div class="actions" style="margin-top:12px"><button class="btn secondary" type="button" onclick="applyFilamentMerge()">Mesclar filamentos</button></div>
+ <div class="sub" style="margin-top:8px">O estoque e o custo médio serão consolidados no filamento principal. As fichas técnicas e variações serão vinculadas a ele. O cadastro incorporado será removido; compras antigas permanecem no histórico.</div>
+</div>
 <div id="categoryManager" class="panel hidden category-manager">
   <div class="top" style="margin-bottom:12px"><div><h2 style="margin:0">Categorias</h2><div class="sub">Defina o nome e a cor usada para identificar os materiais no estoque.</div></div></div>
   <div class="formgrid">
@@ -1210,7 +1220,7 @@ function save(){
  // Sincronização automática com Supabase desativada nesta versão local.
  try{render();}catch(e){console.error("Pedido salvo, mas houve erro ao atualizar a tela:",e);}
 }
-function show(id,btn){if(id==='sales')setTimeout(populateSaleProducts,0);document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render();if(id==='materials')populateFilamentReplacement();if(id==='shopee'){refreshShopeeStatus();renderShopeeStock();}}
+function show(id,btn){if(id==='sales')setTimeout(populateSaleProducts,0);document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render();if(id==='materials'){populateFilamentReplacement();populateFilamentMerge();}if(id==='shopee'){refreshShopeeStatus();renderShopeeStock();}}
 function toggle(id){document.getElementById(id).classList.toggle('hidden')}
 function findLinkedRecipeMaterial(r){
  const materials=Array.isArray(db?.materials)?db.materials:[];
@@ -3639,6 +3649,67 @@ function applyFilamentReplacement(){
  renderProductsTable();
  populateFilamentReplacement();
  alert("Substituição concluída! "+changes+" vínculo(s) atualizado(s) em "+refs.length+" produto(s)/anúncio(s).");
+}
+function populateFilamentMerge(){
+ const source=document.getElementById("mergeFilamentSource"),target=document.getElementById("mergeFilamentTarget");
+ if(!source||!target)return;
+ const list=(db.materials||[]).filter(m=>/filamento|pla|petg|abs|asa|tpu|nylon/i.test([m.category,m.type,m.name].join(" ")));
+ const safe=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
+ const options=list.map(m=>'<option value="'+safe(m.id)+'">'+safe(m.name)+' — '+safe(m.brand||"Sem marca")+(m.color?" • "+safe(m.color):"")+'</option>').join("");
+ source.innerHTML='<option value="">Selecione o cadastro que será unido</option>'+options;
+ target.innerHTML='<option value="">Selecione o cadastro principal</option>'+options;
+ previewFilamentMerge();
+}
+function previewFilamentMerge(){
+ const sid=document.getElementById("mergeFilamentSource")?.value,tid=document.getElementById("mergeFilamentTarget")?.value,box=document.getElementById("mergeFilamentPreview");
+ if(!box)return;
+ const a=(db.materials||[]).find(m=>String(m.id)===String(sid)),b=(db.materials||[]).find(m=>String(m.id)===String(tid));
+ if(!a||!b){box.textContent="Escolha os dois cadastros para visualizar o resultado da mesclagem.";return;}
+ if(String(a.id)===String(b.id)){box.textContent="Selecione dois cadastros diferentes.";return;}
+ const sa=Math.max(0,Number(a.stock)||0),sb=Math.max(0,Number(b.stock)||0),ua=String(a.unit||""),ub=String(b.unit||"");
+ if(ua!==ub){box.textContent="Não é possível mesclar: as unidades são diferentes ("+ua+" e "+ub+").";return;}
+ const total=sa+sb,cost=total>0?(sa*(Number(a.unitCost)||0)+sb*(Number(b.unitCost)||0))/total:0;
+ box.textContent="Estoque final em "+b.name+": "+total+" "+ub+". Custo médio estimado: "+money(cost)+" por "+ub+". O cadastro "+a.name+" será incorporado ao cadastro principal.";
+}
+function applyFilamentMerge(){
+ const sid=document.getElementById("mergeFilamentSource")?.value,tid=document.getElementById("mergeFilamentTarget")?.value;
+ const source=(db.materials||[]).find(m=>String(m.id)===String(sid)),target=(db.materials||[]).find(m=>String(m.id)===String(tid));
+ if(!source||!target){alert("Selecione os dois filamentos.");return;}
+ if(String(source.id)===String(target.id)){alert("Escolha dois cadastros diferentes.");return;}
+ if(String(source.unit||"")!==String(target.unit||"")){alert("Não é possível mesclar filamentos com unidades diferentes.");return;}
+ const sourceStock=Math.max(0,Number(source.stock)||0),targetStock=Math.max(0,Number(target.stock)||0),totalStock=sourceStock+targetStock;
+ const weightedCost=totalStock>0?(sourceStock*(Number(source.unitCost)||0)+targetStock*(Number(target.unitCost)||0))/totalStock:0;
+ const sourceId=String(source.id),targetId=target.id;
+ const message="Mesclar "+source.name+" em "+target.name+"?\n\nEstoque atual: "+sourceStock+" + "+targetStock+" = "+totalStock+" "+target.unit+"\nNovo custo médio: "+money(weightedCost)+"\n\nOs produtos e variações que usam "+source.name+" serão vinculados a "+target.name+". O cadastro de origem será removido.";
+ if(!confirm(message))return;
+ let links=0;
+ const walk=(node)=>{
+  if(!node||typeof node!=="object")return;
+  if(Array.isArray(node)){node.forEach(walk);return;}
+  if(String(node.materialId??"")===sourceId){
+   node.materialId=targetId;
+   if("name" in node)node.name=target.name;
+   if("materialName" in node)node.materialName=target.name;
+   if("unit" in node)node.unit=target.unit;
+   if("unitCost" in node)node.unitCost=Number(target.unitCost)||weightedCost;
+   links++;
+  }
+  Object.keys(node).forEach(k=>{if(k!=="materialId")walk(node[k]);});
+ };
+ (db.products||[]).forEach(p=>walk(p));
+ target.stock=totalStock;
+ target.unitCost=weightedCost;
+ target.purchaseQty=(Number(target.purchaseQty)||0)+(Number(source.purchaseQty)||0);
+ target.purchasePrice=(Number(target.purchasePrice)||0)+(Number(source.purchasePrice)||0);
+ target.minStock=(Number(target.minStock)||0)+(Number(source.minStock)||0);
+ if(!target.supplier&&source.supplier)target.supplier=source.supplier;
+ db.materials=(db.materials||[]).filter(m=>String(m.id)!==sourceId);
+ save();
+ renderMaterialsTable();
+ renderProductsTable();
+ populateFilamentReplacement();
+ populateFilamentMerge();
+ alert("Mesclagem concluída! Estoques consolidados, "+links+" vínculo(s) atualizado(s). O histórico de compras foi preservado.");
 }
 function renderMaterialsTable(){
  const table=document.getElementById("materialsTable"); if(!table)return;
