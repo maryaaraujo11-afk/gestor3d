@@ -1210,7 +1210,7 @@ function save(){
  // Sincronização automática com Supabase desativada nesta versão local.
  try{render();}catch(e){console.error("Pedido salvo, mas houve erro ao atualizar a tela:",e);}
 }
-function show(id,btn){if(id==='sales')setTimeout(populateSaleProducts,0);document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render();if(id==='shopee'){refreshShopeeStatus();renderShopeeStock();}}
+function show(id,btn){if(id==='sales')setTimeout(populateSaleProducts,0);document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');render();if(id==='materials')populateFilamentReplacement();if(id==='shopee'){refreshShopeeStatus();renderShopeeStock();}}
 function toggle(id){document.getElementById(id).classList.toggle('hidden')}
 function findLinkedRecipeMaterial(r){
  const materials=Array.isArray(db?.materials)?db.materials:[];
