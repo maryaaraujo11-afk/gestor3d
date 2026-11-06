@@ -454,6 +454,7 @@ table td,table th{border-bottom-color:#f0e7e0}
 <div class="field"><label>Enviar logo</label><input id="companyLogoInput" type="file" accept="image/png,image/jpeg,image/webp" onchange="saveCompanyLogo(this)"><div class="sub">A logo fica salva neste navegador e será usada nos orçamentos impressos.</div></div>
 <div class="field"><label>Logo atual</label><div id="companyLogoPreview" class="quote-box" style="min-height:70px;display:flex;align-items:center;justify-content:center">Nenhuma logo cadastrada.</div></div>
 <div class="field" style="display:flex;align-items:end"><button class="btn secondary" type="button" onclick="removeCompanyLogo()">Remover logo</button></div>
+<div class="panel"><h2>Custos de produção e taxas</h2><div class="sub" style="margin-bottom:14px">Defina os valores padrão usados nos cálculos. Valores específicos cadastrados em cada produto continuam tendo prioridade.</div><div class="formgrid"><div class="field"><label>Valor da impressora (R$)</label><input id="cfgMachineValue" type="number" min="0" step="0.01"></div><div class="field"><label>Vida útil da impressora (horas)</label><input id="cfgMachineLife" type="number" min="1" step="1"></div><div class="field"><label>Consumo da impressora (Watts)</label><input id="cfgMachineWatts" type="number" min="0" step="1"></div><div class="field"><label>Preço do kWh (R$)</label><input id="cfgMachineKwh" type="number" min="0" step="0.0001"></div><div class="field"><label>Desgaste/manutenção por hora (R$)</label><input id="cfgMachineWear" type="number" min="0" step="0.01"></div><div class="field"><label>Outros custos padrão por unidade (R$)</label><input id="cfgOtherCost" type="number" min="0" step="0.01"></div><div class="field"><label>Mão de obra padrão (%)</label><input id="cfgLaborPercent" type="number" min="0" step="0.1"></div></div><h3 style="margin:18px 0 8px">Taxas e comissões Shopee</h3><div class="sub" style="margin-bottom:10px">Edite a comissão percentual e a taxa fixa de cada faixa de preço. Para a primeira faixa, a taxa fixa é calculada como percentual do preço.</div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Faixa de preço</th><th>Comissão (%)</th><th>Taxa fixa (R$)</th><th>Taxa fixa sobre preço (%)</th></tr></thead><tbody><tr><td>Até R$ 8,99</td><td><input id="cfgFeeRate0" type="number" min="0" max="100" step="0.1"></td><td><input id="cfgFeeFixed0" type="number" min="0" step="0.01" disabled value="0"></td><td><input id="cfgFeeRatio0" type="number" min="0" max="100" step="0.1"></td></tr><tr><td>R$ 9,00 a R$ 79,99</td><td><input id="cfgFeeRate1" type="number" min="0" max="100" step="0.1"></td><td><input id="cfgFeeFixed1" type="number" min="0" step="0.01"></td><td><input id="cfgFeeRatio1" type="number" min="0" max="100" step="0.1"></td></tr><tr><td>R$ 80,00 a R$ 99,99</td><td><input id="cfgFeeRate2" type="number" min="0" max="100" step="0.1"></td><td><input id="cfgFeeFixed2" type="number" min="0" step="0.01"></td><td><input id="cfgFeeRatio2" type="number" min="0" max="100" step="0.1"></td></tr><tr><td>R$ 100,00 a R$ 199,99</td><td><input id="cfgFeeRate3" type="number" min="0" max="100" step="0.1"></td><td><input id="cfgFeeFixed3" type="number" min="0" step="0.01"></td><td><input id="cfgFeeRatio3" type="number" min="0" max="100" step="0.1"></td></tr><tr><td>R$ 200,00 ou mais</td><td><input id="cfgFeeRate4" type="number" min="0" max="100" step="0.1"></td><td><input id="cfgFeeFixed4" type="number" min="0" step="0.01"></td><td><input id="cfgFeeRatio4" type="number" min="0" max="100" step="0.1"></td></tr></tbody></table></div><div class="actions" style="margin-top:14px"><button class="btn" type="button" onclick="saveCostSettings()">Salvar custos e taxas</button><button class="btn secondary" type="button" onclick="resetCostSettings()">Restaurar padrões</button></div><div class="sub" id="costSettingsFeedback" style="margin-top:8px"></div></div>
 </div></div>
 </section>
 
@@ -1028,7 +1029,8 @@ const SHOPEE_FEE_TIERS=[
 function shopeeFeeForPrice(price,enabled=true){
  const value=Math.max(0,Number(price)||0);
  if(!enabled||value<=0)return {rate:0,percentFee:0,fixedFee:0,total:0,label:"Sem taxa Shopee"};
- const tier=SHOPEE_FEE_TIERS.find(t=>value>=t.min&&value<=t.max)||SHOPEE_FEE_TIERS[SHOPEE_FEE_TIERS.length-1];
+ const tiers=SHOPEE_FEE_TIERS.map((t,i)=>{const saved=currentCostSettings().feeTiers[i]||{};return {...t,rate:(Number(saved.rate)||0)/100,fixed:Number(saved.fixed)||0,fixedRatio:(Number(saved.ratio)||0)/100};});
+ const tier=tiers.find(t=>value>=t.min&&value<=t.max)||tiers[tiers.length-1];
  const percentFee=value*tier.rate;
  const fixedFee=tier.fixedRatio?value*tier.fixedRatio:tier.fixed;
  return {rate:tier.rate,percentFee,fixedFee,total:percentFee+fixedFee,label:tier.label};
@@ -1039,7 +1041,7 @@ function shopeePriceForTarget(cost,target,mode="margin",enabled=true){
   const direct=mode==="markup"?c*(1+t):(1-t)>0?c/(1-t):0;
   return Math.ceil((direct-1e-9)*100)/100;
  }
- for(const tier of SHOPEE_FEE_TIERS){
+ for(const tier of SHOPEE_FEE_TIERS.map((t,i)=>{const saved=currentCostSettings().feeTiers[i]||{};return {...t,rate:(Number(saved.rate)||0)/100,fixed:Number(saved.fixed)||0,fixedRatio:(Number(saved.ratio)||0)/100};})){
   const goal=mode==="markup"?c*(1+t):c;
   const denominator=1-tier.rate-(tier.fixedRatio||0)-(mode==="margin"?t:0);
   if(denominator<=0)continue;
@@ -1048,7 +1050,7 @@ function shopeePriceForTarget(cost,target,mode="margin",enabled=true){
   const candidate=Math.ceil((raw-1e-9)*100)/100;
   if(candidate>=tier.min&&candidate<=tier.max)return candidate;
  }
- const last=SHOPEE_FEE_TIERS[SHOPEE_FEE_TIERS.length-1];
+ const last={...SHOPEE_FEE_TIERS[SHOPEE_FEE_TIERS.length-1],...{rate:(Number(currentCostSettings().feeTiers[4]?.rate)||0)/100,fixed:Number(currentCostSettings().feeTiers[4]?.fixed)||0,fixedRatio:(Number(currentCostSettings().feeTiers[4]?.ratio)||0)/100}};
  const denominator=1-last.rate-(mode==="margin"?t:0);
  return denominator>0?Math.ceil(((c+(last.fixed||0))/denominator-1e-9)*100)/100:0;
 }
@@ -1076,7 +1078,7 @@ function suggestedOrderGross(items,channel,packaging=0){
   const candidate=Math.ceil((raw-1e-9)*100)/100;
   if(candidate>=tier.min&&candidate<=tier.max)return candidate;
  }
- const last=SHOPEE_FEE_TIERS[SHOPEE_FEE_TIERS.length-1],denom=1-last.rate-margin;
+ const last={...SHOPEE_FEE_TIERS[SHOPEE_FEE_TIERS.length-1],rate:(Number(currentCostSettings().feeTiers[4]?.rate)||0)/100,fixed:Number(currentCostSettings().feeTiers[4]?.fixed)||0,ratio:(Number(currentCostSettings().feeTiers[4]?.ratio)||0)/100},denom=1-last.rate-last.ratio-margin;
  return denom>0?Math.ceil(((totalCost+last.fixed)/denom-1e-9)*100)/100:0;
 }
 // Compatibilidade: evita que uma referência antiga a "cost" interrompa o salvamento do pedido.
@@ -1246,18 +1248,19 @@ function componentCost(p){return (p.components||[]).reduce((sum,c)=>sum+(+c.qty|
 function machineUnitCost(p){
  const h=Number(p?.printHours)||0;
  const has=(key)=>p?.[key]!==undefined&&p?.[key]!==null&&p?.[key]!=="";
- const watts=has("machineWatts")?(Number(p.machineWatts)||0):200;
- const kwh=has("machineKwh")?(Number(p.machineKwh)||0):0.90;
- const printerValue=has("machineValue")?(Number(p.machineValue)||0):3000;
- const life=Math.max(1,has("machineLife")?(Number(p.machineLife)||1):5000);
- const wear=has("machineWear")?(Number(p.machineWear)||0):0.20;
+ const defaults=currentCostSettings();
+ const watts=has("machineWatts")?(Number(p.machineWatts)||0):defaults.machineWatts;
+ const kwh=has("machineKwh")?(Number(p.machineKwh)||0):defaults.machineKwh;
+ const printerValue=has("machineValue")?(Number(p.machineValue)||0):defaults.machineValue;
+ const life=Math.max(1,has("machineLife")?(Number(p.machineLife)||1):defaults.machineLife);
+ const wear=has("machineWear")?(Number(p.machineWear)||0):defaults.machineWear;
  const energy=h*(watts/1000)*kwh;
  const depreciation=h*(printerValue/life);
  const desgaste=h*wear;
  return {energy,depreciation,wear:desgaste,total:energy+depreciation+desgaste};
 }
 function productLaborPercent(p){
- const raw=p?.laborPercent??p?.productionSourceLabor;
+ const raw=p?.laborPercent??p?.productionSourceLabor??currentCostSettings().laborPercent;
  const value=Number(raw);
  return Number.isFinite(value)&&value>=0?value:20;
 }
@@ -1704,7 +1707,7 @@ function saleProductionCost(p, orderQty=1, sale=null){
   const variantHours=variant&&Number(variant.printHours)>0?Number(variant.printHours):Number(p.printHours)||0;
   const costProductForTime={...p,printHours:variantHours};
   const machine=machineUnitCost(costProductForTime).total*q;
-  const other=(+p.other||0)*q;
+  const other=(p.other!==undefined&&p.other!==null&&p.other!==''?Math.max(0,Number(p.other)||0):Math.max(0,Number(currentCostSettings().otherCost)||0))*q;
   const laborBase=mats+comps+machine+other;
   const labor=laborBase*productLaborPercent(p)/100;
   return (mats+comps+machine+labor+other)||0;
@@ -2224,6 +2227,11 @@ function runCalc(){
 }
 
 
+function costSettingsDefaults(){return {machineValue:3000,machineLife:5000,machineWatts:200,machineKwh:0.90,machineWear:0.20,otherCost:0,laborPercent:20,feeTiers:[{rate:20,fixed:0,ratio:50},{rate:20,fixed:4.5,ratio:0},{rate:14,fixed:16,ratio:0},{rate:14,fixed:20,ratio:0},{rate:14,fixed:26,ratio:0}]};}
+function currentCostSettings(){const d=costSettingsDefaults(),v=db.settings?.costs||{};return {...d,...v,feeTiers:d.feeTiers.map((x,i)=>({...x,...(v.feeTiers?.[i]||{})}))};}
+function renderCostSettings(){const c=currentCostSettings();const fields={cfgMachineValue:c.machineValue,cfgMachineLife:c.machineLife,cfgMachineWatts:c.machineWatts,cfgMachineKwh:c.machineKwh,cfgMachineWear:c.machineWear,cfgOtherCost:c.otherCost,cfgLaborPercent:c.laborPercent};Object.entries(fields).forEach(([id,value])=>{const el=document.getElementById(id);if(el&&document.activeElement!==el)el.value=value;});c.feeTiers.forEach((t,i)=>{[['cfgFeeRate',Number(t.rate)||0],['cfgFeeFixed',Number(t.fixed)||0],['cfgFeeRatio',Number(t.ratio)||0]].forEach(([prefix,value])=>{const el=document.getElementById(prefix+i);if(el&&document.activeElement!==el)el.value=value;});});}
+function saveCostSettings(){const number=id=>{const el=document.getElementById(id);return el?Number(el.value):0;};const ids=['cfgMachineValue','cfgMachineLife','cfgMachineWatts','cfgMachineKwh','cfgMachineWear','cfgOtherCost','cfgLaborPercent'];for(const id of ids){const el=document.getElementById(id);if(!el||el.value===''||!Number.isFinite(Number(el.value))||Number(el.value)<0){alert('Confira os valores dos custos. Eles devem ser números iguais ou maiores que zero.');return;}}if(number('cfgMachineLife')<1){alert('A vida útil da impressora deve ser de pelo menos 1 hora.');return;}const feeTiers=[];for(let i=0;i<5;i++){const rate=number('cfgFeeRate'+i),fixed=number('cfgFeeFixed'+i),ratio=number('cfgFeeRatio'+i);if(rate<0||rate>100||fixed<0||ratio<0||ratio>100){alert('Confira as taxas Shopee. Percentuais devem ficar entre 0 e 100.');return;}feeTiers.push({rate,fixed,ratio});}db.settings=db.settings||{};db.settings.costs={machineValue:number('cfgMachineValue'),machineLife:number('cfgMachineLife'),machineWatts:number('cfgMachineWatts'),machineKwh:number('cfgMachineKwh'),machineWear:number('cfgMachineWear'),otherCost:number('cfgOtherCost'),laborPercent:number('cfgLaborPercent'),feeTiers};save();const msg=document.getElementById('costSettingsFeedback');if(msg)msg.textContent='Custos e taxas salvos. Os cálculos serão atualizados.';}
+function resetCostSettings(){if(!confirm('Restaurar os valores padrão de custos e taxas?'))return;db.settings=db.settings||{};db.settings.costs=costSettingsDefaults();save();renderCostSettings();const msg=document.getElementById('costSettingsFeedback');if(msg)msg.textContent='Valores padrão restaurados.';}
 function saveCompanyLogo(input){
  const file=input?.files?.[0];
  if(!file)return;
@@ -4010,6 +4018,7 @@ function cancelDirectPaymentEdit(){editingDirectPaymentId=null;document.getEleme
 function deleteDirectPayment(id){if(!confirm("Excluir este pagamento? O saldo da venda será recalculado."))return;db.directPayments=directPayments().filter(p=>String(p.id)!==String(id));save();renderDirectSales();}
 
 function render(){
+ renderCostSettings();
  db.materials=db.materials||[]; db.movements=db.movements||[]; db.quotes=db.quotes||[]; db.purchases=db.purchases||[]; db.expenses=db.expenses||[]; db.marketingAds=Array.isArray(db.marketingAds)?db.marketingAds:[]; db.sales=db.sales||[]; db.products=db.products||[]; db.customers=db.customers||[]; db.directSales=Array.isArray(db.directSales)?db.directSales:[]; db.directPayments=Array.isArray(db.directPayments)?db.directPayments:[];
  const dashboardPeriod=populateDashboardPeriods(currentReportMonth());
  renderDashboardSummary(dashboardPeriod);
