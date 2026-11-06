@@ -1540,8 +1540,6 @@ function addProduct(){
  const pack=packEntered;
  const other=batch?otherEntered/batchQty:otherEntered;
  const tempProduct={materials,printHours,machineWatts,machineKwh,machineValue,machineLife,machineWear,other};
- const laborBaseBeforeLabor=materialCost(tempProduct)+componentCost(tempProduct)+machineUnitCost(tempProduct).total+other;
- const labor=laborBaseBeforeLabor*(laborPercent/100);
  const old=editingId?(db.products||[]).find(x=>String(x.id)===String(editingId)):null;
  const variants=collectProductVariants();
  const colors=collectProductColors();
