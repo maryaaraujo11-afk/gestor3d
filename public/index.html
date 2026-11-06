@@ -3711,6 +3711,18 @@ function applyFilamentMerge(){
  const breakdown=[...targetLots,...sourceLots].map(l=>l.brand+": "+(Number(l.stock)||0)+" "+target.unit).join("\n");
  const message="Mesclar "+source.name+" em "+target.name+"?\n\nEstoque por marca após a mesclagem:\n"+breakdown+"\n\nO estoque continuará separado por marca. O custo médio geral será calculado com base nas quantidades. O cadastro de origem será removido.";
  if(!confirm(message))return;
+ target.brandStocks=[...targetLots,...sourceLots];
+ const consolidated=[];
+ target.brandStocks.forEach(l=>{
+  const existing=consolidated.find(x=>x.brand===l.brand);
+  if(existing){
+   const oldQty=Number(existing.stock)||0,newQty=Number(l.stock)||0,total=oldQty+newQty;
+   existing.unitCost=total>0?(oldQty*(Number(existing.unitCost)||0)+newQty*(Number(l.unitCost)||0))/total:0;
+   existing.stock=total;
+  }else consolidated.push({...l,stock:Number(l.stock)||0,unitCost:Number(l.unitCost)||0});
+ });
+ target.brandStocks=consolidated;
+ syncMaterialBrandLots(target);
  let links=0;
  const walk=(node)=>{
   if(!node||typeof node!=="object")return;
@@ -3726,8 +3738,6 @@ function applyFilamentMerge(){
   Object.keys(node).forEach(k=>{if(k!=="materialId")walk(node[k]);});
  };
  (db.products||[]).forEach(p=>walk(p));
- target.brandStocks=[...targetLots,...sourceLots];
- syncMaterialBrandLots(target);
  target.purchaseQty=(Number(target.purchaseQty)||0)+(Number(source.purchaseQty)||0);
  target.purchasePrice=(Number(target.purchasePrice)||0)+(Number(source.purchasePrice)||0);
  target.minStock=(Number(target.minStock)||0)+(Number(source.minStock)||0);
