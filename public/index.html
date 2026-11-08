@@ -3383,7 +3383,7 @@ function renderDashboardComparison(period){
  const p=String(period||"");
  const fields=["compareRevenueChange","compareNetChange","compareProfitChange","compareOrdersChange"];
  const elements=fields.map(id=>document.getElementById(id));
- const validMonth=/^\\d{4}-\\d{2}$/.test(p);
+ const validMonth=/^\d{4}-\d{2}$/.test(p);
  elements.forEach(el=>{if(el){el.hidden=!validMonth;el.textContent="";el.className="dashboard-kpi-comparison";}});
  if(!validMonth)return;
  const [year,month]=p.split("-").map(Number);
