@@ -3393,7 +3393,7 @@ function renderDashboardComparison(period){
  const p=String(period||"");
  const ids=["compareRevenue","compareNet","compareProfit","compareOrders"];
  const fields=["compareRevenueChange","compareNetChange","compareProfitChange","compareOrdersChange"];
- if(!/^\\d{4}-\\d{2}$/.test(p)){
+ if(!/^\d{4}-\d{2}$/.test(p)){
   panel.style.display="none";return;
  }
  panel.style.display="";
