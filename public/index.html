@@ -880,7 +880,7 @@ table td,table th{border-bottom-color:#f0e7e0}
    <div class="sub">Acompanhe o fluxo de caixa, os custos operacionais e os compromissos do negócio.</div>
   </div>
   <div class="finance-head-actions">
-   <div class="finance-period-control"><label for="financeMonth">Período de análise</label><input id="financeMonth" type="month" onchange="setReportMonth(this.value)"></div>
+   <div class="finance-period-control"><label for="financeViewMode">Período de análise</label><div style="display:flex;gap:8px;align-items:center"><select id="financeViewMode" onchange="setFinancePeriodMode(this.value)" style="min-width:105px"><option value="month">Mensal</option><option value="year">Anual</option></select><input id="financeMonth" type="month" onchange="setReportMonth(this.value)" style="min-width:145px"><input id="financeYear" type="number" min="2000" max="2100" step="1" aria-label="Ano de análise" onchange="setFinanceYear(this.value)" style="display:none;width:110px"></div></div>
    <button class="btn secondary" onclick="exportFinanceCsv()"><span>↓</span> Exportar relatório</button>
   </div>
  </div>
@@ -907,7 +907,7 @@ table td,table th{border-bottom-color:#f0e7e0}
   </div>
  </div>
  <div class="finance-outflow-strip">
-  <div class="finance-outflow-heading"><div><h2>Composição das saídas</h2><div class="sub">Entenda para onde foi o dinheiro no mês selecionado.</div></div></div>
+  <div class="finance-outflow-heading"><div><h2>Composição das saídas</h2><div class="sub">Entenda para onde foi o dinheiro no período selecionado.</div></div></div>
   <div class="finance-outflow-item"><span class="finance-outflow-icon">▦</span><div class="finance-outflow-copy"><span>Compras de materiais</span><small>Filamentos e demais insumos</small></div><strong id="finMaterialOut">R$ 0,00</strong></div>
   <div class="finance-outflow-item"><span class="finance-outflow-icon">＋</span><div class="finance-outflow-copy"><span>Outras despesas</span><small>Gastos operacionais lançados manualmente</small></div><strong id="finExpenseOut">R$ 0,00</strong></div>
   <div class="finance-outflow-item finance-cost-detail"><span class="finance-outflow-icon">⚡</span><div class="finance-outflow-copy"><span>Energia elétrica</span><small>Despesas lançadas + estimativa pelas vendas</small></div><strong id="finEnergyOut">R$ 0,00</strong></div>
@@ -3934,24 +3934,29 @@ function financeMaterialReserve(month){
  });
  return {total,known,missing,sales:sales.length};
 }
+function getFinancePeriodMode(){return localStorage.getItem("gestor3d_finance_view")||"month";}
+function getFinanceYear(){const input=document.getElementById("financeYear");const year=Number(input?.value)||Number(getReportMonth().slice(0,4));return String(Math.min(2100,Math.max(2000,year)));}
+function setFinancePeriodMode(mode){localStorage.setItem("gestor3d_finance_view",mode==="year"?"year":"month");render();}
+function setFinanceYear(value){const year=Math.min(2100,Math.max(2000,Number(value)||Number(getReportMonth().slice(0,4))));const month=getReportMonth().slice(5,7)||"01";localStorage.setItem("gestor3d_report_month",String(year)+"-"+month);render();}
+function financePeriodLabel(){return getFinancePeriodMode()==="year"?getFinanceYear():reportMonthLabel(getReportMonth());}
+function financeSalesRows(){const mode=getFinancePeriodMode(),month=getReportMonth(),year=getFinanceYear();return (db.sales||[]).filter(s=>{const date=reportMonthFromSale(s)||financeISODate(s.dateISO||s.date).slice(0,7);return mode==="year"?date.slice(0,4)===year:date===month;});}
 function financeRows(){
- const month=getReportMonth(), rows=[];
- (db.sales||[]).filter(s=>s.status!=="Cancelado"&&s.status!=="Pendente"&&reportMonthFromSale(s)===month).forEach(s=>{
+ const month=getReportMonth(),year=getFinanceYear(),annual=getFinancePeriodMode()==="year", rows=[];
+ (db.sales||[]).filter(s=>s.status!=="Cancelado"&&s.status!=="Pendente"&&(annual?reportMonthFromSale(s).slice(0,4)===year:reportMonthFromSale(s)===month)).forEach(s=>{
   rows.push({date:financeISODate(s.dateISO||s.date),name:"Venda"+(s.customerName?" • "+s.customerName:"")+" — "+(s.product||"Pedido"),category:s.store||"Venda",type:"Entrada",value:financeAmount(s),id:"sale"});
  });
  (db.purchases||[]).forEach(p=>{
   const date=financeISODate(p.dateISO||p.date);
-  if(date.slice(0,7)!==month)return;
+  if(annual?date.slice(0,4)!==year:date.slice(0,7)!==month)return;
   rows.push({date,name:"Compra de material — "+(p.material||"Material"),category:p.supplier||"Materiais",type:"Saída",value:Number(p.value)||0,id:"purchase",purchaseId:p.id});
  });
- (db.expenses||[]).filter(e=>String(e.dateISO||"").slice(0,7)===month).forEach(e=>{
+ (db.expenses||[]).filter(e=>annual?String(e.dateISO||"").slice(0,4)===year:String(e.dateISO||"").slice(0,7)===month).forEach(e=>{
   rows.push({date:financeISODate(e.dateISO||e.date),name:e.name||"Despesa",category:e.category||"Outros",type:"Saída",value:Number(e.value)||0,id:"expense",expenseId:e.id});
  });
  return rows.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }
 function showFinanceCostCategory(category){
- const month=getReportMonth();
- const sales=reportSales().filter(s=>reportMonthFromSale(s)===month&&!["cancelado","cancelada","pendente"].includes(String(s.status||"").trim().toLocaleLowerCase("pt-BR")));
+ const sales=financeSalesRows().filter(s=>!["cancelado","cancelada","pendente"].includes(String(s.status||"").trim().toLocaleLowerCase("pt-BR")));
  const rows=[];
  const productFor=item=>{const id=item?.productId||item?.product_id||item?.internalProductId;let p=id?(db.products||[]).find(x=>String(x.id)===String(id)):null;if(!p){const n=String(item?.product||item?.productName||item?.name||"").trim().toLocaleLowerCase("pt-BR");p=(db.products||[]).find(x=>String(x.name||"").trim().toLocaleLowerCase("pt-BR")===n);}return p;};
  const moneyBR=v=>money(Number(v)||0);
@@ -3996,14 +4001,14 @@ function renderFinancePanel(){
  const maintenanceRecorded=expenseRows.filter(r=>/manuten|reparo|conserto/i.test(String(r.category||"")+" "+String(r.name||""))).reduce((a,r)=>a+r.value,0);
  const filamentRecorded=purchaseRows.filter(r=>/filamento/i.test(String(r.name||"")+" "+String(r.category||""))).reduce((a,r)=>a+r.value,0);
  const suppliesOut=purchaseRows.filter(r=>!/filamento/i.test(String(r.name||"")+" "+String(r.category||""))).reduce((a,r)=>a+r.value,0);
- // Estimativas de custo geradas a partir dos itens vendidos no mês selecionado.
- const eligibleSales=reportSales().filter(s=>!["cancelado","cancelada","pendente"].includes(String(s.status||"").trim().toLocaleLowerCase("pt-BR")));
+ // Estimativas de custo geradas a partir dos itens vendidos no período selecionado.
+ const eligibleSales=financeSalesRows().filter(s=>!["cancelado","cancelada","pendente"].includes(String(s.status||"").trim().toLocaleLowerCase("pt-BR")));
  const soldItems=eligibleSales.flatMap(s=>{const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,variantId:s.variantId,colorId:s.colorId,qty:s.qty||1}];return items.map(item=>({...item,_sale:s,productId:item.productId||item.product_id||item.internalProductId||s.productId,product:item.product||item.productName||s.product,variantId:item.variantId||item.variant_id||s.variantId,colorId:item.colorId||item.color_id||s.colorId,qty:item.qty??item.quantity??s.qty??1}));});
  const financeProductForItem=item=>{const id=item?.productId;let p=id?(db.products||[]).find(x=>String(x.id)===String(id)):null;if(!p){const name=String(item?.product||item?.productName||item?.name||"").trim().toLocaleLowerCase("pt-BR");if(name)p=(db.products||[]).find(x=>String(x.name||"").trim().toLocaleLowerCase("pt-BR")===name);}return p||null;};
  const salesCosts=soldItems.reduce((tot,item)=>{const sale=item._sale||{},p=financeProductForItem(item);if(!p)return tot;const q=Math.max(0,Number(item.qty)||0),variant={...sale,...item,variantId:item.variantId||sale.variantId,colorId:item.colorId||sale.colorId};const parts=machineUnitCost({...p,printHours:salePrintHours(p,variant)});tot.energy+=Math.max(0,Number(parts.energy)||0)*q;tot.maintenance+=Math.max(0,Number(parts.wear)||0)*q;tot.filament+=Math.max(0,saleRecipeMaterialCost(p,variant,q));return tot;},{energy:0,maintenance:0,filament:0});
  const energyOut=energyRecorded+salesCosts.energy,maintenanceOut=maintenanceRecorded+salesCosts.maintenance,filamentOut=filamentRecorded+salesCosts.filament;
  const out=materialOut+expenseOut, balance=inflow-out;
- const activeSales=reportSales().filter(s=>s.status!=="Cancelado"&&s.status!=="Pendente");
+ const activeSales=financeSalesRows().filter(s=>s.status!=="Cancelado"&&s.status!=="Pendente");
  const production=activeSales.reduce((a,s)=>a+saleCostForProfit(s),0);
  const operating=inflow-production-expenseOut;
  const costSales=activeSales;
@@ -4090,7 +4095,7 @@ function exportFinanceCsv(){
  const rows=financeRows(), csv=[["Data","Movimentação","Categoria","Tipo","Valor (R$)"],...rows.map(r=>[r.date,r.name,r.category,r.type,r.value.toFixed(2).replace(".",",")])];
  const content="\uFEFF"+csv.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\n");
  const blob=new Blob([content],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");
- a.href=url;a.download="financeiro-"+getReportMonth()+".csv";a.click();URL.revokeObjectURL(url);
+ a.href=url;a.download="financeiro-"+(getFinancePeriodMode()==="year"?getFinanceYear():getReportMonth())+".csv";a.click();URL.revokeObjectURL(url);
 }
 
 function marketingEscape(value){
@@ -4301,7 +4306,7 @@ function render(){
  renderProductsRanking(document.getElementById("stateMapPeriod")?.value||"total");
  const reportMonth=getReportMonth();
  const reportMonthInput=document.getElementById("reportMonth"); if(reportMonthInput)reportMonthInput.value=reportMonth;
- const financeMonthInput=document.getElementById("financeMonth"); if(financeMonthInput)financeMonthInput.value=reportMonth;
+ const financeMonthInput=document.getElementById("financeMonth"),financeYearInput=document.getElementById("financeYear"),financeModeInput=document.getElementById("financeViewMode"); if(financeMonthInput)financeMonthInput.value=reportMonth; if(financeYearInput)financeYearInput.value=reportMonth.slice(0,4); if(financeModeInput)financeModeInput.value=getFinancePeriodMode(); if(financeMonthInput)financeMonthInput.style.display=getFinancePeriodMode()==="year"?"none":""; if(financeYearInput)financeYearInput.style.display=getFinancePeriodMode()==="year"?"":"none";
  db.materials.forEach(m=>{if(m.minStock===undefined)m.minStock=0;});
 db.products.forEach(p=>{
  if(p.printHours===undefined)p.printHours=0;
