@@ -250,7 +250,7 @@ table td,table th{border-bottom-color:#f0e7e0}
 .brazil-map:after{display:none!important}
 #stateMapCounts{position:absolute;inset:0;z-index:3;pointer-events:none}
 .map-count-markers{position:absolute;inset:0}
-.map-count-bubble{position:absolute;transform:translate(-50%,-50%);min-width:22px;height:22px;padding:0 4px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fffaf6;color:#684a3b;border:1.5px solid #9b725b;box-shadow:0 1px 4px rgba(62,43,32,.18);font-size:10px;font-weight:900;line-height:1;white-space:nowrap}
+.map-count-bubble{position:absolute;transform:translate(-50%,-50%);min-width:20px;height:20px;padding:0 3px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fffaf6;color:#684a3b;border:1.5px solid #9b725b;box-shadow:0 1px 4px rgba(62,43,32,.18);font-size:10px;font-weight:900;line-height:1;white-space:nowrap}
 .map-count-bubble.zero{opacity:.30}
 @media(max-width:700px){.brazil-map{width:min(100%,520px)!important}.map-count-bubble{min-width:18px;height:18px;padding:0 3px;font-size:9px;border-width:1px}}
 </style>
@@ -3449,14 +3449,14 @@ function renderDashboardSummary(period){
  if(c)c.textContent="Após custos operacionais e taxas";
  if(d)d.textContent=label;
 }
-const STATE_COUNT_POS={AC:[7.5,41.3],AL:[95.0,42.2],AP:[61.0,17.0],AM:[36.5,30.5],BA:[85.0,50.0],CE:[88.0,33.5],DF:[65.0,57.5],ES:[85.5,69.0],GO:[55.5,60.5],MA:[67.0,31.8],MT:[54.0,50.5],MS:[50.5,70.0],MG:[76.0,66.0],PA:[57.2,31.5],PB:[96.0,35.0],PR:[57.0,80.0],PE:[86.0,39.5],PI:[81.5,39.5],RJ:[79.0,76.0],RN:[92.0,27.5],RS:[54.0,93.0],RO:[32.5,45.5],RR:[39.5,12.0],SC:[61.0,87.0],SP:[64.0,74.0],SE:[89.0,46.5],TO:[67.0,45.5]};
+const STATE_COUNT_POS={AC:[10.4,41.1],AL:[96.0,41.0],AP:[60.2,15.9],AM:[34.3,30.3],BA:[86.1,51.0],CE:[89.3,32.3],DF:[67.0,58.6],ES:[83.0,68.6],GO:[54.2,60.6],MA:[67.0,31.1],MT:[51.8,50.2],MS:[51.8,70.2],MG:[78.1,66.2],PA:[57.8,31.1],PB:[96.5,35.5],PR:[58.2,81.0],PE:[87.0,38.0],PI:[81.3,39.1],RJ:[77.5,74.2],RN:[91.0,30.0],RS:[51.8,93.3],RO:[33.1,45.9],RR:[35.9,13.6],SC:[60.6,87.7],SP:[65.4,75.0],SE:[89.0,44.3],TO:[67.4,43.9]};
 function renderStateMap(period){
  const box=document.getElementById("stateMapCounts");if(!box)return;
  const p=period||document.getElementById("stateMapPeriod")?.value||"total";
  const sales=dashboardSales(p);
  const counts=Object.fromEntries(STATE_ORDER.map(uf=>[uf,0]));
  sales.forEach(s=>{const uf=saleStateCode(s);if(uf)counts[uf]++;});
- const markers=STATE_ORDER.map(uf=>{
+ const markers=STATE_ORDER.filter(uf=>counts[uf]>0).map(uf=>{
   const pos=STATE_COUNT_POS[uf],count=counts[uf];
   return '<span class="map-count-bubble '+(count===0?"zero":"")+'" title="'+STATE_NAMES[uf]+": "+count+" "+(count===1?"venda":"vendas")+'" aria-label="'+STATE_NAMES[uf]+": "+count+" "+(count===1?"venda":"vendas")+'" style="left:'+pos[0]+'%;top:'+pos[1]+'%">'+count+"</span>";
  }).join("");
@@ -4342,7 +4342,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '134';
+const GESTOR_APP_VERSION = '135';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
