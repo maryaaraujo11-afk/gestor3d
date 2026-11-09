@@ -3448,7 +3448,7 @@ function renderDashboardSummary(period){
  if(c)c.textContent="Após custos operacionais e taxas";
  if(d)d.textContent=label;
 }
-const STATE_COUNT_POS={AC:[12.5,37.8],AL:[88.6,40.7],AP:[56.8,14.5],AM:[28.5,25.5],BA:[79.8,48.5],CE:[85.5,29.5],DF:[62.0,52.5],ES:[85.5,65.2],GO:[57.8,56.5],MA:[71.5,28.8],MT:[46.8,46.5],MS:[48.2,64.5],MG:[72.8,61.5],PA:[53.0,27.3],PB:[90.3,32.8],PR:[53.0,77.5],PE:[89.8,36.5],PI:[78.0,34.5],RJ:[85.0,73.5],RN:[90.0,29.0],RS:[50.0,91.8],RO:[28.2,40.5],RR:[34.0,12.8],SC:[59.0,84.2],SP:[60.0,71.0],SE:[87.5,44.5],TO:[63.0,40.5]};
+const STATE_COUNT_POS={AC:[12.5,37.8],AL:[88.6,40.7],AP:[56.8,14.5],AM:[28.5,25.5],BA:[79.8,48.5],CE:[85.5,29.5],DF:[62.0,52.5],ES:[85.5,65.2],GO:[57.8,56.5],MA:[71.5,28.8],MT:[46.8,46.5],MS:[48.2,64.5],MG:[72.8,61.5],PA:[53.0,27.3],PB:[90.3,32.8],PR:[53.0,77.5],PE:[89.8,36.5],PI:[78.0,34.5],RJ:[79.0,72.5],RN:[90.0,29.0],RS:[50.0,91.8],RO:[28.2,40.5],RR:[34.0,12.8],SC:[59.0,84.2],SP:[60.0,71.0],SE:[87.5,44.5],TO:[63.0,40.5]};
 function renderStateMap(period){
  const box=document.getElementById("stateMapCounts");if(!box)return;
  const p=period||document.getElementById("stateMapPeriod")?.value||"total";
