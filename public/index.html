@@ -243,21 +243,15 @@ table td,table th{border-bottom-color:#f0e7e0}
 
 .sale-cost-detail-row>td{padding:12px 14px!important;background:#faf7f4}.sale-cost-detail{border:1px solid #e8ddd5;border-radius:10px;padding:14px;background:#fff;min-width:0}.sale-cost-heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;margin-bottom:12px}.sale-cost-heading span,.sale-cost-note{font-size:12px;color:#88786f}.sale-cost-product{padding:12px 0;border-top:1px solid #eee5df}.sale-cost-scroll{overflow-x:auto;margin-top:8px}.sale-cost-table{width:100%;border-collapse:collapse;font-size:12px}.sale-cost-table th,.sale-cost-table td{text-align:left;padding:7px 9px;border-bottom:1px solid #eee5df;white-space:nowrap}.sale-cost-subtotals{display:flex;flex-wrap:wrap;gap:7px 18px;margin-top:10px;font-size:12px}.sale-cost-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin-top:14px}.sale-cost-summary>div{display:flex;flex-direction:column;gap:4px;padding:9px 10px;border:1px solid #eee5df;border-radius:8px;font-size:12px}.sale-cost-summary>div span{color:#88786f}.sale-cost-summary>div b{font-size:14px}.sale-cost-note{margin:12px 0 0}
 
-/* V129 — siglas fixas e contagens independentes para evitar sobreposição no mapa */
+/* V133 — mapa original sem siglas duplicadas e sem cortes */
 #brazilMap{isolation:isolate}
+.brazil-map{aspect-ratio:1283/1200!important;overflow:hidden}
+.brazil-map img{width:100%;height:100%;object-fit:contain!important;object-position:center}
 #stateMapCounts{position:absolute;inset:0;z-index:3;pointer-events:none}
-.map-state-labels,.map-count-markers{position:absolute;inset:0}
-.map-state-labels{z-index:3}
-.map-count-markers{z-index:5}
-.map-label{transform:translate(-50%,-50%);display:block;padding:0;background:transparent;border:0;border-radius:0;min-width:0;color:#593f32;font-size:clamp(9px,1.05vw,13px);font-weight:900;line-height:1;text-shadow:0 1px 2px rgba(255,255,255,.95);white-space:nowrap;pointer-events:none}
-.map-label.dark-state{color:#fff;text-shadow:0 1px 2px rgba(55,35,25,.7)}
-.map-count-bubble{position:absolute;transform:translate(-50%,-50%);min-width:25px;height:25px;padding:0 5px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff;color:#684a3b;border:1.5px solid #b98769;box-shadow:0 2px 6px rgba(62,43,32,.16);font-size:11px;font-weight:900;line-height:1;white-space:nowrap}
-.map-count-bubble.zero{opacity:.48}
-.map-count-bubble.callout{min-width:24px;height:24px;border-color:#8b5e4a;background:#fffaf6}
-.map-count-leaders{position:absolute;inset:0;width:100%;height:100%;z-index:4;overflow:visible;pointer-events:none}
-.map-count-leaders line{stroke:#9b725b;stroke-width:.22;stroke-linecap:round;opacity:.9;vector-effect:non-scaling-stroke}
-@media(max-width:700px){.map-count-bubble{min-width:21px;height:21px;padding:0 4px;font-size:10px;border-width:1px}.map-label{font-size:9px}}
-
+.map-count-markers{position:absolute;inset:0}
+.map-count-bubble{position:absolute;transform:translate(-50%,-50%);min-width:22px;height:22px;padding:0 4px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fffaf6;color:#684a3b;border:1.5px solid #9b725b;box-shadow:0 1px 4px rgba(62,43,32,.18);font-size:10px;font-weight:900;line-height:1;white-space:nowrap}
+.map-count-bubble.zero{opacity:.35}
+@media(max-width:700px){.map-count-bubble{min-width:18px;height:18px;padding:0 3px;font-size:9px;border-width:1px}}
 </style>
 <!-- Gestor 3D V58 — trigger de publicação -->
 </head>
@@ -3454,30 +3448,21 @@ function renderDashboardSummary(period){
  if(c)c.textContent="Após custos operacionais e taxas";
  if(d)d.textContent=label;
 }
-const STATE_COUNT_POS={AC:[12.5,31.5],AL:[96,41],AP:[56.5,8.5],AM:[28.5,19.5],BA:[79.5,41],CE:[85.5,22.5],DF:[63.5,45.5],ES:[83.5,59],GO:[58,54.5],MA:[71.5,22.5],MT:[46.5,39.5],MS:[47.5,63],MG:[72.5,53.5],PA:[53.5,21],PB:[96,30],PR:[54,76],PE:[96,35.5],PI:[77.5,29],RJ:[87,73],RN:[96,23.5],RS:[50,92],RO:[28,40],RR:[34,6.5],SC:[60,83],SP:[60.5,65],SE:[94,47.5],TO:[64,34.5]};
-const STATE_COUNT_CALLOUTS=["RN","PB","PE","AL","SE"];
+const STATE_COUNT_POS={AC:[12.5,37.8],AL:[88.6,40.7],AP:[56.8,14.5],AM:[28.5,25.5],BA:[79.8,48.5],CE:[85.5,29.5],DF:[62.0,52.5],ES:[85.5,65.2],GO:[57.8,56.5],MA:[71.5,28.8],MT:[46.8,46.5],MS:[48.2,64.5],MG:[72.8,61.5],PA:[53.0,27.3],PB:[90.3,32.8],PR:[53.0,77.5],PE:[89.8,36.5],PI:[78.0,34.5],RJ:[85.0,73.5],RN:[90.0,29.0],RS:[50.0,91.8],RO:[28.2,40.5],RR:[34.0,12.8],SC:[59.0,84.2],SP:[60.0,71.0],SE:[87.5,44.5],TO:[63.0,40.5]};
 function renderStateMap(period){
  const box=document.getElementById("stateMapCounts");if(!box)return;
  const p=period||document.getElementById("stateMapPeriod")?.value||"total";
  const sales=dashboardSales(p);
  const counts=Object.fromEntries(STATE_ORDER.map(uf=>[uf,0]));
  sales.forEach(s=>{const uf=saleStateCode(s);if(uf)counts[uf]++;});
- const lines=STATE_COUNT_CALLOUTS.map(uf=>{
-  const from=STATE_POS[uf],to=STATE_COUNT_POS[uf];
-  return `<line x1="${from[0]}" y1="${from[1]}" x2="${to[0]}" y2="${to[1]}" />`;
- }).join("");
- const labels=STATE_ORDER.map(uf=>{
-  const pos=STATE_POS[uf]||[50,50];
-  return `<span class="map-label ${uf==="SP"?"dark-state":""}" aria-label="${STATE_NAMES[uf]}" style="left:${pos[0]}%;top:${pos[1]}%">${uf}</span>`;
- }).join("");
  const markers=STATE_ORDER.map(uf=>{
-  const pos=STATE_COUNT_POS[uf]||STATE_POS[uf]||[50,50],count=counts[uf];
-  return `<span class="map-count-bubble ${count===0?"zero":""} ${STATE_COUNT_CALLOUTS.includes(uf)?"callout":""}" title="${STATE_NAMES[uf]}: ${count} ${count===1?"venda":"vendas"}" aria-label="${STATE_NAMES[uf]}: ${count} ${count===1?"venda":"vendas"}" style="left:${pos[0]}%;top:${pos[1]}%">${count}</span>`;
+  const pos=STATE_COUNT_POS[uf],count=counts[uf];
+  return '<span class="map-count-bubble '+(count===0?"zero":"")+'" title="'+STATE_NAMES[uf]+": "+count+" "+(count===1?"venda":"vendas")+'" aria-label="'+STATE_NAMES[uf]+": "+count+" "+(count===1?"venda":"vendas")+'" style="left:'+pos[0]+'%;top:'+pos[1]+'%">'+count+"</span>";
  }).join("");
- box.innerHTML=`<svg class="map-count-leaders" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${lines}</svg><div class="map-state-labels">${labels}</div><div class="map-count-markers">${markers}</div>`;
+ box.innerHTML='<div class="map-count-markers">'+markers+"</div>";
  const total=sales.length,withSales=STATE_ORDER.filter(uf=>counts[uf]>0).length;
  const totalEl=document.getElementById("stateMapTotal");
- if(totalEl)totalEl.textContent=`${total} ${total===1?"pedido":"pedidos"} no período • ${withSales} estado${withSales===1?"":"s"} com vendas`;
+ if(totalEl)totalEl.textContent=total+" "+(total===1?"pedido":"pedidos")+" no período • "+withSales+" estado"+(withSales===1?"":"s")+" com vendas";
  const totalOrders=document.getElementById("stateMapTotalOrders"),stateCount=document.getElementById("stateMapStatesWithSales");
  if(totalOrders)totalOrders.textContent=total;
  if(stateCount)stateCount.textContent=withSales;
@@ -3485,7 +3470,7 @@ function renderStateMap(period){
  if(ranking){
   const ranked=STATE_ORDER.map(uf=>({uf,count:counts[uf]})).filter(x=>x.count>0).sort((a,b)=>b.count-a.count||a.uf.localeCompare(b.uf));
   if(!ranked.length)ranking.innerHTML='<div class="ranking-empty">Nenhuma venda encontrada neste período.</div>';
-  else{const max=ranked[0].count;ranking.innerHTML=ranked.slice(0,8).map((x,i)=>`<div class="ranking-row"><span class="ranking-rank">${i+1}</span><span class="ranking-uf">${x.uf}</span><div class="ranking-bar"><i style="width:${Math.max(6,Math.round(x.count/max*100))}%"></i></div><span class="ranking-value">${x.count}</span></div>`).join("");}
+  else{const max=ranked[0].count;ranking.innerHTML=ranked.slice(0,8).map((x,i)=>'<div class="ranking-row"><span class="ranking-rank">'+(i+1)+'</span><span class="ranking-uf">'+x.uf+'</span><div class="ranking-bar"><i style="width:'+Math.max(6,Math.round(x.count/max*100))+'%"></i></div><span class="ranking-value">'+x.count+'</span></div>').join("");}
  }
 }
 function renderProductsRanking(period){
@@ -4356,7 +4341,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '132';
+const GESTOR_APP_VERSION = '133';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
