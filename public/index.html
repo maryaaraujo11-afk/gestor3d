@@ -243,16 +243,18 @@ table td,table th{border-bottom-color:#f0e7e0}
 
 .sale-cost-detail-row>td{padding:12px 14px!important;background:#faf7f4}.sale-cost-detail{border:1px solid #e8ddd5;border-radius:10px;padding:14px;background:#fff;min-width:0}.sale-cost-heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;margin-bottom:12px}.sale-cost-heading span,.sale-cost-note{font-size:12px;color:#88786f}.sale-cost-product{padding:12px 0;border-top:1px solid #eee5df}.sale-cost-scroll{overflow-x:auto;margin-top:8px}.sale-cost-table{width:100%;border-collapse:collapse;font-size:12px}.sale-cost-table th,.sale-cost-table td{text-align:left;padding:7px 9px;border-bottom:1px solid #eee5df;white-space:nowrap}.sale-cost-subtotals{display:flex;flex-wrap:wrap;gap:7px 18px;margin-top:10px;font-size:12px}.sale-cost-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin-top:14px}.sale-cost-summary>div{display:flex;flex-direction:column;gap:4px;padding:9px 10px;border:1px solid #eee5df;border-radius:8px;font-size:12px}.sale-cost-summary>div span{color:#88786f}.sale-cost-summary>div b{font-size:14px}.sale-cost-note{margin:12px 0 0}
 
-/* V134 — mapa fiel à referência enviada, com contagens afastadas das siglas */
-#brazilMap{isolation:isolate}
-.brazil-map{position:relative;width:min(100%,620px)!important;height:auto!important;aspect-ratio:1/1!important;max-width:620px;margin:8px auto 0;overflow:hidden;border-radius:14px;background:#fbf8f5}
-.brazil-map img{width:100%;height:100%;display:block;object-fit:contain!important;object-position:center;opacity:1!important;filter:none!important}
+/* V136 — contagens fora das siglas, com chamadas externas para os estados pequenos do Nordeste */
+#brazilMap{isolation:isolate;overflow:visible!important}
+.brazil-map{position:relative;width:min(100%,700px)!important;height:auto!important;aspect-ratio:1.13/1!important;max-width:700px;margin:8px auto 0;overflow:visible!important;border-radius:14px;background:#fbf8f5}
+.brazil-map img{position:absolute;left:0;top:0;width:86%!important;height:100%;display:block;object-fit:fill!important;object-position:left center;opacity:1!important;filter:none!important}
 .brazil-map:after{display:none!important}
-#stateMapCounts{position:absolute;inset:0;z-index:3;pointer-events:none}
+#stateMapCounts{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;overflow:visible}
+.map-count-leaders{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.map-count-leaders line{stroke:#8e6048;stroke-width:.28;stroke-linecap:round;opacity:.9}
 .map-count-markers{position:absolute;inset:0}
-.map-count-bubble{position:absolute;transform:translate(-50%,-50%);min-width:20px;height:20px;padding:0 3px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fffaf6;color:#684a3b;border:1.5px solid #9b725b;box-shadow:0 1px 4px rgba(62,43,32,.18);font-size:10px;font-weight:900;line-height:1;white-space:nowrap}
-.map-count-bubble.zero{opacity:.30}
-@media(max-width:700px){.brazil-map{width:min(100%,520px)!important}.map-count-bubble{min-width:18px;height:18px;padding:0 3px;font-size:9px;border-width:1px}}
+.map-count-bubble{position:absolute;transform:translate(-50%,-50%);min-width:21px;height:21px;padding:0 3px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fffaf6;color:#684a3b;border:1.5px solid #9b725b;box-shadow:0 1px 4px rgba(62,43,32,.18);font-size:10px;font-weight:900;line-height:1;white-space:nowrap}
+.map-count-bubble.map-count-external{min-width:22px;height:22px;background:#fff;color:#684a3b;border-width:1.5px}
+@media(max-width:700px){.brazil-map{width:min(100%,620px)!important;aspect-ratio:1.13/1!important}.brazil-map img{width:86%!important}.map-count-bubble{min-width:18px;height:18px;padding:0 3px;font-size:9px;border-width:1px}}
 </style>
 <!-- Gestor 3D V58 — trigger de publicação -->
 </head>
@@ -3450,17 +3452,24 @@ function renderDashboardSummary(period){
  if(d)d.textContent=label;
 }
 const STATE_COUNT_POS={AC:[10.4,41.1],AL:[96.0,41.0],AP:[60.2,15.9],AM:[34.3,30.3],BA:[86.1,51.0],CE:[89.3,32.3],DF:[67.0,58.6],ES:[83.0,68.6],GO:[54.2,60.6],MA:[67.0,31.1],MT:[51.8,50.2],MS:[51.8,70.2],MG:[78.1,66.2],PA:[57.8,31.1],PB:[96.5,35.5],PR:[58.2,81.0],PE:[87.0,38.0],PI:[81.3,39.1],RJ:[77.5,74.2],RN:[91.0,30.0],RS:[51.8,93.3],RO:[33.1,45.9],RR:[35.9,13.6],SC:[60.6,87.7],SP:[65.4,75.0],SE:[89.0,44.3],TO:[67.4,43.9]};
+const NORTHEAST_CALLOUTS={RN:{target:[81.1,30.7],bubble:[93.2,27.0]},PB:{target:[81.4,33.9],bubble:[94.2,31.7]},PE:{target:[77.5,36.7],bubble:[94.2,36.5]},AL:{target:[80.8,40.0],bubble:[94.2,41.2]},SE:{target:[78.6,43.2],bubble:[94.2,46.0]}};
 function renderStateMap(period){
  const box=document.getElementById("stateMapCounts");if(!box)return;
  const p=period||document.getElementById("stateMapPeriod")?.value||"total";
  const sales=dashboardSales(p);
  const counts=Object.fromEntries(STATE_ORDER.map(uf=>[uf,0]));
  sales.forEach(s=>{const uf=saleStateCode(s);if(uf)counts[uf]++;});
+ const calloutStates=new Set(Object.keys(NORTHEAST_CALLOUTS));
  const markers=STATE_ORDER.filter(uf=>counts[uf]>0).map(uf=>{
-  const pos=STATE_COUNT_POS[uf],count=counts[uf];
-  return '<span class="map-count-bubble '+(count===0?"zero":"")+'" title="'+STATE_NAMES[uf]+": "+count+" "+(count===1?"venda":"vendas")+'" aria-label="'+STATE_NAMES[uf]+": "+count+" "+(count===1?"venda":"vendas")+'" style="left:'+pos[0]+'%;top:'+pos[1]+'%">'+count+"</span>";
+  const count=counts[uf],callout=NORTHEAST_CALLOUTS[uf];
+  const pos=callout?callout.bubble:STATE_COUNT_POS[uf];
+  return '<span class="map-count-bubble '+(callout?'map-count-external':'')+'" title="'+STATE_NAMES[uf]+": "+count+" "+(count===1?"venda":"vendas")+'" aria-label="'+STATE_NAMES[uf]+": "+count+" "+(count===1?"venda":"vendas")+'" style="left:'+pos[0]+'%;top:'+pos[1]+'%">'+count+"</span>";
  }).join("");
- box.innerHTML='<div class="map-count-markers">'+markers+"</div>";
+ const leaders=STATE_ORDER.filter(uf=>counts[uf]>0&&NORTHEAST_CALLOUTS[uf]).map(uf=>{
+  const c=NORTHEAST_CALLOUTS[uf];
+  return '<line x1="'+c.target[0]+'" y1="'+c.target[1]+'" x2="'+(c.bubble[0]-1.5)+'" y2="'+c.bubble[1]+'"/>';
+ }).join("");
+ box.innerHTML='<svg class="map-count-leaders" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'+leaders+'</svg><div class="map-count-markers">'+markers+"</div>";
  const total=sales.length,withSales=STATE_ORDER.filter(uf=>counts[uf]>0).length;
  const totalEl=document.getElementById("stateMapTotal");
  if(totalEl)totalEl.textContent=total+" "+(total===1?"pedido":"pedidos")+" no período • "+withSales+" estado"+(withSales===1?"":"s")+" com vendas";
