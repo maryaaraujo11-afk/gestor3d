@@ -1223,6 +1223,7 @@ async function importGestorData(input){
  }catch(e){alert("Não foi possível importar esse arquivo. Nenhum dado foi substituído. Detalhe: "+e.message);}
 }
 function save(){
+ autoDeliverSentSales();
  const current=JSON.stringify(db);
  // Antes de substituir os dados atuais, guarda a versão anterior.
  if(lastSavedSnapshot && lastSavedSnapshot!==current){
@@ -1646,6 +1647,22 @@ function todayISO(){
  const d=parts.find(x=>x.type==="day")?.value;
  return `${y}-${m}-${d}`;
 }
+function autoDeliverSentSales(){
+ let changed=false;
+ const today=todayISO(),todayMs=Date.parse(today+"T00:00:00Z");
+ (db.sales||[]).forEach(s=>{
+  if(s.status!=="Enviado")return;
+  // Pedidos antigos sem data de envio começam a contagem a partir desta versão.
+  if(!s.sentAt){s.sentAt=today;changed=true;return;}
+  const sentMs=Date.parse(String(s.sentAt).slice(0,10)+"T00:00:00Z");
+  if(Number.isFinite(sentMs)&&Math.floor((todayMs-sentMs)/86400000)>=20){
+   s.status="Entregue";
+   s.completedDate=s.completedDate||today;
+   changed=true;
+  }
+ });
+ return changed;
+}
 function easterSundayISO(year){
  const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3);
  const h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451);
@@ -1770,7 +1787,7 @@ function adjustStockForSale(s, direction, note){
 }
 function saleStatusKey(status){ return ({"Pendente":"pendente","Recebido":"recebido","Em produção":"producao","Pronto":"pronto","Pronto para embalar":"pronto-embalar","Enviado":"enviado","Entregue":"entregue","Cancelado":"cancelado"}[status]||"recebido"); }
 function applySaleStatusColor(el){ if(!el)return; el.className="status-select status-"+saleStatusKey(el.value); }
-function updateSaleStatus(id,value){ const s=db.sales.find(x=>String(x.id)===String(id)); if(!s)return; const wasPending=s.status==="Pendente"; if(wasPending&&value!=="Pendente"&&value!=="Cancelado")adjustStockForSale(s,-1,`Pedido Shopee confirmado: ${s.product||"Venda"}`); if(!wasPending&&value==="Pendente")adjustStockForSale(s,1,`Pedido movido para pendente: ${s.product||"Venda"}`); s.status=value; s.pendingShopee=value==="Pendente"; if(value==="Entregue"&&!s.completedDate)s.completedDate=todayISO(); save(); const el=document.querySelector(`select[data-sale-status="${id}"]`); applySaleStatusColor(el); }
+function updateSaleStatus(id,value){ const s=db.sales.find(x=>String(x.id)===String(id)); if(!s)return; const wasPending=s.status==="Pendente"; if(wasPending&&value!=="Pendente"&&value!=="Cancelado")adjustStockForSale(s,-1,`Pedido Shopee confirmado: ${s.product||"Venda"}`); if(!wasPending&&value==="Pendente")adjustStockForSale(s,1,`Pedido movido para pendente: ${s.product||"Venda"}`); const previous=s.status; s.status=value; s.pendingShopee=value==="Pendente"; if(value==="Enviado"&&previous!=="Enviado")s.sentAt=todayISO(); else if(value!=="Enviado")s.sentAt=""; if(value==="Entregue"&&!s.completedDate)s.completedDate=todayISO(); save(); const el=document.querySelector(`select[data-sale-status="${id}"]`); applySaleStatusColor(el); }
 function startEditSale(id){
  const s=db.sales.find(x=>String(x.id)===String(id)); if(!s)return;
  editingSaleId=s.id;
@@ -2089,7 +2106,7 @@ function saveSaleForm(){
   const net=netRaw!==""?Number(netRaw):defaultNet;if(!Number.isFinite(net)||net<0){alert("Informe um valor líquido recebido válido.");return;}
   const fee=Math.max(0,gross-net),old=editingSaleId!=null?db.sales.find(x=>String(x.id)===String(editingSaleId)):null;
   if(old&&old.status!=="Cancelado"&&old.status!=="Pendente")adjustStockForSale(old,1,`Estorno para edição: ${old.product||"Venda"}`);
-  const first=items[0],sale={id:old?old.id:Date.now(),manualKey:old?.manualKey,orderSn:old?.orderSn||"",source:old?.source||"",syncedFromShopee:old?.syncedFromShopee||false,pendingShopee:false,dateISO,time,customerName:customerNameEl?.value.trim()||"",state:stateEl?.value||"",dueDate,postDays,date:formatDateISO(dateISO),product:items.length===1?first.product:`${first.product} + ${items.length-1} outro${items.length-1===1?"":"s"}`,productId:first.productId,variantId:first.variantId||"",variantName:first.variantName||"",colorId:first.colorId||"",colorName:first.colorName||"",items,store:storeEl.value,channel,value:gross,grossValue:gross,netValue:net,qty:items.reduce((a,i)=>a+i.qty,0),status:statusEl.value,cost,fee:channel==="Direta"?0:fee,packaging,notes:notesEl?.value.trim()||""};
+  const first=items[0],sale={id:old?old.id:Date.now(),manualKey:old?.manualKey,orderSn:old?.orderSn||"",source:old?.source||"",syncedFromShopee:old?.syncedFromShopee||false,pendingShopee:false,dateISO,time,customerName:customerNameEl?.value.trim()||"",state:stateEl?.value||"",dueDate,postDays,date:formatDateISO(dateISO),product:items.length===1?first.product:`${first.product} + ${items.length-1} outro${items.length-1===1?"":"s"}`,productId:first.productId,variantId:first.variantId||"",variantName:first.variantName||"",colorId:first.colorId||"",colorName:first.colorName||"",items,store:storeEl.value,channel,value:gross,grossValue:gross,netValue:net,qty:items.reduce((a,i)=>a+i.qty,0),status:statusEl.value,sentAt:statusEl.value==="Enviado"?(old?.status==="Enviado"?(old.sentAt||todayISO()):todayISO()):"",completedDate:old?.completedDate||"",cost,fee:channel==="Direta"?0:fee,packaging,notes:notesEl?.value.trim()||""};
   if(old)Object.assign(old,sale);else{db.sales=db.sales||[];db.sales.unshift(sale);}
   syncCustomersFromSales();
   if(sale.status!=="Cancelado"&&sale.status!=="Pendente")adjustStockForSale(sale,-1,`${old?"Edição":"Venda"}: ${sale.product}`);
@@ -4341,7 +4358,9 @@ if(!document.querySelector("#saleItemsList .sale-item-row"))addSaleItemRow();
 renderCategorySelect();
 ["mPurchaseQty","mPurchasePrice","mUnit"].forEach(id=>document.getElementById(id).addEventListener("input",updateMaterialPreview));
 runCalc();
+if(autoDeliverSentSales())localStorage.setItem(KEY,JSON.stringify(db));
 render();
+setInterval(()=>{if(autoDeliverSentSales())save();},60*1000);
 
 try{const q=new URLSearchParams(location.search);if(q.get("shopee_connected")){history.replaceState({},document.title,"/");setTimeout(()=>{show("shopee");refreshShopeeStatus();alert("Loja Shopee autorizada com sucesso!");},200);}}catch(e){}
 updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
@@ -4351,7 +4370,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '135';
+const GESTOR_APP_VERSION = '138';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
