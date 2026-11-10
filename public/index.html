@@ -1803,7 +1803,22 @@ function saleEstimatedPrintSeconds(s){
   return total+(salePrintHours(p,item)*qty*3600);
  },0);
 }
+function syncSalesWithActiveProductionTimers(){
+ let changed=false;
+ (db.sales||[]).forEach(s=>{
+  if(!["Pendente","Recebido","Em produção"].includes(String(s.status||"Recebido"))||s.productionFinishedAt)return;
+  const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,variantId:s.variantId,variantName:s.variantName,colorId:s.colorId,colorName:s.colorName,qty:s.qty||1}];
+  const keys=[...new Set(items.map(item=>productionQueueKeyForSaleItem(item,s)))];
+  const active=keys.filter(key=>db.productionStatuses?.[key]?.timerStartedAt);
+  if(!active.length)return;
+  s.productionQueueKeys=keys;
+  if(!s.productionStartedAt){const times=active.map(key=>Number(db.productionStatuses[key].timerStartedAt)).filter(Number.isFinite);if(times.length){s.productionStartedAt=new Date(Math.min(...times)).toISOString();s.productionDurationSeconds=0;changed=true;}}
+  if(s.status!=="Em produção"){updateSaleStatus(s.id,"Em produção");changed=true;}
+ });
+ if(changed){save();renderSalesTable();}
+}
 function updateProductionTimers(){
+ syncSalesWithActiveProductionTimers();
  const now=Date.now();
  const expired=(db.sales||[]).find(s=>{
   if(s.status!=="Em produção"||!s.productionStartedAt||s.productionFinishedAt)return false;
@@ -4471,7 +4486,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '147';
+const GESTOR_APP_VERSION = '148';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
