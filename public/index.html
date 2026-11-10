@@ -1793,7 +1793,29 @@ function productionTimerMarkup(s){if(!s.productionStartedAt)return "";const elap
 function productionActionMarkup(s){if(s.status==="Em produção"&&!s.productionStartedAt)return '<button class="btn xs" style="background:#2f7d57" onclick="startSaleProduction('+JSON.stringify(String(s.id))+')">▶ Iniciar produção</button> ';if(s.productionStartedAt&&!s.productionFinishedAt)return '<button class="btn xs" style="background:#2f7d57" onclick="finishSaleProduction('+JSON.stringify(String(s.id))+')">✓ Finalizar produção</button> ';return "";}
 function startSaleProduction(id){const sale=(db.sales||[]).find(x=>String(x.id)===String(id));if(!sale||sale.productionStartedAt&&!sale.productionFinishedAt)return;if(sale.status!=="Em produção")updateSaleStatus(id,"Em produção");sale.productionStartedAt=new Date().toISOString();sale.productionFinishedAt="";sale.productionDurationSeconds=0;save();renderSalesTable();updateProductionTimers();}
 function finishSaleProduction(id){const sale=(db.sales||[]).find(x=>String(x.id)===String(id));if(!sale||!sale.productionStartedAt||sale.productionFinishedAt)return;const finished=new Date();sale.productionFinishedAt=finished.toISOString();sale.productionDurationSeconds=Math.max(0,Math.floor((finished-new Date(sale.productionStartedAt))/1000));updateSaleStatus(id,"Pronto");save();renderSalesTable();}
-function updateProductionTimers(){document.querySelectorAll("[data-production-timer]").forEach(el=>{const start=el.dataset.productionTimer;if(start)el.textContent=formatProductionDuration((Date.now()-new Date(start).getTime())/1000);});}
+function saleEstimatedPrintSeconds(s){
+ const items=Array.isArray(s?.items)&&s.items.length?s.items:[{productId:s?.productId,variantId:s?.variantId,variantName:s?.variantName,qty:s?.qty||1}];
+ return items.reduce((total,item)=>{
+  const p=(db.products||[]).find(x=>String(x.id)===String(item.productId||item.product_id||item.internalProductId));
+  if(!p)return total;
+  const qty=Math.max(0,Number(item.qty)||0);
+  return total+(salePrintHours(p,item)*qty*3600);
+ },0);
+}
+function updateProductionTimers(){
+ const now=Date.now();
+ const expired=(db.sales||[]).find(s=>{
+  if(s.status!=="Em produção"||!s.productionStartedAt||s.productionFinishedAt)return false;
+  const expected=saleEstimatedPrintSeconds(s);
+  const started=new Date(s.productionStartedAt).getTime();
+  return expected>0&&Number.isFinite(started)&&now-started>=expected*1000;
+ });
+ if(expired){finishSaleProduction(expired.id);return;}
+ document.querySelectorAll("[data-production-timer]").forEach(el=>{
+  const start=el.dataset.productionTimer;
+  if(start)el.textContent=formatProductionDuration((now-new Date(start).getTime())/1000);
+ });
+}
 
 function startEditSale(id){
  const s=db.sales.find(x=>String(x.id)===String(id)); if(!s)return;
