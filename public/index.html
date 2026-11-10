@@ -1995,7 +1995,10 @@ function finishProductionTimer(key,total,automatic=false){
  const elapsed=Math.max(0,Math.ceil((Date.now()-Number(st.timerStartedAt))/60000));
  st.actualTimeMinutes=elapsed;
  st.completedQty=Math.min(Math.max(0,total),Math.max(0,Number(st.completedQty)||0)+batch);
- st.batchQty=0;delete st.timerStartedAt;delete st.timerDurationMinutes;db.productionStatuses[key]=st;save();renderProductionQueue();
+ st.batchQty=0;delete st.timerStartedAt;delete st.timerDurationMinutes;db.productionStatuses[key]=st;
+ // Atualiza também os pedidos vinculados ao mesmo cronômetro compartilhado.
+ (db.sales||[]).filter(s=>Array.isArray(s.productionQueueKeys)&&s.productionQueueKeys.includes(key)&&s.status==="Em produção").forEach(s=>{s.status="Pronto";s.pendingShopee=false;s.productionFinishedAt=new Date().toISOString();s.productionDurationSeconds=Math.max(0,Math.floor((Date.now()-new Date(s.productionStartedAt||Date.now()).getTime())/1000));});
+ save();renderSalesTable();renderProductionQueue();
  if(!automatic)alert("Tempo registrado: "+Math.floor(elapsed/60)+"h "+(elapsed%60)+"min. Lote finalizado e unidades marcadas como concluídas.");
 }
 function completeProductionBatch(key,total){
