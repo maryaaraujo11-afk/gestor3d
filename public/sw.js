@@ -1,4 +1,4 @@
-const CACHE = 'gestor3d-v152';
+const CACHE = 'gestor3d-v153';
 const APP_SHELL = [
   '/',
   '/index.html',
