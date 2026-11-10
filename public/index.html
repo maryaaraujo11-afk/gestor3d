@@ -4447,6 +4447,8 @@ if(autoDeliverSentSales())localStorage.setItem(KEY,JSON.stringify(db));
 render();
 setInterval(()=>{if(autoDeliverSentSales())save();},60*1000);
 setInterval(updateProductionTimers,1000);
+setInterval(updateProductionQueueTimers,1000);
+updateProductionQueueTimers();
 
 try{const q=new URLSearchParams(location.search);if(q.get("shopee_connected")){history.replaceState({},document.title,"/");setTimeout(()=>{show("shopee");refreshShopeeStatus();alert("Loja Shopee autorizada com sucesso!");},200);}}catch(e){}
 updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
