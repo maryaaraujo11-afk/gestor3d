@@ -4444,6 +4444,16 @@ renderCategorySelect();
 ["mPurchaseQty","mPurchasePrice","mUnit"].forEach(id=>document.getElementById(id).addEventListener("input",updateMaterialPreview));
 runCalc();
 if(autoDeliverSentSales())localStorage.setItem(KEY,JSON.stringify(db));
+// Inicia o cronômetro dos pedidos que já estavam Em produção antes da função existir.
+let migratedProductionTimers=false;
+(db.sales||[]).forEach(s=>{
+ if(s.status==="Em produção"&&!s.productionStartedAt&&!s.productionFinishedAt){
+  s.productionStartedAt=new Date().toISOString();
+  s.productionDurationSeconds=0;
+  migratedProductionTimers=true;
+ }
+});
+if(migratedProductionTimers)localStorage.setItem(KEY,JSON.stringify(db));
 render();
 setInterval(()=>{if(autoDeliverSentSales())save();},60*1000);
 setInterval(updateProductionTimers,1000);
@@ -4458,7 +4468,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '144';
+const GESTOR_APP_VERSION = '145';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
