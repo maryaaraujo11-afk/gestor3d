@@ -1863,8 +1863,8 @@ function renderProductionQueue(){
   const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,variantId:s.variantId,variantName:s.variantName,colorId:s.colorId,colorName:s.colorName,qty:s.qty||1}];
   items.forEach(item=>{
    const p=(db.products||[]).find(x=>String(x.id)===String(item.productId)),name=String(p?.name||item.product||s.product||"Produto sem nome"),variant=String(item.variantName||item.colorName||item.variant||"").trim(),key=String(item.productId||name)+"::"+String(item.variantId||item.colorId||variant);
-   if(!groups.has(key))groups.set(key,{key,productName:name,variant,qty:0,orders:new Set()});
-   const g=groups.get(key);g.qty+=Math.max(0,Number(item.qty??s.qty)||1);g.orders.add(String(s.id));
+   if(!groups.has(key))groups.set(key,{key,productId:item.productId||"",variantId:item.variantId||item.colorId||"",productName:name,variant,qty:0,estimatedPrintHours:0,orders:new Set()});
+   const g=groups.get(key),itemQty=Math.max(0,Number(item.qty??s.qty)||1);g.qty+=itemQty;g.estimatedPrintHours+=salePrintHours(p,item)*itemQty;g.orders.add(String(s.id));
   });
  });
  // Inclui vendas diretas na fila de produção, sem duplicá-las em db.sales.
@@ -1872,9 +1872,9 @@ function renderProductionQueue(){
   const productId=String(s.productId||"").trim();
   const name=String((db.products||[]).find(p=>String(p.id)===productId)?.name||s.product||"Produto sem nome");
   const key=(productId||name)+"::";
-  if(!groups.has(key))groups.set(key,{key,productName:name,variant:"",qty:0,orders:new Set()});
-  const g=groups.get(key);
-  g.qty+=Math.max(1,Number(s.qty)||1);
+  if(!groups.has(key))groups.set(key,{key,productId,variantId:"",productName:name,variant:"",qty:0,estimatedPrintHours:0,orders:new Set()});
+  const g=groups.get(key),directQty=Math.max(1,Number(s.qty)||1),directProduct=(db.products||[]).find(p=>String(p.id)===productId);
+  g.qty+=directQty;g.estimatedPrintHours+=Math.max(0,Number(directProduct?.printHours)||0)*directQty;
   g.orders.add("direct:"+String(s.id));
  });
  db.productionStatuses=db.productionStatuses&&typeof db.productionStatuses==="object"?db.productionStatuses:{};
@@ -1888,7 +1888,7 @@ function renderProductionQueue(){
  const table=document.getElementById("productionQueueTable");if(!table)return;
  const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
  table.innerHTML=visible.map(g=>{
-  const st=db.productionStatuses[g.key]||{},batch=Math.max(0,Number(st.batchQty)||0),done=Math.max(0,Number(st.completedQty)||0),mins=Math.max(0,Number(st.timeMinutes)||0),remaining=Math.max(0,g.qty-done),status=done>=g.qty?"Concluído":batch>0?"Em produção":"Pendente",timeText=Math.floor(mins/60)+"h "+(mins%60)+"min";
+  const st=db.productionStatuses[g.key]||{},batch=Math.max(0,Number(st.batchQty)||0),done=Math.max(0,Number(st.completedQty)||0),remaining=Math.max(0,g.qty-done),estimatedMinutes=Math.max(0,Math.round((g.estimatedPrintHours/Math.max(1,g.qty))*Math.max(1,batch||remaining)*60)),mins=Math.max(0,Number(st.customTime)?Number(st.timeMinutes)||0:estimatedMinutes),status=done>=g.qty?"Concluído":batch>0?"Em produção":"Pendente",timeText=Math.floor(mins/60)+"h "+(mins%60)+"min";
   return '<tr><td><b>'+esc(g.productName)+'</b>'+(g.variant?'<small class="sub" style="display:block">'+esc(g.variant)+'</small>':'')+'</td><td><b style="font-size:17px">'+g.qty+'</b><small class="sub" style="display:block">'+remaining+' restantes</small></td><td>'+g.orders.size+'</td><td style="min-width:125px"><input aria-label="Quantidade em produção do lote" type="number" min="0" max="'+remaining+'" step="1" value="'+batch+'" style="width:100px" onchange="updateProductionField(\''+esc(g.key)+'\',\'batchQty\',this.value,'+g.qty+')"></td><td style="min-width:150px">'+(st.timerStartedAt?'<b data-production-countdown="'+esc(g.key)+'" style="font-variant-numeric:tabular-nums;color:#9a624b">'+formatProductionCountdown(productionRemainingSeconds(st))+'</b><small class="sub" style="display:block">Tempo restante</small>':'<div style="display:flex;gap:4px;align-items:center"><input aria-label="Horas do lote" type="number" min="0" step="1" value="'+Math.floor(mins/60)+'" style="width:56px" onchange="updateProductionTime(\\''+esc(g.key)+'\\',this.value,\\'hours\\')"><span>h</span><input aria-label="Minutos do lote" type="number" min="0" max="59" step="1" value="'+(mins%60)+'" style="width:60px" onchange="updateProductionTime(\\''+esc(g.key)+'\\',this.value,\\'minutes\\')"><span>min</span></div><small class="sub">Duração prevista: '+timeText+'</small>')+'</td><td><span class="tag '+(status==="Concluído"?"good":status==="Em produção"?"warn":"")+'">'+status+'</span><small class="sub" style="display:block">Concluídas: '+done+'</small></td><td style="min-width:170px"><div style="display:flex;flex-direction:column;gap:6px">'+ '<button class="btn xs" '+(remaining===0?"disabled":"")+' onclick="'+(st.timerStartedAt?"finishProductionTimer('"+esc(g.key)+"',"+g.qty+")":"startProductionTimer('"+esc(g.key)+"')")+'">'+(st.timerStartedAt?"Finalizar e concluir":"Iniciar tempo")+'</button>' + '<button class="btn xs" '+(remaining===0?"disabled":"")+' onclick="completeProductionBatch(\''+esc(g.key)+'\','+g.qty+')">Concluir lote</button><button class="btn xs outline" onclick="updateProductionField(\''+esc(g.key)+'\',\'batchQty\',0,'+g.qty+')">Limpar lote</button></div></td></tr>';
  }).join("");
  const empty=document.getElementById("productionQueueEmpty");if(empty)empty.style.display=visible.length?"none":"block";
@@ -1945,7 +1945,7 @@ function startFirstMatchingOrder(key){
 function updateProductionTime(key,value,part){
  db.productionStatuses=db.productionStatuses&&typeof db.productionStatuses==="object"?db.productionStatuses:{};
  const st=db.productionStatuses[key]&&typeof db.productionStatuses[key]==="object"?db.productionStatuses[key]:{},n=Math.max(0,Math.floor(Number(value)||0)),cur=Math.max(0,Number(st.timeMinutes)||0);
- st.timeMinutes=part==="hours"?n*60+(cur%60):Math.floor(cur/60)*60+Math.min(59,n);db.productionStatuses[key]=st;save();
+ st.timeMinutes=part==="hours"?n*60+(cur%60):Math.floor(cur/60)*60+Math.min(59,n);st.customTime=true;db.productionStatuses[key]=st;save();
 }
 function productionRemainingSeconds(st){
  const duration=Math.max(0,Number(st?.timerDurationMinutes??st?.timeMinutes)||0)*60;
@@ -1982,8 +1982,9 @@ function startProductionTimer(key){
  const st=db.productionStatuses[key]&&typeof db.productionStatuses[key]==="object"?db.productionStatuses[key]:{};
  if(Math.floor(Number(st.batchQty)||0)<=0){alert("Informe a quantidade de unidades do lote antes de iniciar o cronômetro.");return;}
  if(st.timerStartedAt){alert("O cronômetro deste lote já está em andamento.");return;}
- const duration=Math.max(0,Number(st.timeMinutes)||0);
- if(duration<=0){alert("Informe a duração prevista do lote (horas e minutos) antes de iniciar.");return;}
+ const product=(db.products||[]).find(p=>String(p.id)===String(key).split("::")[0]),groupQty=Math.max(1,Number(st.batchQty)||1),unitHours=product?salePrintHours(product,{variantId:String(key).split("::").slice(1).join("::")}):0;
+ const automaticMinutes=Math.round(unitHours*groupQty*60),duration=Math.max(0,st.customTime?Number(st.timeMinutes)||0:automaticMinutes);
+ if(duration<=0){alert("Cadastre o tempo de impressão no produto antes de iniciar o cronômetro.");return;}
  st.timerDurationMinutes=duration;st.timerStartedAt=Date.now();db.productionStatuses[key]=st;startFirstMatchingOrder(key);save();renderProductionQueue();
 }
 function finishProductionTimer(key,total,automatic=false){
@@ -4458,7 +4459,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '143';
+const GESTOR_APP_VERSION = '144';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
