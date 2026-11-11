@@ -4146,8 +4146,12 @@ function renderFinanceWeeklyPayouts(){
   return p||null;
  };
  (db.sales||[]).forEach(s=>{
-  const sent=financeISODate(s.sentAt||s.dueDate||s.postingDate);
-  if(!sent||sent<cutoff||["cancelado","cancelada","pendente"].includes(String(s.status||"").trim().toLocaleLowerCase("pt-BR")))return;
+  const status=String(s.status||"").trim().toLocaleLowerCase("pt-BR");
+  // O fechamento do saque considera somente pedidos efetivamente enviados.
+  // Não usar "Postagem até": é prazo limite, não data real de envio.
+  if(status!=="enviado"&&status!=="entregue")return;
+  const sent=financeISODate(s.sentAt);
+  if(!sent||sent<cutoff)return;
   ensure(financeWeekStart(sent)).sales.push(s);
  });
  (db.purchases||[]).forEach(p=>{const date=financeISODate(p.dateISO||p.date);if(date&&date>=cutoff)ensure(financeWeekStart(date)).purchases+=Math.max(0,Number(p.value)||0);});
