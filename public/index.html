@@ -908,8 +908,8 @@ table td,table th{border-bottom-color:#f0e7e0}
  </div>
  <div class="panel" style="margin:0 0 16px;padding:18px">
   <div class="finance-panel-heading"><div><h2>Fechamento semanal dos saques</h2><div class="sub">Pedidos enviados de quarta a terça, com pagamento previsto na quarta-feira seguinte. Separe o custo estimado dos produtos e acompanhe as compras e despesas lançadas no mesmo ciclo.</div></div><span class="finance-count-pill">Ciclo: qua. a ter.</span></div>
-  <div style="overflow-x:auto"><table class="data-table" style="min-width:900px"><thead><tr><th>Período dos envios</th><th>Pagamento</th><th>Pedidos</th><th>Valor líquido</th><th>Reserva de produção</th><th>Compras + despesas</th><th>Saldo estimado</th></tr></thead><tbody id="financeWeeklyPayouts"><tr><td colspan="7">Calculando semanas…</td></tr></tbody></table></div>
-  <div class="sub" style="margin-top:9px">A reserva de produção usa os custos cadastrados nos produtos. Compras e despesas são exibidas à parte como saídas de caixa do ciclo; confira se não representam materiais já considerados na reserva antes de separar o valor final.</div>
+   <div style="overflow-x:auto"><table class="data-table" style="min-width:1320px"><thead><tr><th>Período dos envios</th><th>Pagamento</th><th>Pedidos</th><th>Valor líquido</th><th>Reserva de materiais</th><th>Energia elétrica</th><th>Depreciação</th><th>Compras + outras despesas</th><th>Saldo estimado</th></tr></thead><tbody id="financeWeeklyPayouts"><tr><td colspan="9">Calculando semanas…</td></tr></tbody></table></div>
+   <div class="sub" style="margin-top:9px">As reservas de materiais, energia e depreciação são calculadas pelas fichas dos produtos enviados em cada ciclo. Compras e despesas lançadas aparecem separadamente; evite subtrair novamente compras de materiais que já estejam cobertas pela reserva.</div>
  </div>
  <div class="finance-outflow-strip">
   <div class="finance-outflow-heading"><div><h2>Composição das saídas</h2><div class="sub">Entenda para onde foi o dinheiro no período selecionado.</div></div></div>
@@ -4136,44 +4136,51 @@ function financeWeekStart(dateISO){
  return addISODate(d,-back);
 }
 function renderFinanceWeeklyPayouts(){
- const cutoff="2026-10-01";
- const firstWeek=financeWeekStart(cutoff);
- const currentWeek=financeWeekStart(todayISO());
+ const cutoff="2026-10-01",firstWeek=financeWeekStart(cutoff),currentWeek=financeWeekStart(todayISO());
  const groups=new Map();
- const ensure=start=>{
-  if(!groups.has(start))groups.set(start,{start,end:addISODate(start,6),pay:addISODate(start,7),sales:[],purchases:0,expenses:0});
-  return groups.get(start);
+ const ensure=start=>{if(!groups.has(start))groups.set(start,{start,end:addISODate(start,6),pay:addISODate(start,7),sales:[],purchases:0,expenses:0,energyExpense:0});return groups.get(start);};
+ const findProduct=item=>{
+  const id=item?.productId||item?.product_id||item?.internalProductId;
+  let p=id?(db.products||[]).find(x=>String(x.id)===String(id)):null;
+  if(!p){const name=String(item?.product||item?.productName||item?.name||"").trim().toLocaleLowerCase("pt-BR");if(name)p=(db.products||[]).find(x=>String(x.name||"").trim().toLocaleLowerCase("pt-BR")===name);}
+  return p||null;
  };
- // Inclui todos os ciclos desde 01/10/2026. O primeiro ciclo começa em 30/09,
- // mas só entram nele movimentações feitas a partir de 01/10.
  (db.sales||[]).forEach(s=>{
   const sent=financeISODate(s.sentAt);
-  if(!sent||sent<cutoff||["Cancelado","Pendente"].includes(String(s.status||"")))return;
+  if(!sent||sent<cutoff||["cancelado","cancelada","pendente"].includes(String(s.status||"").trim().toLocaleLowerCase("pt-BR")))return;
   ensure(financeWeekStart(sent)).sales.push(s);
  });
- (db.purchases||[]).forEach(p=>{
-  const date=financeISODate(p.dateISO||p.date);
-  if(date&&date>=cutoff)ensure(financeWeekStart(date)).purchases+=Math.max(0,Number(p.value)||0);
- });
+ (db.purchases||[]).forEach(p=>{const date=financeISODate(p.dateISO||p.date);if(date&&date>=cutoff)ensure(financeWeekStart(date)).purchases+=Math.max(0,Number(p.value)||0);});
  (db.expenses||[]).forEach(e=>{
-  const date=financeISODate(e.dateISO||e.date);
-  if(date&&date>=cutoff)ensure(financeWeekStart(date)).expenses+=Math.max(0,Number(e.value)||0);
+  const date=financeISODate(e.dateISO||e.date);if(!date||date<cutoff)return;
+  const g=ensure(financeWeekStart(date)),category=String(e.category||"")+" "+String(e.name||"");
+  const value=Math.max(0,Number(e.value)||0);
+  if(/energia|eletricidade|eletrica|luz/i.test(category))g.energyExpense+=value;else g.expenses+=value;
  });
- // Garante que semanas sem movimentação também apareçam, para facilitar a separação do dinheiro.
- if(firstWeek&&currentWeek){
-  for(let start=firstWeek;start<=currentWeek;start=addISODate(start,7))ensure(start);
- }
+ if(firstWeek&&currentWeek)for(let start=firstWeek;start<=currentWeek;start=addISODate(start,7))ensure(start);
  const selected=[...groups.keys()].filter(start=>start<=currentWeek).sort((a,b)=>b.localeCompare(a));
  const body=document.getElementById("financeWeeklyPayouts");if(!body)return;
  const fmt=d=>formatDateISO(d);
  body.innerHTML=selected.map(start=>{
-  const g=groups.get(start);
-  const net=g.sales.reduce((sum,s)=>sum+Math.max(0,financeAmount(s)),0);
-  const reserve=g.sales.reduce((sum,s)=>sum+Math.max(0,saleCostForProfit(s)),0);
-  const cashOut=g.purchases+g.expenses;
-  const remaining=net-reserve-cashOut;
-  return '<tr><td><b>'+fmt(g.start)+' a '+fmt(g.end)+'</b></td><td>'+fmt(g.pay)+'</td><td>'+g.sales.length+'</td><td style="white-space:nowrap;color:#23774c;font-weight:800">'+money(net)+'</td><td style="white-space:nowrap">'+money(reserve)+'</td><td style="white-space:nowrap">'+money(cashOut)+'</td><td style="white-space:nowrap;font-weight:850;color:'+(remaining<0?'#b54b4b':'#23774c')+'">'+money(remaining)+'</td></tr>';
- }).join("")||'<tr><td colspan="7">Ainda não há movimentações registradas desde 01/10/2026.</td></tr>';
+  const g=groups.get(start);let net=0,materials=0,energy=g.energyExpense,depreciation=0;
+  g.sales.forEach(s=>{
+   net+=Math.max(0,financeAmount(s));
+   const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,variantId:s.variantId,colorId:s.colorId,qty:s.qty||1}];
+   items.forEach(item=>{
+    const p=findProduct(item);if(!p)return;
+    const qty=Math.max(0,Number(item.qty??item.quantity??s.qty)||0);if(!qty)return;
+    const variant={...s,...item,variantId:item.variantId||item.variant_id||s.variantId,colorId:item.colorId||item.color_id||s.colorId};
+    saleRecipeMaterials(p,variant).forEach(r=>{materials+=materialConsumptionForSale(p,r,qty)*recipeMaterialUnitCost(r);});
+    materials+=componentCost(p)*qty;
+    const parts=machineUnitCost({...p,printHours:salePrintHours(p,variant)});
+    energy+=Math.max(0,Number(parts.energy)||0)*qty;
+    depreciation+=Math.max(0,Number(parts.depreciation)||0)*qty;
+   });
+  });
+  const cashOut=g.purchases+g.expenses,remaining=net-materials-energy-depreciation-cashOut;
+  const cell=v=>'<td style="white-space:nowrap">'+money(v)+'</td>';
+  return '<tr><td><b>'+fmt(g.start)+' a '+fmt(g.end)+'</b></td><td>'+fmt(g.pay)+'</td><td>'+g.sales.length+'</td><td style="white-space:nowrap;color:#23774c;font-weight:800">'+money(net)+'</td>'+cell(materials)+cell(energy)+cell(depreciation)+cell(cashOut)+'<td style="white-space:nowrap;font-weight:850;color:'+(remaining<0?'#b54b4b':'#23774c')+'">'+money(remaining)+'</td></tr>';
+ }).join("")||'<tr><td colspan="9">Ainda não há movimentações registradas desde 01/10/2026.</td></tr>';
 }
 function renderFinancePanel(){
  const rows=financeRows();
@@ -4574,7 +4581,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '154';
+const GESTOR_APP_VERSION = '155';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
