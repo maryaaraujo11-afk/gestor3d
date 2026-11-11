@@ -1649,14 +1649,21 @@ function todayISO(){
 }
 function autoDeliverSentSales(){
  let changed=false;
- const today=todayISO(),todayMs=Date.parse(today+"T00:00:00Z");
+ const today=todayISO();
+ const toUTC=value=>{
+  const raw=String(value||"").trim().slice(0,10);
+  let y,m,d;
+  if(/^\d{4}-\d{2}-\d{2}$/.test(raw)){[y,m,d]=raw.split("-").map(Number);}
+  else if(/^\d{2}\/\d{2}\/\d{4}$/.test(raw)){[d,m,y]=raw.split("/").map(Number);}
+  else return NaN;
+  return Date.UTC(y,m-1,d);
+ };
+ const todayMs=toUTC(today);
  (db.sales||[]).forEach(s=>{
-  if(s.status!=="Enviado")return;
-  // Usa a data limite de postagem exibida em "Postagem até" como referência.
-  const referenceDate=s.dueDate||s.sentAt;
-  if(!referenceDate)return;
-  const referenceMs=Date.parse(String(referenceDate).slice(0,10)+"T00:00:00Z");
-  if(Number.isFinite(referenceMs)&&Math.floor((todayMs-referenceMs)/86400000)>=15){
+  if(String(s.status||"").trim().toLowerCase()!=="enviado")return;
+  const referenceDate=s.dueDate||s.postingDate||s.sentAt;
+  const referenceMs=toUTC(referenceDate);
+  if(Number.isFinite(referenceMs)&&Number.isFinite(todayMs)&&Math.floor((todayMs-referenceMs)/86400000)>=15){
    s.status="Entregue";
    s.completedDate=s.completedDate||today;
    changed=true;
@@ -4513,7 +4520,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '151';
+const GESTOR_APP_VERSION = '152';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
