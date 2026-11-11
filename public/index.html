@@ -906,6 +906,11 @@ table td,table th{border-bottom-color:#f0e7e0}
    <div class="finance-kpi-foot">Estimativa após custos e despesas</div>
   </div>
  </div>
+ <div class="panel" style="margin:0 0 16px;padding:18px">
+  <div class="finance-panel-heading"><div><h2>Fechamento semanal dos saques</h2><div class="sub">Pedidos enviados de quarta a terça, com pagamento previsto na quarta-feira seguinte. Separe o custo estimado dos produtos e acompanhe as compras e despesas lançadas no mesmo ciclo.</div></div><span class="finance-count-pill">Ciclo: qua. a ter.</span></div>
+  <div style="overflow-x:auto"><table class="data-table" style="min-width:900px"><thead><tr><th>Período dos envios</th><th>Pagamento</th><th>Pedidos</th><th>Valor líquido</th><th>Reserva de produção</th><th>Compras + despesas</th><th>Saldo estimado</th></tr></thead><tbody id="financeWeeklyPayouts"><tr><td colspan="7">Calculando semanas…</td></tr></tbody></table></div>
+  <div class="sub" style="margin-top:9px">A reserva de produção usa os custos cadastrados nos produtos. Compras e despesas são exibidas à parte como saídas de caixa do ciclo; confira se não representam materiais já considerados na reserva antes de separar o valor final.</div>
+ </div>
  <div class="finance-outflow-strip">
   <div class="finance-outflow-heading"><div><h2>Composição das saídas</h2><div class="sub">Entenda para onde foi o dinheiro no período selecionado.</div></div></div>
   <div class="finance-outflow-item"><span class="finance-outflow-icon">▦</span><div class="finance-outflow-copy"><span>Compras de materiais</span><small>Filamentos e demais insumos</small></div><strong id="finMaterialOut">R$ 0,00</strong></div>
@@ -1795,7 +1800,7 @@ function adjustStockForSale(s, direction, note){
 }
 function saleStatusKey(status){ return ({"Pendente":"pendente","Recebido":"recebido","Em produção":"producao","Pronto":"pronto","Pronto para embalar":"pronto-embalar","Enviado":"enviado","Entregue":"entregue","Cancelado":"cancelado"}[status]||"recebido"); }
 function applySaleStatusColor(el){ if(!el)return; el.className="status-select status-"+saleStatusKey(el.value); }
-function updateSaleStatus(id,value){ const s=db.sales.find(x=>String(x.id)===String(id)); if(!s)return; const wasPending=s.status==="Pendente"; if(wasPending&&value!=="Pendente"&&value!=="Cancelado")adjustStockForSale(s,-1,`Pedido Shopee confirmado: ${s.product||"Venda"}`); if(!wasPending&&value==="Pendente")adjustStockForSale(s,1,`Pedido movido para pendente: ${s.product||"Venda"}`); const previous=s.status; s.status=value; s.pendingShopee=value==="Pendente"; if(value==="Enviado"&&previous!=="Enviado")s.sentAt=todayISO(); else if(value!=="Enviado")s.sentAt=""; if(value==="Entregue"&&!s.completedDate)s.completedDate=todayISO(); save(); const el=document.querySelector(`select[data-sale-status="${id}"]`); applySaleStatusColor(el); }
+function updateSaleStatus(id,value){ const s=db.sales.find(x=>String(x.id)===String(id)); if(!s)return; const wasPending=s.status==="Pendente"; if(wasPending&&value!=="Pendente"&&value!=="Cancelado")adjustStockForSale(s,-1,`Pedido Shopee confirmado: ${s.product||"Venda"}`); if(!wasPending&&value==="Pendente")adjustStockForSale(s,1,`Pedido movido para pendente: ${s.product||"Venda"}`); const previous=s.status; s.status=value; s.pendingShopee=value==="Pendente"; if(value==="Enviado"&&previous!=="Enviado")s.sentAt=todayISO(); if(value==="Entregue"&&!s.completedDate)s.completedDate=todayISO(); save(); const el=document.querySelector(`select[data-sale-status="${id}"]`); applySaleStatusColor(el); }
 function formatProductionDuration(seconds){const total=Math.max(0,Math.floor(Number(seconds)||0)),h=Math.floor(total/3600),m=Math.floor((total%3600)/60),sec=total%60;return [h,m,sec].map(n=>String(n).padStart(2,"0")).join(":");}
 function productionTimerMarkup(s){const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,variantId:s.variantId,variantName:s.variantName,colorId:s.colorId,colorName:s.colorName,qty:s.qty||1}],keys=Array.isArray(s.productionQueueKeys)&&s.productionQueueKeys.length?s.productionQueueKeys:items.map(item=>productionQueueKeyForSaleItem(item,s)),active=keys.map(key=>({key,st:db.productionStatuses?.[key]})).filter(x=>x.st?.timerStartedAt);if(active.length)return '<small class="production-timer" style="display:block;margin-top:6px;font-weight:800">⏱ '+active.map(x=>'<span data-production-countdown="'+String(x.key).replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'">'+formatProductionCountdown(productionRemainingSeconds(x.st))+'</span>').join(' / ')+'</small>';if(!s.productionStartedAt)return "";const elapsed=s.productionFinishedAt?formatProductionDuration(s.productionDurationSeconds):formatProductionDuration((Date.now()-new Date(s.productionStartedAt).getTime())/1000);return '<small class="production-timer" style="display:block;margin-top:6px;font-weight:800">⏱ '+(s.productionFinishedAt?elapsed:'<span data-production-timer="'+s.productionStartedAt+'">'+elapsed+'</span>')+'</small>';}
 function productionActionMarkup(s){if(["Pendente","Recebido","Em produção"].includes(s.status||"")&&!s.productionStartedAt)return '<button class="btn xs" style="background:#2f7d57" onclick="startSaleProduction('+JSON.stringify(String(s.id))+')">▶ Iniciar produção</button> ';if(s.productionStartedAt&&!s.productionFinishedAt)return '<button class="btn xs" style="background:#2f7d57" onclick="finishSaleProduction('+JSON.stringify(String(s.id))+')">✓ Finalizar produção</button> ';return "";}
@@ -4122,6 +4127,47 @@ function showFinanceCostCategory(category){
 }
 function closeFinanceCategoryDetail(){document.getElementById("financeCategoryDetailModal")?.classList.remove("show");}
 function toggleFinanceCostDetails(){const panel=document.getElementById("financeCostDetails"),link=document.getElementById("financeCostDetailLink");if(!panel)return;const show=panel.classList.contains("hidden");panel.classList.toggle("hidden",!show);if(link)link.textContent=show?"Ocultar detalhamento ↑":"Ver detalhamento por produto ↓";}
+function financeWeekStart(dateISO){
+ const d=financeISODate(dateISO);if(!d)return "";
+ const parts=d.split("-").map(Number),dt=new Date(Date.UTC(parts[0],parts[1]-1,parts[2],12));
+ const day=dt.getUTCDay();
+ // Quarta-feira é o primeiro dia do ciclo; domingo=0.
+ const back=(day-3+7)%7;
+ return addISODate(d,-back);
+}
+function renderFinanceWeeklyPayouts(){
+ const groups=new Map();
+ const ensure=start=>{
+  if(!groups.has(start))groups.set(start,{start,end:addISODate(start,6),pay:addISODate(start,7),sales:[],purchases:0,expenses:0});
+  return groups.get(start);
+ };
+ (db.sales||[]).forEach(s=>{
+  const sent=financeISODate(s.sentAt);
+  if(!sent||["Cancelado","Pendente"].includes(String(s.status||"")))return;
+  const g=ensure(financeWeekStart(sent));g.sales.push(s);
+ });
+ (db.purchases||[]).forEach(p=>{
+  const date=financeISODate(p.dateISO||p.date);if(date)ensure(financeWeekStart(date)).purchases+=Math.max(0,Number(p.value)||0);
+ });
+ (db.expenses||[]).forEach(e=>{
+  const date=financeISODate(e.dateISO||e.date);if(date)ensure(financeWeekStart(date)).expenses+=Math.max(0,Number(e.value)||0);
+ });
+ const today=financeWeekStart(todayISO());
+ // Mantém as 12 semanas mais recentes e inclui ciclos com movimentação.
+ const starts=[...groups.keys()].sort((a,b)=>b.localeCompare(a));
+ if(today&&!groups.has(today))starts.unshift(today);
+ const selected=starts.slice(0,12);
+ const body=document.getElementById("financeWeeklyPayouts");if(!body)return;
+ const fmt=d=>formatDateISO(d);
+ body.innerHTML=selected.map(start=>{
+  const g=groups.get(start)||{start,end:addISODate(start,6),pay:addISODate(start,7),sales:[],purchases:0,expenses:0};
+  const net=g.sales.reduce((sum,s)=>sum+Math.max(0,financeAmount(s)),0);
+  const reserve=g.sales.reduce((sum,s)=>sum+Math.max(0,saleCostForProfit(s)),0);
+  const cashOut=g.purchases+g.expenses;
+  const remaining=net-reserve-cashOut;
+  return '<tr><td><b>'+fmt(g.start)+' a '+fmt(g.end)+'</b></td><td>'+fmt(g.pay)+'</td><td>'+g.sales.length+'</td><td style="white-space:nowrap;color:#23774c;font-weight:800">'+money(net)+'</td><td style="white-space:nowrap">'+money(reserve)+'</td><td style="white-space:nowrap">'+money(cashOut)+'</td><td style="white-space:nowrap;font-weight:850;color:'+(remaining<0?'#b54b4b':'#23774c')+'">'+money(remaining)+'</td></tr>';
+ }).join("")||'<tr><td colspan="7">Ainda não há pedidos enviados nem saídas registradas nos ciclos semanais.</td></tr>';
+}
 function renderFinancePanel(){
  const rows=financeRows();
  const inflow=rows.filter(r=>r.type==="Entrada").reduce((a,r)=>a+r.value,0);
@@ -4221,6 +4267,7 @@ function renderFinancePanel(){
  const cats=Object.entries(grouped).sort((a,b)=>b[1]-a[1]),max=cats.length?cats[0][1]:0,chart=document.getElementById("financeCategoryChart");
  if(chart)chart.innerHTML=cats.length?cats.map(([name,val])=>'<div class="finance-category-row"><span class="finance-category-name">'+String(name).replace(/</g,"&lt;")+'</span><div class="finance-category-track"><i style="width:'+Math.max(3,Math.round(val/max*100))+'%"></i></div><span class="finance-category-value">'+money(val)+'</span></div>').join(""):'<div class="sub">Ainda não há saídas registradas neste período.</div>';
  const dateInput=document.getElementById("finExpenseDate");if(dateInput&&!dateInput.value)dateInput.value=todayISO();
+ renderFinanceWeeklyPayouts();
 }
 function exportFinanceCsv(){
  const rows=financeRows(), csv=[["Data","Movimentação","Categoria","Tipo","Valor (R$)"],...rows.map(r=>[r.date,r.name,r.category,r.type,r.value.toFixed(2).replace(".",",")])];
@@ -4520,7 +4567,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '152';
+const GESTOR_APP_VERSION = '153';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
