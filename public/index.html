@@ -908,8 +908,8 @@ table td,table th{border-bottom-color:#f0e7e0}
  </div>
  <div class="panel" style="margin:0 0 16px;padding:18px">
   <div class="finance-panel-heading"><div><h2>Fechamento semanal dos saques</h2><div class="sub">Pedidos enviados de quarta a terça, com pagamento previsto na quarta-feira seguinte. Separe o custo estimado dos produtos e acompanhe as compras e despesas lançadas no mesmo ciclo.</div></div><span class="finance-count-pill">Ciclo: qua. a ter.</span></div>
-   <div style="overflow-x:auto"><table class="data-table" style="min-width:1320px"><thead><tr><th>Período dos envios</th><th>Pagamento</th><th>Pedidos</th><th>Valor líquido</th><th>Reserva de materiais</th><th>Energia elétrica</th><th>Depreciação</th><th>Compras + outras despesas</th><th>Saldo estimado</th></tr></thead><tbody id="financeWeeklyPayouts"><tr><td colspan="9">Calculando semanas…</td></tr></tbody></table></div>
-   <div class="sub" style="margin-top:9px">As reservas de materiais, energia e depreciação são calculadas pelas fichas dos produtos enviados em cada ciclo. Pedidos antigos sem data real de envio são agrupados provisoriamente pela data “Postagem até” e identificados como estimados. Compras e despesas lançadas aparecem separadamente; evite subtrair novamente compras de materiais que já estejam cobertas pela reserva.</div>
+   <div style="overflow-x:auto"><table class="data-table" style="min-width:1320px"><thead><tr><th>Período dos envios</th><th>Pagamento</th><th>Pedidos</th><th>Valor líquido</th><th>Reserva de materiais</th><th>Energia elétrica</th><th>Depreciação</th><th>Compras de materiais (informativo)</th><th>Outras despesas</th><th>Saldo estimado</th></tr></thead><tbody id="financeWeeklyPayouts"><tr><td colspan="9">Calculando semanas…</td></tr></tbody></table></div>
+   <div class="sub" style="margin-top:9px">As reservas de materiais, energia e depreciação são calculadas pelas fichas dos produtos enviados em cada ciclo. Pedidos antigos sem data real de envio são agrupados provisoriamente pela data “Postagem até” e identificados como estimados. As compras de materiais são exibidas apenas para conferência, pois a reserva de materiais já separa esse dinheiro. Assim, a compra não é descontada uma segunda vez. Outras despesas continuam abatidas do saldo.</div>
  </div>
  <div class="finance-outflow-strip">
   <div class="finance-outflow-heading"><div><h2>Composição das saídas</h2><div class="sub">Entenda para onde foi o dinheiro no período selecionado.</div></div></div>
@@ -4185,10 +4185,10 @@ function renderFinanceWeeklyPayouts(){
     depreciation+=Math.max(0,Number(parts.depreciation)||0)*qty;
    });
   });
-  const cashOut=g.purchases+g.expenses,remaining=net-materials-energy-depreciation-cashOut;
+  const remaining=net-materials-energy-depreciation-g.expenses;
   const cell=v=>'<td style="white-space:nowrap">'+money(v)+'</td>';
-  return '<tr><td><b>'+fmt(g.start)+' a '+fmt(g.end)+'</b></td><td>'+fmt(g.pay)+'</td><td>'+g.sales.length+(g.estimatedSales?' <small style="display:block;color:#9a6a3a;font-weight:700">'+g.estimatedSales+' estimado(s) pela postagem até</small>':'')+'</td><td style="white-space:nowrap;color:#23774c;font-weight:800">'+money(net)+'</td>'+cell(materials)+cell(energy)+cell(depreciation)+cell(cashOut)+'<td style="white-space:nowrap;font-weight:850;color:'+(remaining<0?'#b54b4b':'#23774c')+'">'+money(remaining)+'</td></tr>';
- }).join("")||'<tr><td colspan="9">Ainda não há movimentações registradas desde 01/10/2026.</td></tr>';
+  return '<tr><td><b>'+fmt(g.start)+' a '+fmt(g.end)+'</b></td><td>'+fmt(g.pay)+'</td><td>'+g.sales.length+(g.estimatedSales?' <small style="display:block;color:#9a6a3a;font-weight:700">'+g.estimatedSales+' estimado(s) pela postagem até</small>':'')+'</td><td style="white-space:nowrap;color:#23774c;font-weight:800">'+money(net)+'</td>'+cell(materials)+cell(energy) +cell(depreciation)+cell(g.purchases)+cell(g.expenses)+'<td style="white-space:nowrap;font-weight:850;color:'+(remaining<0?'#b54b4b':'#23774c')+'">'+money(remaining)+'</td></tr>';
+ }).join("")||'<tr><td colspan="10">Ainda não há movimentações registradas desde 01/10/2026.</td></tr>';
 }
 function renderFinancePanel(){
  const rows=financeRows();
@@ -4589,7 +4589,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '158';
+const GESTOR_APP_VERSION = '159';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
