@@ -2083,6 +2083,31 @@ function toggleSaleCostDetails(id){
  tr.innerHTML='<td colspan="13"><div class="sale-cost-detail"><div class="sale-cost-heading"><b>Detalhamento dos custos do pedido</b><span>Valores calculados conforme a ficha técnica e os custos cadastrados</span></div>'+productHtml+'<div class="sale-cost-summary"><div><span>Materiais</span><b>'+fmt(materialsTotal)+'</b></div><div><span>Componentes e insumos</span><b>'+fmt(componentsTotal)+'</b></div><div><span>Energia</span><b>'+fmt(energyTotal)+'</b></div><div><span>Depreciação</span><b>'+fmt(depreciationTotal)+'</b></div><div><span>Desgaste da impressora</span><b>'+fmt(wearTotal)+'</b></div><div><span>Outros custos</span><b>'+fmt(otherTotal)+'</b></div><div><span>Embalagem</span><b>'+fmt(packaging)+'</b></div><div><span>Custo de produção</span><b>'+fmt(productionTotal+packaging)+'</b></div><div><span>Taxas e comissões registradas</span><b>'+fmt(fee)+'</b></div><div><span>Valor bruto da venda</span><b>'+fmt(gross)+'</b></div><div><span>Valor líquido registrado</span><b>'+fmt(net)+'</b></div></div><p class="sale-cost-note">As taxas são mostradas conforme o valor salvo no pedido. Este detalhamento é informativo e não cria despesas nem movimentações financeiras.</p></div></td>';
  mainRow.insertAdjacentElement('afterend',tr);
 }
+function saleProductionProgress(s){
+ const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,variantId:s.variantId,variantName:s.variantName,colorId:s.colorId,colorName:s.colorName,qty:s.qty||1}];
+ const total=items.reduce((n,item)=>n+Math.max(0,Number(item.qty)||0),0);
+ if(["Pronto","Pronto para embalar","Enviado","Entregue"].includes(String(s.status||"")))return {ready:total,missing:0,total};
+ const active=["Pendente","Recebido","Em produção"];
+ const ordered=(db.sales||[]).filter(x=>active.includes(String(x.status||"Recebido"))).sort((a,b)=>{
+  const ad=a.dueDate||"9999-12-31",bd=b.dueDate||"9999-12-31";if(ad!==bd)return ad.localeCompare(bd);
+  const da=a.dateISO||"9999-12-31",dbb=b.dateISO||"9999-12-31";if(da!==dbb)return da.localeCompare(dbb);
+  const at=a.time||"23:59",bt=b.time||"23:59";if(at!==bt)return at.localeCompare(bt);
+  return String(a.id).localeCompare(String(b.id),undefined,{numeric:true});
+ });
+ let ready=0;
+ items.forEach(item=>{
+  const key=productionQueueKeyForSaleItem(item,s),completed=Math.max(0,Number(db.productionStatuses?.[key]?.completedQty)||0);
+  let before=0;
+  for(const other of ordered){
+   if(String(other.id)===String(s.id))break;
+   const oi=Array.isArray(other.items)&&other.items.length?other.items:[{productId:other.productId,product:other.product,variantId:other.variantId,variantName:other.variantName,colorId:other.colorId,colorName:other.colorName,qty:other.qty||1}];
+   before+=oi.filter(x=>productionQueueKeyForSaleItem(x,other)===key).reduce((n,x)=>n+Math.max(0,Number(x.qty)||0),0);
+  }
+  ready+=Math.max(0,Math.min(Math.max(0,Number(item.qty)||0),completed-before));
+ });
+ ready=Math.min(total,ready);
+ return {ready,missing:Math.max(0,total-ready),total};
+}
 function renderSalesTable(){
  const table=document.getElementById("salesTable"); if(!table)return;
  const filter=document.getElementById("salesFilter")?.value||"todos";
@@ -2110,7 +2135,7 @@ function renderSalesTable(){
    if(at!==bt)return at.localeCompare(bt);
    return String(a.time||"00:00").localeCompare(String(b.time||"00:00"));
  });
- table.innerHTML=rows.map(s=>{const late=isLate(s);const detailItems=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,variantId:s.variantId,variantName:s.variantName||s.variant||"",colorId:s.colorId,colorName:s.colorName||""}];const detailLabels=[...new Set(detailItems.flatMap(item=>{const p=(db.products||[]).find(x=>String(x.id)===String(item.productId))||(db.products||[]).find(x=>String(x.name||"")===String(s.product||""));const variants=Array.isArray(p?.variants)?p.variants:[],colors=Array.isArray(p?.colors)?p.colors:[];const vi=variants.findIndex(v=>String(v.id)===String(item.variantId)||(!item.variantId&&String(v.name||"")===String(item.variantName||"")));const ci=colors.find(x=>String(x.id)===String(item.colorId)||(!item.colorId&&String(x.name||"")===String(item.colorName||"")));const size=vi>=0?saleVariantDisplayName(p,variants[vi],vi):String(item.variantName||"").replace(/^Tamanho:\\s*/i,"");const color=ci?saleColorDisplayName(ci):String(item.colorName||"").replace(/^Cor:\\s*/i,"");return [size?`Tamanho: ${size}`:"",color?`Cor: ${color}`:""];}).filter(Boolean))];const details=detailLabels.join(" • "); return `<tr><td>${formatDateISO(s.dateISO||"")}<small class="sub" style="display:block">${s.time||"—"}</small></td><td>${s.customerName||"—"}</td><td>${s.state||"—"}</td><td>${s.product}${details?`<small class="sub" style="display:block">${details}</small>`:""}</td><td>${s.store||"—"}</td><td>${s.channel||"Shopee"}</td><td>${s.qty}</td><td><span class="tag ${postingDateClass(s)}">${formatDateISO(s.dueDate)}</span>${late?'<small style="display:block;color:#a33;font-weight:700">Atrasado</small>':s.status==="Pendente"?'<small style="display:block;color:#8a5b00;font-weight:700">Pendente Shopee</small>':""}</td><td>${money(Number(s.grossValue??s.value)||0)}<small class="sub" style="display:block">Líquido: ${money(Number(s.netValue??0)||0)}</small></td><td><b style="color:${saleEstimatedProfit(s)>=0?'#2f7d57':'#b54b4b'}">${money(saleEstimatedProfit(s))}</b><small class="sub" style="display:block">Lucro estimado</small></td><td><select data-sale-status="${s.id}" class="status-select status-${saleStatusKey(s.status||"Recebido")}" onchange="updateSaleStatus('${s.id}',this.value)">${["Pendente","Recebido","Em produção","Pronto para embalar","Pronto","Enviado","Entregue","Cancelado"].map(st=>`<option value="${st}" ${s.status===st?'selected':''}>${st}</option>`).join("")}</select>${productionTimerMarkup(s)}</td><td>${s.notes||"—"}</td><td style="white-space:nowrap"><button class="btn xs outline" onclick="toggleSaleCostDetails('${s.id}')">Custos</button> ${productionActionMarkup(s)}<button class="btn xs outline" onclick="startEditSale('${s.id}')">Editar</button> <button class="btn xs danger" onclick="deleteSale('${s.id}')">Excluir</button></td></tr>`}).join("")||'<tr><td colspan="13">Nenhum pedido encontrado.</td></tr>';
+ table.innerHTML=rows.map(s=>{const late=isLate(s);const detailItems=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,variantId:s.variantId,variantName:s.variantName||s.variant||"",colorId:s.colorId,colorName:s.colorName||""}];const detailLabels=[...new Set(detailItems.flatMap(item=>{const p=(db.products||[]).find(x=>String(x.id)===String(item.productId))||(db.products||[]).find(x=>String(x.name||"")===String(s.product||""));const variants=Array.isArray(p?.variants)?p.variants:[],colors=Array.isArray(p?.colors)?p.colors:[];const vi=variants.findIndex(v=>String(v.id)===String(item.variantId)||(!item.variantId&&String(v.name||"")===String(item.variantName||"")));const ci=colors.find(x=>String(x.id)===String(item.colorId)||(!item.colorId&&String(x.name||"")===String(item.colorName||"")));const size=vi>=0?saleVariantDisplayName(p,variants[vi],vi):String(item.variantName||"").replace(/^Tamanho:\\s*/i,"");const color=ci?saleColorDisplayName(ci):String(item.colorName||"").replace(/^Cor:\\s*/i,"");return [size?`Tamanho: ${size}`:"",color?`Cor: ${color}`:""];}).filter(Boolean))];const details=detailLabels.join(" • "); return `<tr><td>${formatDateISO(s.dateISO||"")}<small class="sub" style="display:block">${s.time||"—"}</small></td><td>${s.customerName||"—"}</td><td>${s.state||"—"}</td><td>${s.product}${details?`<small class="sub" style="display:block">${details}</small>`:""}</td><td>${s.store||"—"}</td><td>${s.channel||"Shopee"}</td><td><b>${s.qty}</b><small class="sub" style="display:block;color:#2f7d57;font-weight:700">${saleProductionProgress(s).ready} prontas</small><small class="sub" style="display:block">${saleProductionProgress(s).missing} faltam</small></td><td><span class="tag ${postingDateClass(s)}">${formatDateISO(s.dueDate)}</span>${late?'<small style="display:block;color:#a33;font-weight:700">Atrasado</small>':s.status==="Pendente"?'<small style="display:block;color:#8a5b00;font-weight:700">Pendente Shopee</small>':""}</td><td>${money(Number(s.grossValue??s.value)||0)}<small class="sub" style="display:block">Líquido: ${money(Number(s.netValue??0)||0)}</small></td><td><b style="color:${saleEstimatedProfit(s)>=0?'#2f7d57':'#b54b4b'}">${money(saleEstimatedProfit(s))}</b><small class="sub" style="display:block">Lucro estimado</small></td><td><select data-sale-status="${s.id}" class="status-select status-${saleStatusKey(s.status||"Recebido")}" onchange="updateSaleStatus('${s.id}',this.value)">${["Pendente","Recebido","Em produção","Pronto para embalar","Pronto","Enviado","Entregue","Cancelado"].map(st=>`<option value="${st}" ${s.status===st?'selected':''}>${st}</option>`).join("")}</select>${productionTimerMarkup(s)}</td><td>${s.notes||"—"}</td><td style="white-space:nowrap"><button class="btn xs outline" onclick="toggleSaleCostDetails('${s.id}')">Custos</button> ${productionActionMarkup(s)}<button class="btn xs outline" onclick="startEditSale('${s.id}')">Editar</button> <button class="btn xs danger" onclick="deleteSale('${s.id}')">Excluir</button></td></tr>`}).join("")||'<tr><td colspan="13">Nenhum pedido encontrado.</td></tr>';
 }
 function sortProductsAlphabetically(products){
  return [...(products||[])].sort((a,b)=>String(a?.name||"Produto sem nome").localeCompare(String(b?.name||"Produto sem nome"),"pt-BR",{sensitivity:"base",numeric:true}));
@@ -4486,7 +4511,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '148';
+const GESTOR_APP_VERSION = '149';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
