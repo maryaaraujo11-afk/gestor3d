@@ -4136,37 +4136,44 @@ function financeWeekStart(dateISO){
  return addISODate(d,-back);
 }
 function renderFinanceWeeklyPayouts(){
+ const cutoff="2026-10-01";
+ const firstWeek=financeWeekStart(cutoff);
+ const currentWeek=financeWeekStart(todayISO());
  const groups=new Map();
  const ensure=start=>{
   if(!groups.has(start))groups.set(start,{start,end:addISODate(start,6),pay:addISODate(start,7),sales:[],purchases:0,expenses:0});
   return groups.get(start);
  };
+ // Inclui todos os ciclos desde 01/10/2026. O primeiro ciclo começa em 30/09,
+ // mas só entram nele movimentações feitas a partir de 01/10.
  (db.sales||[]).forEach(s=>{
   const sent=financeISODate(s.sentAt);
-  if(!sent||["Cancelado","Pendente"].includes(String(s.status||"")))return;
-  const g=ensure(financeWeekStart(sent));g.sales.push(s);
+  if(!sent||sent<cutoff||["Cancelado","Pendente"].includes(String(s.status||"")))return;
+  ensure(financeWeekStart(sent)).sales.push(s);
  });
  (db.purchases||[]).forEach(p=>{
-  const date=financeISODate(p.dateISO||p.date);if(date)ensure(financeWeekStart(date)).purchases+=Math.max(0,Number(p.value)||0);
+  const date=financeISODate(p.dateISO||p.date);
+  if(date&&date>=cutoff)ensure(financeWeekStart(date)).purchases+=Math.max(0,Number(p.value)||0);
  });
  (db.expenses||[]).forEach(e=>{
-  const date=financeISODate(e.dateISO||e.date);if(date)ensure(financeWeekStart(date)).expenses+=Math.max(0,Number(e.value)||0);
+  const date=financeISODate(e.dateISO||e.date);
+  if(date&&date>=cutoff)ensure(financeWeekStart(date)).expenses+=Math.max(0,Number(e.value)||0);
  });
- const today=financeWeekStart(todayISO());
- // Mantém as 12 semanas mais recentes e inclui ciclos com movimentação.
- const starts=[...groups.keys()].sort((a,b)=>b.localeCompare(a));
- if(today&&!groups.has(today))starts.unshift(today);
- const selected=starts.slice(0,12);
+ // Garante que semanas sem movimentação também apareçam, para facilitar a separação do dinheiro.
+ if(firstWeek&&currentWeek){
+  for(let start=firstWeek;start<=currentWeek;start=addISODate(start,7))ensure(start);
+ }
+ const selected=[...groups.keys()].filter(start=>start<=currentWeek).sort((a,b)=>b.localeCompare(a));
  const body=document.getElementById("financeWeeklyPayouts");if(!body)return;
  const fmt=d=>formatDateISO(d);
  body.innerHTML=selected.map(start=>{
-  const g=groups.get(start)||{start,end:addISODate(start,6),pay:addISODate(start,7),sales:[],purchases:0,expenses:0};
+  const g=groups.get(start);
   const net=g.sales.reduce((sum,s)=>sum+Math.max(0,financeAmount(s)),0);
   const reserve=g.sales.reduce((sum,s)=>sum+Math.max(0,saleCostForProfit(s)),0);
   const cashOut=g.purchases+g.expenses;
   const remaining=net-reserve-cashOut;
   return '<tr><td><b>'+fmt(g.start)+' a '+fmt(g.end)+'</b></td><td>'+fmt(g.pay)+'</td><td>'+g.sales.length+'</td><td style="white-space:nowrap;color:#23774c;font-weight:800">'+money(net)+'</td><td style="white-space:nowrap">'+money(reserve)+'</td><td style="white-space:nowrap">'+money(cashOut)+'</td><td style="white-space:nowrap;font-weight:850;color:'+(remaining<0?'#b54b4b':'#23774c')+'">'+money(remaining)+'</td></tr>';
- }).join("")||'<tr><td colspan="7">Ainda não há pedidos enviados nem saídas registradas nos ciclos semanais.</td></tr>';
+ }).join("")||'<tr><td colspan="7">Ainda não há movimentações registradas desde 01/10/2026.</td></tr>';
 }
 function renderFinancePanel(){
  const rows=financeRows();
@@ -4567,7 +4574,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '153';
+const GESTOR_APP_VERSION = '154';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
