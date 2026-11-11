@@ -4146,7 +4146,7 @@ function renderFinanceWeeklyPayouts(){
   return p||null;
  };
  (db.sales||[]).forEach(s=>{
-  const sent=financeISODate(s.sentAt);
+  const sent=financeISODate(s.sentAt||s.dueDate||s.postingDate);
   if(!sent||sent<cutoff||["cancelado","cancelada","pendente"].includes(String(s.status||"").trim().toLocaleLowerCase("pt-BR")))return;
   ensure(financeWeekStart(sent)).sales.push(s);
  });
