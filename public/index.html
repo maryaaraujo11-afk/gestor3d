@@ -2024,7 +2024,7 @@ function updateProductionQueueTimers(){
    const total=(db.sales||[]).filter(s=>["Pendente","Recebido","Em produção"].includes(String(s.status||"Recebido"))).reduce((sum,s)=>{
     const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,variantId:s.variantId,colorId:s.colorId,qty:s.qty||1}];
     return sum+items.filter(item=>String(item.productId||"")===productId&&String(item.variantId||item.colorId||item.variantName||item.colorName||"")===variantId).reduce((n,item)=>n+Math.max(0,Number(item.qty)||1),0);
-   },0)+(db.directSales||[]).filter(s=>String(s.productId||"")===productId&&String(s.status||"")==="Em produção").reduce((sum,s)=>sum+Math.max(1,Number(s.qty)||1),0);
+   },0)+(db.directSales||[]).filter(s=>String(s.productId||"")===productId&&String(s.status||"")==="Em produção").reduce((sum,s)=>sum+Math.max(1,Number(s.qty)||1),0)+(db.productionManual||[]).filter(item=>String(item.productId||"")===productId&&String(item.variantId||item.colorId||item.variantName||"")===variantId).reduce((sum,item)=>sum+Math.max(0,Number(item.qty)||0),0);
    finishProductionTimer(key,total,true);
    changed=true;
   }else{
