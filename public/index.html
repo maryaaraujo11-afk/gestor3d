@@ -1652,10 +1652,11 @@ function autoDeliverSentSales(){
  const today=todayISO(),todayMs=Date.parse(today+"T00:00:00Z");
  (db.sales||[]).forEach(s=>{
   if(s.status!=="Enviado")return;
-  // Pedidos antigos sem data de envio começam a contagem a partir desta versão.
-  if(!s.sentAt){s.sentAt=today;changed=true;return;}
-  const sentMs=Date.parse(String(s.sentAt).slice(0,10)+"T00:00:00Z");
-  if(Number.isFinite(sentMs)&&Math.floor((todayMs-sentMs)/86400000)>=15){
+  // Usa a data limite de postagem exibida em "Postagem até" como referência.
+  const referenceDate=s.dueDate||s.sentAt;
+  if(!referenceDate)return;
+  const referenceMs=Date.parse(String(referenceDate).slice(0,10)+"T00:00:00Z");
+  if(Number.isFinite(referenceMs)&&Math.floor((todayMs-referenceMs)/86400000)>=15){
    s.status="Entregue";
    s.completedDate=s.completedDate||today;
    changed=true;
@@ -4512,7 +4513,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '150';
+const GESTOR_APP_VERSION = '151';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
