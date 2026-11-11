@@ -1801,7 +1801,22 @@ function adjustStockForSale(s, direction, note){
 }
 function saleStatusKey(status){ return ({"Pendente":"pendente","Recebido":"recebido","Em produção":"producao","Pronto":"pronto","Pronto para embalar":"pronto-embalar","Enviado":"enviado","Entregue":"entregue","Cancelado":"cancelado"}[status]||"recebido"); }
 function applySaleStatusColor(el){ if(!el)return; el.className="status-select status-"+saleStatusKey(el.value); }
-function updateSaleStatus(id,value){ const s=db.sales.find(x=>String(x.id)===String(id)); if(!s)return; const wasPending=s.status==="Pendente"; if(wasPending&&value!=="Pendente"&&value!=="Cancelado")adjustStockForSale(s,-1,`Pedido Shopee confirmado: ${s.product||"Venda"}`); if(!wasPending&&value==="Pendente")adjustStockForSale(s,1,`Pedido movido para pendente: ${s.product||"Venda"}`); const previous=s.status; s.status=value; s.pendingShopee=value==="Pendente"; if(value==="Enviado"&&previous!=="Enviado")s.sentAt=todayISO(); if(value==="Entregue"&&!s.completedDate)s.completedDate=todayISO(); save(); const el=document.querySelector(`select[data-sale-status="${id}"]`); applySaleStatusColor(el); }
+function deductCompletedProductionForSale(sale){
+ if(!sale||sale.productionCompletedStockDeducted)return false;
+ const items=Array.isArray(sale.items)&&sale.items.length?sale.items:[{productId:sale.productId,product:sale.product,variantId:sale.variantId,variantName:sale.variantName,colorId:sale.colorId,colorName:sale.colorName,qty:sale.qty||1}];
+ db.productionStatuses=db.productionStatuses&&typeof db.productionStatuses==="object"?db.productionStatuses:{};
+ const deducted={};
+ items.forEach(item=>{
+  const key=productionQueueKeyForSaleItem(item,sale),st=db.productionStatuses[key];
+  if(!st)return;
+  const requested=Math.max(0,Number(item.qty??sale.qty)||0),available=Math.max(0,Number(st.completedQty)||0),used=Math.min(requested,available);
+  if(used>0){st.completedQty=available-used;deducted[key]=(deducted[key]||0)+used;}
+ });
+ sale.productionCompletedStockDeducted=true;
+ sale.productionCompletedStockDeductedByKey=deducted;
+ return true;
+}
+function updateSaleStatus(id,value){ const s=db.sales.find(x=>String(x.id)===String(id)); if(!s)return; const wasPending=s.status==="Pendente"; if(wasPending&&value!=="Pendente"&&value!=="Cancelado")adjustStockForSale(s,-1,`Pedido Shopee confirmado: ${s.product||"Venda"}`); if(!wasPending&&value==="Pendente")adjustStockForSale(s,1,`Pedido movido para pendente: ${s.product||"Venda"}`); const previous=s.status; s.status=value; s.pendingShopee=value==="Pendente"; if(value==="Enviado"&&previous!=="Enviado"){s.sentAt=todayISO();deductCompletedProductionForSale(s);} if(value==="Entregue"&&!s.completedDate)s.completedDate=todayISO(); save(); const el=document.querySelector(`select[data-sale-status="${id}"]`); applySaleStatusColor(el); }
 function formatProductionDuration(seconds){const total=Math.max(0,Math.floor(Number(seconds)||0)),h=Math.floor(total/3600),m=Math.floor((total%3600)/60),sec=total%60;return [h,m,sec].map(n=>String(n).padStart(2,"0")).join(":");}
 function productionTimerMarkup(s){const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,variantId:s.variantId,variantName:s.variantName,colorId:s.colorId,colorName:s.colorName,qty:s.qty||1}],keys=Array.isArray(s.productionQueueKeys)&&s.productionQueueKeys.length?s.productionQueueKeys:items.map(item=>productionQueueKeyForSaleItem(item,s)),active=keys.map(key=>({key,st:db.productionStatuses?.[key]})).filter(x=>x.st?.timerStartedAt);if(active.length)return '<small class="production-timer" style="display:block;margin-top:6px;font-weight:800">⏱ '+active.map(x=>'<span data-production-countdown="'+String(x.key).replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'">'+formatProductionCountdown(productionRemainingSeconds(x.st))+'</span>').join(' / ')+'</small>';if(!s.productionStartedAt)return "";const elapsed=s.productionFinishedAt?formatProductionDuration(s.productionDurationSeconds):formatProductionDuration((Date.now()-new Date(s.productionStartedAt).getTime())/1000);return '<small class="production-timer" style="display:block;margin-top:6px;font-weight:800">⏱ '+(s.productionFinishedAt?elapsed:'<span data-production-timer="'+s.productionStartedAt+'">'+elapsed+'</span>')+'</small>';}
 function productionActionMarkup(s){if(["Pendente","Recebido","Em produção"].includes(s.status||"")&&!s.productionStartedAt)return '<button class="btn xs" style="background:#2f7d57" onclick="startSaleProduction('+JSON.stringify(String(s.id))+')">▶ Iniciar produção</button> ';if(s.productionStartedAt&&!s.productionFinishedAt)return '<button class="btn xs" style="background:#2f7d57" onclick="finishSaleProduction('+JSON.stringify(String(s.id))+')">✓ Finalizar produção</button> ';return "";}
@@ -1909,6 +1924,13 @@ function addManualProduction(){
  save();renderProductionQueue();document.getElementById("productionManualQty").value="1";toggleProductionManualForm(false);
 }
 function renderProductionQueue(){
+ // Corrige pedidos que já foram enviados hoje antes desta atualização: consome
+ // uma única vez a quantidade concluída correspondente ao estoque produzido manualmente.
+ let reconciledSentToday=false;
+ (db.sales||[]).filter(s=>s.status==="Enviado"&&!s.productionCompletedStockDeducted&&(s.sentAt===todayISO()||s.dateISO===todayISO())).forEach(s=>{
+  if(deductCompletedProductionForSale(s))reconciledSentToday=true;
+ });
+ if(reconciledSentToday)save();
  const activeStatuses=new Set(["Pendente","Recebido","Em produção"]),groups=new Map();
  (db.sales||[]).filter(s=>activeStatuses.has(String(s.status||"Recebido"))).forEach(s=>{
   const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,variantId:s.variantId,variantName:s.variantName,colorId:s.colorId,colorName:s.colorName,qty:s.qty||1}];
