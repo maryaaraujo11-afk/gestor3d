@@ -1655,7 +1655,7 @@ function autoDeliverSentSales(){
   // Pedidos antigos sem data de envio começam a contagem a partir desta versão.
   if(!s.sentAt){s.sentAt=today;changed=true;return;}
   const sentMs=Date.parse(String(s.sentAt).slice(0,10)+"T00:00:00Z");
-  if(Number.isFinite(sentMs)&&Math.floor((todayMs-sentMs)/86400000)>=20){
+  if(Number.isFinite(sentMs)&&Math.floor((todayMs-sentMs)/86400000)>=15){
    s.status="Entregue";
    s.completedDate=s.completedDate||today;
    changed=true;
@@ -4497,6 +4497,7 @@ let migratedProductionTimers=false;
  }
 });
 if(migratedProductionTimers)localStorage.setItem(KEY,JSON.stringify(db));
+if(autoDeliverSentSales())localStorage.setItem(KEY,JSON.stringify(db));
 render();
 setInterval(()=>{if(autoDeliverSentSales())save();},60*1000);
 setInterval(updateProductionTimers,1000);
@@ -4511,7 +4512,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '149';
+const GESTOR_APP_VERSION = '150';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
