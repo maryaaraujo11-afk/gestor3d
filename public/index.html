@@ -353,6 +353,7 @@ table td,table th{border-bottom-color:#f0e7e0}
 <div class="field"><label>Nome</label><input id="pName"></div><div class="field"><label>SKU</label><input id="pSku"></div><div class="field"><label>Loja (opcional)</label><select id="pStore"><option value="">Sem loja definida</option><option value="F4R Studio 3D">F4R Studio 3D</option><option value="F4RM 3D">F4RM 3D</option></select><div class="sub">Os mesmos produtos podem ser vendidos nas duas lojas. A loja é escolhida no momento da venda.</div></div>
 <div class="field"><label>SKU Shopee</label><input id="pShopeeSku" placeholder="Ex.: MINI-JESUS-01"></div>
 <div class="field"><label>Nome do anúncio Shopee</label><input id="pShopeeName" placeholder="Nome usado no anúncio"></div>
+<div class="field"><label>Preço anunciado na Shopee (R$)</label><input id="pShopeePrice" type="number" min="0" step="0.01" placeholder="Ex.: 39,90"><div class="sub">Informe o preço que aparece no anúncio, antes de descontos ou cupons.</div></div>
 <div class="field" style="grid-column:1/-1">
 <label><b>Materiais / insumos da receita</b></label>
 <div id="materialsList"></div>
@@ -1563,7 +1564,7 @@ function addProduct(){
  const old=editingId?(db.products||[]).find(x=>String(x.id)===String(editingId)):null;
  const variants=collectProductVariants();
  const colors=collectProductColors();
- let p={...(old||{}),id:editingId||Date.now(),name:pName.value.trim(),sku:pSku.value.trim(),store:pStore.value,shopeeSku:pShopeeSku.value.trim(),shopeeName:pShopeeName.value.trim(),materials,variants,colors,
+ let p={...(old||{}),id:editingId||Date.now(),name:pName.value.trim(),sku:pSku.value.trim(),store:pStore.value,shopeeSku:pShopeeSku.value.trim(),shopeeName:pShopeeName.value.trim(),shopeePrice:Math.max(0,Number(document.getElementById("pShopeePrice")?.value)||0),materials,variants,colors,
  filamentCost:materials.reduce((sum,m)=>sum+(+m.qty||0)*(+m.unitCost||0),0),pack,other,machineWatts,machineKwh,machineValue,machineLife,machineWear,
  fee:+pFee.value||0,margin:+pMargin.value||0,stock:+pStock.value||0,printHours,productionBatchQty:batch?batchQty:1,productionBasis:batch?"batch":"unit",productionSourceHours:enteredHours,productionSourcePack:packEntered,productionSourceOther:otherEntered,productionSourceMaterials:batch?materials.map(m=>({materialId:m.materialId,sourceQty:m.sourceQty})):null,stockManaged:old?.stockManaged||false};
  if(!p.name){alert("Informe o nome do produto.");return}
@@ -1576,7 +1577,7 @@ function addProduct(){
  document.getElementById("productForm").classList.add("hidden");
  document.getElementById("productFormTitle").textContent="Novo produto";
  document.getElementById("productSaveBtn").textContent="Salvar produto";
- ["pName","pSku","pFilamentCost","pPrintHours","pPack","pOther","pStock","pMachineWatts","pMachineKwh","pMachineValue","pMachineLife","pMachineWear","pShopeeSku","pShopeeName","pShopeeItemId","pShopeeModelId"].forEach(x=>{const e=document.getElementById(x);if(e)e.value="";});
+ ["pName","pSku","pFilamentCost","pPrintHours","pPack","pOther","pStock","pMachineWatts","pMachineKwh","pMachineValue","pMachineLife","pMachineWear","pShopeeSku","pShopeeName","pShopeePrice","pShopeeItemId","pShopeeModelId"].forEach(x=>{const e=document.getElementById(x);if(e)e.value="";});
  const basis=document.getElementById("pBasis"); if(basis)basis.value="unit"; const bq=document.getElementById("pBatchQty"); if(bq)bq.value=1; updateProductBasisUI();
  document.getElementById("materialsList").innerHTML=""; addMaterialRow();
  const variantsList=document.getElementById("productVariantsList"); if(variantsList)variantsList.innerHTML="";
@@ -1592,7 +1593,7 @@ function editProduct(id){
  document.getElementById("productForm").classList.remove("hidden");
  document.getElementById("productFormTitle").textContent="Editar produto";
  document.getElementById("productSaveBtn").textContent="Salvar alterações";
- pName.value=p.name||""; pSku.value=p.sku||""; pStore.value=p.store||""; pShopeeSku.value=p.shopeeSku||""; pShopeeName.value=p.shopeeName||"";
+ pName.value=p.name||""; pSku.value=p.sku||""; pStore.value=p.store||""; pShopeeSku.value=p.shopeeSku||""; pShopeeName.value=p.shopeeName||""; document.getElementById("pShopeePrice").value=p.shopeePrice??"";
  pFee.value=p.fee??20; pMargin.value=p.margin??30; pStock.value=p.stock??0; document.getElementById("pMachineWatts").value=p.machineWatts??200; document.getElementById("pMachineKwh").value=p.machineKwh??0.90; document.getElementById("pMachineValue").value=p.machineValue??3000; document.getElementById("pMachineLife").value=p.machineLife??5000; document.getElementById("pMachineWear").value=p.machineWear??0.20;
  const basis=document.getElementById("pBasis"); basis.value=p.productionBasis==="batch"?"batch":"unit";
  const bq=document.getElementById("pBatchQty"); bq.value=p.productionBatchQty||1;
