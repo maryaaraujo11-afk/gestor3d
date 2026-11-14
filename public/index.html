@@ -2252,6 +2252,21 @@ function collectSaleItems(){
   return p?{itemId:row.dataset.itemId||String(Date.now()+Math.random()),productId:p.id,product:p.name,variantId:variant?.id||"",variantName:variant?.name||"",colorId:color?.id||"",colorName:color?.name||"",qty}:null;
  }).filter(Boolean);
 }
+function saleItemsAdvertisedGross(items){
+ const list=Array.isArray(items)?items:[];
+ if(!list.length)return null;
+ let total=0;
+ for(const item of list){
+  const p=(db.products||[]).find(x=>String(x.id)===String(item.productId));
+  if(!p)return null;
+  const variant=variantForSale(p,item.variantId);
+  const raw=variant&&variant.shopeePrice!==undefined&&variant.shopeePrice!==null&&variant.shopeePrice!==""?variant.shopeePrice:p.shopeePrice;
+  const unitPrice=Number(raw);
+  if(!Number.isFinite(unitPrice)||unitPrice<=0)return null;
+  total+=unitPrice*Math.max(1,Number(item.qty)||1);
+ }
+ return Math.round((total+Number.EPSILON)*100)/100;
+}
 function saleItemCost(item){
  const p=(db.products||[]).find(x=>String(x.id)===String(item.productId)); if(!p)return 0;
  return saleProductionCost(p,item.qty,{variantId:item.variantId||"",colorId:item.colorId||""});
@@ -2286,7 +2301,8 @@ function saveSaleForm(){
   if(invalid){alert("Selecione o tamanho e a cor de todos os produtos que possuem essas opções.");return;}
   const dateISO=dateEl.value||todayISO(),time=timeEl?.value||new Date().toTimeString().slice(0,5),postDays=Math.min(5,Math.max(1,Number(daysEl?.value)||1)),dueDate=addBusinessDays(dateISO,postDays);
   const packaging=saleItemsPackaging(items),cost=saleItemsCost(items)+packaging;
-  const suggestedGross=suggestedOrderGross(items,channel,packaging);
+  const catalogGross=saleItemsAdvertisedGross(items);
+  const suggestedGross=catalogGross!==null?catalogGross:suggestedOrderGross(items,channel,packaging);
   const grossRaw=String(grossEl.value||"").trim(),netRaw=String(netEl.value||"").trim(),gross=grossRaw!==""?Number(grossRaw):suggestedGross;
   if(!Number.isFinite(gross)||gross<0){alert("Informe um valor total da venda válido.");return;}
   const estimatedFees=channel==="Direta"?0:shopeeEstimatedOrderFee(items,gross,packaging);
@@ -2306,7 +2322,8 @@ function updateSalePreview(){
  const grossEl=document.getElementById("sGross"),netEl=document.getElementById("sNet");if(!grossEl||!netEl)return;
  const items=collectSaleItems(),channel=document.getElementById("sChannel")?.value||"Shopee";
  const packaging=saleItemsPackaging(items);
- const suggestedGross=suggestedOrderGross(items,channel,packaging);
+ const catalogGross=saleItemsAdvertisedGross(items);
+ const suggestedGross=catalogGross!==null?catalogGross:suggestedOrderGross(items,channel,packaging);
  if(!grossEl.dataset.manual||grossEl.value==="")grossEl.value=suggestedGross?suggestedGross.toFixed(2):"";
  const typedGross=Number(grossEl.value);
  const gross=Number.isFinite(typedGross)&&typedGross>=0?typedGross:suggestedGross;
