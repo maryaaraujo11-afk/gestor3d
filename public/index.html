@@ -255,6 +255,10 @@ table td,table th{border-bottom-color:#f0e7e0}
 .map-count-bubble{position:absolute;transform:translate(-50%,-50%);min-width:21px;height:21px;padding:0 3px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fffaf6;color:#684a3b;border:1.5px solid #9b725b;box-shadow:0 1px 4px rgba(62,43,32,.18);font-size:10px;font-weight:900;line-height:1;white-space:nowrap}
 .map-count-bubble.map-count-external{min-width:22px;height:22px;background:#fff;color:#684a3b;border-width:1.5px}
 @media(max-width:700px){.brazil-map{width:min(100%,620px)!important;aspect-ratio:1.13/1!important}.brazil-map img{width:86%!important}.map-count-bubble{min-width:18px;height:18px;padding:0 3px;font-size:9px;border-width:1px}}
+
+/* Ranking do dashboard: nunca aplicar line-clamp ao bloco que contém quantidade e valores. */
+#productsRanking .product-ranking-row .product-ranking-name{display:block!important;overflow:visible!important;text-overflow:clip!important;white-space:normal!important;-webkit-line-clamp:unset!important;-webkit-box-orient:initial!important;min-width:0!important;height:auto!important;max-height:none!important;line-height:1.3!important}
+#productsRanking .product-ranking-row .product-ranking-name small{display:block!important;overflow:visible!important;text-overflow:clip!important;white-space:normal!important;-webkit-line-clamp:unset!important;-webkit-box-orient:initial!important;height:auto!important;max-height:none!important;line-height:1.4!important;visibility:visible!important;opacity:1!important}
 </style>
 <!-- Gestor 3D V58 — trigger de publicação -->
 </head>
