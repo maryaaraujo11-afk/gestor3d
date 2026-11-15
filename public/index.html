@@ -1879,14 +1879,20 @@ function startEditSale(id){
  document.getElementById("sStore").value=s.store||"F4R Studio 3D"; document.getElementById("sChannel").value=s.channel||"Shopee";
  document.getElementById("sQty").value=s.qty||1;
  const grossField=document.getElementById("sGross"),netField=document.getElementById("sNet");
- const savedGross=s.grossValue??s.value??s.totalValue??s.total??s.amount??"";
- const savedNet=s.netValue??s.net??s.receivedValue??s.payoutValue??"";
- grossField.value=savedGross!==""&&Number.isFinite(Number(savedGross))?Number(savedGross).toFixed(2):"";
- netField.value=savedNet!==""&&Number.isFinite(Number(savedNet))?Number(savedNet).toFixed(2):"";
- // Em edição, os valores salvos são a referência: a prévia automática não deve substituí-los.
+ const readSavedMoney=(...values)=>{
+  const raw=values.find(v=>v!==undefined&&v!==null&&String(v).trim()!=="");
+  if(raw===undefined)return "";
+  if(typeof raw==="number")return Number.isFinite(raw)?raw.toFixed(2):"";
+  let str=String(raw).trim().replace(/R\$\s?/gi,"").replace(/\s/g,"");
+  if(str.includes(","))str=str.replace(/\./g,"").replace(",",".");
+  const value=Number(str);return Number.isFinite(value)?value.toFixed(2):"";
+ };
+ grossField.value=readSavedMoney(s.grossValue,s.value,s.totalValue,s.total,s.amount,s.saleValue,s.orderValue,s.valorTotal);
+ netField.value=readSavedMoney(s.netValue,s.net,s.receivedValue,s.payoutValue,s.receivedAmount,s.valorLiquido);
+ // Mantém os valores gravados no pedido e bloqueia a prévia automática durante a edição.
  grossField.dataset.manual="1";netField.dataset.manual="1";
  document.getElementById("sStatus").value=s.status||"Recebido";
- document.getElementById("sNotes").value=s.notes??s.observations??s.observation??"";
+ document.getElementById("sNotes").value=String(s.notes??s.observations??s.observation??s.obs??s.details??"");
  const savedDue=document.getElementById("sDueDate");
  if(savedDue)savedDue.value=s.dueDate||addBusinessDays(s.dateISO||todayISO(),Number(s.postDays)||1);
  document.getElementById("saleFormTitle").scrollIntoView({behavior:"smooth",block:"start"});
