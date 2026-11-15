@@ -1878,10 +1878,15 @@ function startEditSale(id){
  (Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,variantId:s.variantId,colorId:s.colorId,qty:s.qty}]).forEach(item=>addSaleItemRow(item));
  document.getElementById("sStore").value=s.store||"F4R Studio 3D"; document.getElementById("sChannel").value=s.channel||"Shopee";
  document.getElementById("sQty").value=s.qty||1;
- document.getElementById("sGross").value=Number(s.grossValue??s.value??0).toFixed(2);
- document.getElementById("sNet").value=Number(s.netValue??0).toFixed(2);
+ const grossField=document.getElementById("sGross"),netField=document.getElementById("sNet");
+ const savedGross=s.grossValue??s.value??s.totalValue??s.total??s.amount??"";
+ const savedNet=s.netValue??s.net??s.receivedValue??s.payoutValue??"";
+ grossField.value=savedGross!==""&&Number.isFinite(Number(savedGross))?Number(savedGross).toFixed(2):"";
+ netField.value=savedNet!==""&&Number.isFinite(Number(savedNet))?Number(savedNet).toFixed(2):"";
+ // Em edição, os valores salvos são a referência: a prévia automática não deve substituí-los.
+ grossField.dataset.manual="1";netField.dataset.manual="1";
  document.getElementById("sStatus").value=s.status||"Recebido";
- document.getElementById("sNotes").value=s.notes||"";
+ document.getElementById("sNotes").value=s.notes??s.observations??s.observation??"";
  const savedDue=document.getElementById("sDueDate");
  if(savedDue)savedDue.value=s.dueDate||addBusinessDays(s.dateISO||todayISO(),Number(s.postDays)||1);
  document.getElementById("saleFormTitle").scrollIntoView({behavior:"smooth",block:"start"});
@@ -1891,7 +1896,7 @@ function cancelEditSale(){
  document.getElementById("saleFormTitle").textContent="Registrar venda / pedido";
  document.getElementById("saleSubmitBtn").textContent="Registrar pedido";
  document.getElementById("saleCancelEditBtn").classList.add("hidden");
- document.getElementById("sQty").value="1"; document.getElementById("sGross").value=""; document.getElementById("sNet").value=""; document.getElementById("sNotes").value="";
+ document.getElementById("sQty").value="1"; document.getElementById("sGross").value=""; document.getElementById("sNet").value=""; delete document.getElementById("sGross").dataset.manual; delete document.getElementById("sNet").dataset.manual; document.getElementById("sNotes").value="";
  document.getElementById("saleItemsList").innerHTML=""; addSaleItemRow(); document.getElementById("sDate").value=todayISO(); document.getElementById("sTime").value=new Date().toTimeString().slice(0,5); document.getElementById("sCustomerName").value=""; document.getElementById("sState").value=""; document.getElementById("sPostDays").value="1";
  document.getElementById("sStatus").value="Recebido"; document.getElementById("sChannel").value="Shopee"; updatePostDate();
 }
