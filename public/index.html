@@ -3750,7 +3750,7 @@ function renderProductsRanking(period){
   const paymentRatio=Number(s.qty)>0?Math.min(1,lines.reduce((sum,x)=>sum+x.qty,0)/Number(s.qty)):1;
   lines.forEach(line=>{
    const share=(line.weight||line.qty)/weightTotal;
-   const allocatedNet=net*share;
+   const allocatedNet=net*share;const allocatedGross=gross*share;
    let productionCost=0,packagingCost=0;
    if(line.p){
     productionCost=saleProductionCost(line.p,line.qty,{...s,...line.item,variantId:line.item.variantId||line.item.variant_id||s.variantId,colorId:line.item.colorId||line.item.color_id||s.colorId});
@@ -3761,8 +3761,8 @@ function renderProductsRanking(period){
    }
    const profit=allocatedNet-productionCost-packagingCost;
    const key=line.id?"id:"+String(line.id):"name:"+line.name.toLocaleLowerCase("pt-BR");
-   const current=totals.get(key)||{name:line.name,qty:0,revenue:0,cost:0,profit:0};
-   current.qty+=line.qty;current.revenue+=allocatedNet;current.cost+=productionCost+packagingCost;current.profit+=profit;
+   const current=totals.get(key)||{name:line.name,qty:0,revenue:0,sold:0,cost:0,profit:0};
+   current.qty+=line.qty;current.revenue+=allocatedNet;current.sold=(current.sold||0)+allocatedGross;current.cost+=productionCost+packagingCost;current.profit+=profit;
    totals.set(key,current);
   });
  });
@@ -3774,7 +3774,7 @@ function renderProductsRanking(period){
   const perUnit=x.qty>0?x.profit/x.qty:0;
   return '<div class="ranking-row product-ranking-row" style="grid-template-columns:20px minmax(100px,1.5fr) minmax(72px,.9fr)!important;gap:8px!important;align-items:center">'+
    '<span class="ranking-rank">'+(i+1)+'</span>'+
-   '<span class="product-ranking-name" title="'+safeName(x.name)+'">'+safeName(x.name)+'<small style="display:block;color:#95877f;font-weight:500;margin-top:3px">'+x.qty.toLocaleString("pt-BR")+" un. • "+money(perUnit)+"/un.</small></span>"+
+   '<span class="product-ranking-name" title="'+safeName(x.name)+'">'+safeName(x.name)+'<small style="display:block;color:#95877f;font-weight:500;margin-top:3px">'+x.qty.toLocaleString("pt-BR")+" un. • "+money(x.sold||0)+" vendido • "+money(perUnit)+"/un.</small></span>"+
    '<span style="text-align:right;min-width:0"><b style="display:block;color:'+profitColor+';white-space:nowrap">'+money(x.profit)+'</b><span style="display:block;height:5px;background:#f0ece9;border-radius:99px;overflow:hidden;margin-top:5px"><i style="display:block;height:100%;width:'+Math.max(0,Math.min(100,x.profit/max*100))+'%;background:'+profitColor+';border-radius:99px"></i></span></span></div>';
  }).join("");
 }
