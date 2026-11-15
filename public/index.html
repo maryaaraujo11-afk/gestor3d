@@ -3769,12 +3769,12 @@ function renderProductsRanking(period){
  const ranked=[...totals.values()].sort((a,b)=>b.profit-a.profit||b.qty-a.qty||a.name.localeCompare(b.name,"pt-BR"));
  if(!ranked.length){box.innerHTML='<div class="ranking-empty">Nenhuma venda encontrada neste período.</div>';return;}
  const max=Math.max(1,...ranked.map(x=>Math.max(0,x.profit)));
- box.innerHTML=ranked.slice(0,8).map((x,i)=>{
+ box.innerHTML=ranked.slice(0,10).map((x,i)=>{
   const profitColor=x.profit>=0?"#287b55":"#b34c43";
   const perUnit=x.qty>0?x.profit/x.qty:0;
   return '<div class="ranking-row product-ranking-row" style="grid-template-columns:20px minmax(100px,1.5fr) minmax(72px,.9fr)!important;gap:8px!important;align-items:center">'+
    '<span class="ranking-rank">'+(i+1)+'</span>'+
-   '<span class="product-ranking-name" title="'+safeName(x.name)+'">'+safeName(x.name)+'<small style="display:block;color:#95877f;font-weight:500;margin-top:3px">'+x.qty.toLocaleString("pt-BR")+" un. • "+money(x.sold||0)+" vendido • "+money(perUnit)+"/un.</small></span>"+
+   '<span class="product-ranking-name" title="'+safeName(x.name)+'">'+safeName(x.name)+'<small style="display:block;color:#95877f;font-weight:500;margin-top:3px;white-space:normal;line-height:1.35;overflow-wrap:anywhere">'+x.qty.toLocaleString("pt-BR")+" un. • "+money(x.sold||0)+" vendido • "+money(perUnit)+"/un.</small></span>"+
    '<span style="text-align:right;min-width:0"><b style="display:block;color:'+profitColor+';white-space:nowrap">'+money(x.profit)+'</b><span style="display:block;height:5px;background:#f0ece9;border-radius:99px;overflow:hidden;margin-top:5px"><i style="display:block;height:100%;width:'+Math.max(0,Math.min(100,x.profit/max*100))+'%;background:'+profitColor+';border-radius:99px"></i></span></span></div>';
  }).join("");
 }
