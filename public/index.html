@@ -847,6 +847,7 @@ table td,table th{border-bottom-color:#f0e7e0}
 <div class="field"><label>Valor líquido recebido (R$)</label><input id="sNet" type="number" step=".01" placeholder="Após taxas/descontos"></div>
 <div class="field"><label>Status do pedido</label><select id="sStatus"><option>Recebido</option><option>Em produção</option><option>Pronto</option><option>Enviado</option><option>Entregue</option><option>Cancelado</option></select></div>
 <div class="field" style="grid-column:1/-1"><label>Observações</label><input id="sNotes" placeholder="Ex.: personalização, nome, cor, envio..."></div>
+<div id="saleEditDiagnostics" class="sub" style="grid-column:1/-1;display:none;padding:10px;border:1px dashed #b58b75;border-radius:8px;white-space:pre-wrap"></div>
 </div><br><button id="saleSubmitBtn" class="btn" onclick="saveSaleForm()">Registrar pedido</button> <button id="saleCancelEditBtn" class="btn outline hidden" type="button" onclick="cancelEditSale()">Cancelar edição</button></div>
 <div class="panel" style="margin-top:0">
 <div class="top" style="margin-bottom:12px">
@@ -1893,6 +1894,12 @@ function startEditSale(id){
  grossField.dataset.manual="1";netField.dataset.manual="1";
  document.getElementById("sStatus").value=s.status||"Recebido";
  document.getElementById("sNotes").value=String(s.notes??s.observations??s.observation??s.obs??s.details??"");
+ const diagnostic=document.getElementById("saleEditDiagnostics");
+ if(diagnostic){
+  const keys=Object.keys(s||{});
+  diagnostic.style.display="block";
+  diagnostic.textContent="DIAGNÓSTICO TEMPORÁRIO DO PEDIDO\\nID: "+String(s.id)+"\\nCampos de valor encontrados: "+keys.filter(k=>/gross|net|value|total|amount|price|valor|receiv/i.test(k)).join(", ")+"\\nValor bruto salvo: "+JSON.stringify({grossValue:s.grossValue,value:s.value,totalValue:s.totalValue,total:s.total,amount:s.amount,saleValue:s.saleValue,orderValue:s.orderValue,valorTotal:s.valorTotal})+"\\nValor líquido salvo: "+JSON.stringify({netValue:s.netValue,net:s.net,receivedValue:s.receivedValue,payoutValue:s.payoutValue,receivedAmount:s.receivedAmount,valorLiquido:s.valorLiquido})+"\\nObservações salvas: "+JSON.stringify({notes:s.notes,observations:s.observations,observation:s.observation,obs:s.obs,details:s.details})+"\\nCampos exibidos agora: total="+JSON.stringify(grossField.value)+", líquido="+JSON.stringify(netField.value)+", observações="+JSON.stringify(document.getElementById("sNotes").value);
+ }
  const savedDue=document.getElementById("sDueDate");
  if(savedDue)savedDue.value=s.dueDate||addBusinessDays(s.dateISO||todayISO(),Number(s.postDays)||1);
  document.getElementById("saleFormTitle").scrollIntoView({behavior:"smooth",block:"start"});
@@ -1902,7 +1909,7 @@ function cancelEditSale(){
  document.getElementById("saleFormTitle").textContent="Registrar venda / pedido";
  document.getElementById("saleSubmitBtn").textContent="Registrar pedido";
  document.getElementById("saleCancelEditBtn").classList.add("hidden");
- document.getElementById("sQty").value="1"; document.getElementById("sGross").value=""; document.getElementById("sNet").value=""; delete document.getElementById("sGross").dataset.manual; delete document.getElementById("sNet").dataset.manual; document.getElementById("sNotes").value="";
+ const editDiag=document.getElementById("saleEditDiagnostics");if(editDiag){editDiag.style.display="none";editDiag.textContent="";} document.getElementById("sQty").value="1"; document.getElementById("sGross").value=""; document.getElementById("sNet").value=""; delete document.getElementById("sGross").dataset.manual; delete document.getElementById("sNet").dataset.manual; document.getElementById("sNotes").value="";
  document.getElementById("saleItemsList").innerHTML=""; addSaleItemRow(); document.getElementById("sDate").value=todayISO(); document.getElementById("sTime").value=new Date().toTimeString().slice(0,5); document.getElementById("sCustomerName").value=""; document.getElementById("sState").value=""; document.getElementById("sPostDays").value="1";
  document.getElementById("sStatus").value="Recebido"; document.getElementById("sChannel").value="Shopee"; updatePostDate();
 }
