@@ -3489,6 +3489,21 @@ function repairKnownBatchData(){
 }
 repairKnownBatchData();
 
+// Atualiza uma única vez o custo de embalagem de todos os anúncios/produtos para R$ 1,00 por pedido.
+// Os pedidos já registrados são preservados para não alterar o histórico financeiro.
+(function setAllProductPackagingToOneReal(){
+ const migrationKey="gestor3d_all_product_packaging_v1";
+ if(localStorage.getItem(migrationKey)==="1")return;
+ let changed=false;
+ (db.products||[]).forEach(p=>{
+  if(Number(p.pack)!==1){p.pack=1;changed=true;}
+  if(p.productionBasis==="batch" && Number(p.productionSourcePack)!==1){p.productionSourcePack=1;changed=true;}
+  else if(p.productionSourcePack!==undefined && Number(p.productionSourcePack)!==1){p.productionSourcePack=1;changed=true;}
+ });
+ if(changed)save();
+ localStorage.setItem(migrationKey,"1");
+})();
+
 // Corrige históricos antigos que foram registrados com consumo fracionado para
 // saquinhos/argolas de chaveiros. A correção é feita uma única vez e somente
 // nas movimentações geradas por vendas/edições.
