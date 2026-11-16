@@ -3491,7 +3491,7 @@ function repairKnownBatchData(){
  if(bag && Math.abs((+bag.sourceQty||0)-1)>0.00001){bag.sourceQty=1; bag.qty=1/35; changed=true;}
  if(p.productionBatchQty!==35){p.productionBatchQty=35; changed=true;}
  if(Math.abs((+p.productionSourceHours||0)-4.55)>0.001){p.productionSourceHours=4.55; p.printHours=4.55/35; changed=true;}
- if(Math.abs((+p.productionSourcePack||0)-1.5)>0.001){p.productionSourcePack=1.5; p.pack=1.5; changed=true;}
+ if(Math.abs((+p.productionSourcePack||0)-1)>0.001){p.productionSourcePack=1; p.pack=1; changed=true;}
  if(changed) save();
 }
 repairKnownBatchData();
@@ -3499,7 +3499,7 @@ repairKnownBatchData();
 // Atualiza uma única vez o custo de embalagem de todos os anúncios/produtos para R$ 1,00 por pedido.
 // Os pedidos já registrados são preservados para não alterar o histórico financeiro.
 (function setAllProductPackagingToOneReal(){
- const migrationKey="gestor3d_all_product_packaging_v1";
+ const migrationKey="gestor3d_all_product_packaging_v2";
  if(localStorage.getItem(migrationKey)==="1")return;
  let changed=false;
  (db.products||[]).forEach(p=>{
