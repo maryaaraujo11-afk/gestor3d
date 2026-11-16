@@ -4601,12 +4601,13 @@ function selectDirectSaleCustomer(name){if(!name)return;const input=document.get
 function populateDirectSaleProducts(selectedId=""){const el=document.getElementById("dsExistingProduct");if(!el)return;const list=[...(db.products||[])].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR"));el.innerHTML='<option value="">— Escolher produto cadastrado —</option>'+list.map(p=>'<option value="'+String(p.id).replace(/"/g,'&quot;')+'">'+dsEscape(p.name||"Produto sem nome")+'</option>').join("");el.value=String(selectedId||"");}
 function selectDirectSaleProduct(id){if(!id)return;const p=(db.products||[]).find(x=>String(x.id)===String(id));if(!p)return;const name=document.getElementById("dsProduct");if(name)name.value=p.name||"";const qty=Math.max(1,Number(document.getElementById("dsQty")?.value)||1);const amount=document.getElementById("dsAmount");if(amount&&(!amount.value||Number(amount.value)===0))amount.value=(Number(suggested(p))||0)*qty;}
 function renderDirectSales(){
- // Sincroniza os cadastros de clientes antes de montar os seletores da tela.
- if(typeof syncCustomersFromSales==="function")syncCustomersFromSales();
- if(typeof syncCustomersFromDirectSales==="function")syncCustomersFromDirectSales();
  // Ao entrar em Vendas Diretas, importa orçamentos já aceitos/marcados para produção.
  // Usa o ID do orçamento como vínculo para impedir vendas duplicadas.
  if(typeof syncProductionQuotesToDirectSales==="function")syncProductionQuotesToDirectSales();
+ // Sincroniza e preenche os dois seletores depois da importação dos orçamentos.
+ if(typeof syncCustomersFromSales==="function")syncCustomersFromSales();
+ if(typeof syncCustomersFromDirectSales==="function")syncCustomersFromDirectSales();
+ populateDirectSaleCustomers(document.getElementById("dsExistingCustomer")?.value||"");
  populateDirectSaleProducts(document.getElementById("dsExistingProduct")?.value||"");
  const sales=directSales(), pay=directPayments();
  const c=document.getElementById("dsCount"),t=document.getElementById("dsTotal"),n=document.getElementById("dsNet"),pr=document.getElementById("dsProfit"),d=document.getElementById("dsDue");
