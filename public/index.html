@@ -2301,12 +2301,9 @@ function saleItemCost(item){
  return saleProductionCost(p,item.qty,{variantId:item.variantId||"",colorId:item.colorId||""});
 }
 function saleItemsCost(items){return items.reduce((sum,item)=>sum+saleItemCost(item),0);}
-const BUBBLE_WRAP_PER_ORDER=0.20*2.50;
 function saleItemsPackaging(items){
  const list=Array.isArray(items)?items:[];
- const productPackaging=list.reduce((sum,item)=>{const p=(db.products||[]).find(x=>String(x.id)===String(item.productId));return sum+(Number(p?.pack)||0);},0);
- // Cada pedido utiliza aproximadamente 20 cm de plástico-bolha, comprado a R$ 2,50 por metro.
- return productPackaging+(list.length?BUBBLE_WRAP_PER_ORDER:0);
+ return Math.round((list.reduce((sum,item)=>{const p=(db.products||[]).find(x=>String(x.id)===String(item.productId));return sum+(Number(p?.pack??1)||0);},0)+Number.EPSILON)*100)/100;
 }
 function adjustStockForSale(s,direction,note){
  const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,variantId:s.variantId,qty:s.qty,product:s.product}];
@@ -3510,6 +3507,38 @@ repairKnownBatchData();
  if(changed)save();
  localStorage.setItem(migrationKey,"1");
 })();
+
+// Atualiza uma única vez o custo de embalagem de todos os pedidos existentes.
+// O valor passa a ser R$ 1,00 por item/linha do pedido; não altera vendas, taxas ou pagamentos.
+(function migrateAllOrderPackagingToOneReal(){
+ const migrationKey="gestor3d_all_order_packaging_v1";
+ if(localStorage.getItem(migrationKey)==="1")return;
+ let changed=false;
+ (db.sales||[]).forEach(s=>{
+  const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,qty:s.qty||1}];
+  const newPackaging=Math.round((items.reduce((sum,item)=>{
+   const p=(db.products||[]).find(x=>String(x.id)===String(item.productId||item.product_id||item.internalProductId));
+   return sum+(Number(p?.pack??1)||0);
+  },0)+Number.EPSILON)*100)/100;
+  const oldPackaging=Math.max(0,Number(s.packaging)||0);
+  if(Math.abs(oldPackaging-newPackaging)>0.001){
+   s.packaging=newPackaging;
+   const allProductsExist=items.every(item=>(db.products||[]).some(p=>String(p.id)===String(item.productId||item.product_id||item.internalProductId)));
+   if(allProductsExist){
+    const production=items.reduce((sum,item)=>{
+     const p=(db.products||[]).find(x=>String(x.id)===String(item.productId||item.product_id||item.internalProductId));
+     return sum+saleProductionCost(p,Math.max(1,Number(item.qty??item.quantity)||1),{...s,...item});
+    },0);
+    s.cost=production+newPackaging;
+   }else if(!s.syncedFromShopee&&String(s.source||"").toLowerCase()!=="shopee"){
+    s.cost=Math.max(0,(Number(s.cost)||0)+newPackaging-oldPackaging);
+   }
+   changed=true;
+  }
+ });
+ if(changed)save();
+ localStorage.setItem(migrationKey,"1");
+})(); 
 
 // Corrige históricos antigos que foram registrados com consumo fracionado para
 // saquinhos/argolas de chaveiros. A correção é feita uma única vez e somente
