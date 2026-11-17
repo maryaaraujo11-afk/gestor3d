@@ -2427,8 +2427,8 @@ function saleItemCost(item){
 }
 function saleItemsCost(items){return items.reduce((sum,item)=>sum+saleItemCost(item),0);}
 function saleItemsPackaging(items){
- const list=Array.isArray(items)?items:[];
- return Math.round((list.reduce((sum,item)=>{const p=(db.products||[]).find(x=>String(x.id)===String(item.productId));return sum+(Number(p?.pack??1)||0);},0)+Number.EPSILON)*100)/100;
+ // Sem cobrança automática por produto/linha: embalagem vem apenas da seleção de envio.
+ return 0;
 }
 function adjustStockForSale(s,direction,note){
  const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,variantId:s.variantId,qty:s.qty,product:s.product}];
@@ -2456,7 +2456,7 @@ function saveSaleForm(){
   const invalid=items.find(item=>{const p=db.products.find(p=>String(p.id)===String(item.productId));return (Array.isArray(p?.variants)&&p.variants.length&&!item.variantId)||(Array.isArray(p?.colors)&&p.colors.length&&!item.colorId);});
   if(invalid){alert("Selecione o tamanho e a cor de todos os produtos que possuem essas opções.");return;}
   const dateISO=dateEl.value||todayISO(),time=timeEl?.value||new Date().toTimeString().slice(0,5),postDays=Math.min(5,Math.max(1,Number(daysEl?.value)||1)),dueDate=addBusinessDays(dateISO,postDays);
-  const packaging=saleItemsPackaging(items),shippingPackaging=(db.materials||[]).find(m=>String(m.id)===String(document.getElementById("sShippingPackaging")?.value||""))||null,shippingPackagingCost=shippingPackaging?Math.max(0,Number(shippingPackaging.unitCost)||0):0,cost=saleItemsCost(items)+packaging+shippingPackagingCost;
+  const shippingPackaging=(db.materials||[]).find(m=>String(m.id)===String(document.getElementById("sShippingPackaging")?.value||""))||null,shippingPackagingCost=shippingPackaging?Math.max(0,Number(shippingPackaging.unitCost)||0):0,packaging=shippingPackagingCost,cost=saleItemsCost(items)+shippingPackagingCost;
   const catalogGross=saleItemsAdvertisedGross(items);
   const suggestedGross=catalogGross!==null?catalogGross:suggestedOrderGross(items,channel,packaging);
   const grossRaw=String(grossEl.value||"").trim(),netRaw=String(netEl.value||"").trim(),gross=grossRaw!==""?Number(grossRaw):suggestedGross;
@@ -2479,7 +2479,8 @@ function addSale(){saveSaleForm();}
 function updateSalePreview(){
  const grossEl=document.getElementById("sGross"),netEl=document.getElementById("sNet");if(!grossEl||!netEl)return;
  const items=collectSaleItems(),channel=document.getElementById("sChannel")?.value||"Shopee";
- const packaging=saleItemsPackaging(items);
+ const selectedPackaging=(db.materials||[]).find(m=>String(m.id)===String(document.getElementById("sShippingPackaging")?.value||""));
+ const packaging=selectedPackaging?Math.max(0,Number(selectedPackaging.unitCost)||0):0;
  const catalogGross=saleItemsAdvertisedGross(items);
  const suggestedGross=catalogGross!==null?catalogGross:suggestedOrderGross(items,channel,packaging);
  if(!grossEl.dataset.manual||grossEl.value==="")grossEl.value=suggestedGross?suggestedGross.toFixed(2):"";
@@ -3639,52 +3640,8 @@ function repairKnownBatchData(){
 }
 repairKnownBatchData();
 
-// Atualiza uma única vez o custo de embalagem de todos os anúncios/produtos para R$ 1,00 por pedido.
-// Os pedidos já registrados são preservados para não alterar o histórico financeiro.
-(function setAllProductPackagingToOneReal(){
- const migrationKey="gestor3d_all_product_packaging_v2";
- if(localStorage.getItem(migrationKey)==="1")return;
- let changed=false;
- (db.products||[]).forEach(p=>{
-  if(Number(p.pack)!==1){p.pack=1;changed=true;}
-  if(p.productionBasis==="batch" && Number(p.productionSourcePack)!==1){p.productionSourcePack=1;changed=true;}
-  else if(p.productionSourcePack!==undefined && Number(p.productionSourcePack)!==1){p.productionSourcePack=1;changed=true;}
- });
- if(changed)save();
- localStorage.setItem(migrationKey,"1");
-})();
-
-// Atualiza uma única vez o custo de embalagem de todos os pedidos existentes.
-// O valor passa a ser R$ 1,00 por item/linha do pedido; não altera vendas, taxas ou pagamentos.
-(function migrateAllOrderPackagingToOneReal(){
- const migrationKey="gestor3d_all_order_packaging_v1";
- if(localStorage.getItem(migrationKey)==="1")return;
- let changed=false;
- (db.sales||[]).forEach(s=>{
-  const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,qty:s.qty||1}];
-  const newPackaging=Math.round((items.reduce((sum,item)=>{
-   const p=(db.products||[]).find(x=>String(x.id)===String(item.productId||item.product_id||item.internalProductId));
-   return sum+(Number(p?.pack??1)||0);
-  },0)+Number.EPSILON)*100)/100;
-  const oldPackaging=Math.max(0,Number(s.packaging)||0);
-  if(Math.abs(oldPackaging-newPackaging)>0.001){
-   s.packaging=newPackaging;
-   const allProductsExist=items.every(item=>(db.products||[]).some(p=>String(p.id)===String(item.productId||item.product_id||item.internalProductId)));
-   if(allProductsExist){
-    const production=items.reduce((sum,item)=>{
-     const p=(db.products||[]).find(x=>String(x.id)===String(item.productId||item.product_id||item.internalProductId));
-     return sum+saleProductionCost(p,Math.max(1,Number(item.qty??item.quantity)||1),{...s,...item});
-    },0);
-    s.cost=production+newPackaging;
-   }else if(!s.syncedFromShopee&&String(s.source||"").toLowerCase()!=="shopee"){
-    s.cost=Math.max(0,(Number(s.cost)||0)+newPackaging-oldPackaging);
-   }
-   changed=true;
-  }
- });
- if(changed)save();
- localStorage.setItem(migrationKey,"1");
-})(); 
+// Embalagem de envio agora é definida exclusivamente na venda pela seleção do material.
+// Não aplicar valores automáticos de embalagem aos produtos ou pedidos existentes.
 
 // Corrige históricos antigos que foram registrados com consumo fracionado para
 // saquinhos/argolas de chaveiros. A correção é feita uma única vez e somente
