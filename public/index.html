@@ -422,6 +422,9 @@ table tbody tr.stock-low td:last-child,table tbody tr.stock-empty td:last-child{
 #salesTable tr>td:nth-child(10) b{font-size:15px!important}
 #salesTable .status-select{font-size:12px!important;min-height:34px!important;padding:6px 9px!important}
 #salesTable .btn.xs{font-size:11px!important;padding:7px 9px!important}
+#salesTable tr>td:nth-child(2),
+#salesTable tr>th:nth-child(2){width:160px!important;min-width:145px!important;max-width:160px!important}
+#salesTable tr>td:nth-child(2){padding-left:7px!important;padding-right:7px!important;white-space:normal!important}
 #salesTable tr>td:nth-child(4){min-width:180px}
 #salesTable tr>td:nth-child(12){min-width:125px}
 </style>
@@ -4909,7 +4912,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '168';
+const GESTOR_APP_VERSION = '169';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
