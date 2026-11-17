@@ -2276,8 +2276,7 @@ function printProductionQueue(){
  if(!rows){alert("Não há itens para imprimir.");return;}
  const win=window.open("","_blank","width=900,height=700");
  if(!win){alert("Permita pop-ups para imprimir a lista de produção.");return;}
- win.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Fila de produção — Gestor 3D</title><style>body{font:14px Arial,sans-serif;padding:24px;color:#222}h1{font-size:22px}p{color:#666}table{border-collapse:collapse;width:100%;margin-top:18px}th,td{border:1px solid #ccc;padding:10px;text-align:left}th{background:#f4eee9}select{border:0;appearance:none;font:inherit}</style></head><body><h1>Fila de produção — Gestor 3D</h1><p>Resumo das quantidades a confeccionar</p><table><thead><tr><th>Produto / variação</th><th>Quantidade total</th><th>Pedidos</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>
-</body></html>');
+ win.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Fila de produção — Gestor 3D</title><style>body{font:14px Arial,sans-serif;padding:24px;color:#222}h1{font-size:22px}p{color:#666}table{border-collapse:collapse;width:100%;margin-top:18px}th,td{border:1px solid #ccc;padding:10px;text-align:left}th{background:#f4eee9}select{border:0;appearance:none;font:inherit}</style></head><body><h1>Fila de produção — Gestor 3D</h1><p>Resumo das quantidades a confeccionar</p><table><thead><tr><th>Produto / variação</th><th>Quantidade total</th><th>Pedidos</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></body></html>');
  win.document.close();win.focus();setTimeout(()=>{win.print();},250);
 }
 function setProductionStatus(key,status){
@@ -4903,7 +4902,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '165';
+const GESTOR_APP_VERSION = '166';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
