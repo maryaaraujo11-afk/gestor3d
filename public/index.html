@@ -4190,7 +4190,7 @@ function applyFilamentReplacement(){
 function populateFilamentMerge(){
  const source=document.getElementById("mergeFilamentSource"),target=document.getElementById("mergeFilamentTarget");
  if(!source||!target)return;
- const list=(db.materials||[]).filter(m=>/filamento|pla|petg|abs|asa|tpu|nylon/i.test([m.category,m.type,m.name].join(" ")));
+ const list=(db.materials||[]).filter(m=>/filamento|pla|petg|abs|asa|tpu|nylon/i.test([m.category,m.type,m.name].join(" "))).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base",numeric:true}));
  const safe=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
  const options=list.map(m=>'<option value="'+safe(m.id)+'">'+safe(m.name)+' — '+safe(m.brand||"Sem marca")+(m.color?" • "+safe(m.color):"")+'</option>').join("");
  source.innerHTML='<option value="">Selecione o cadastro que será unido</option>'+options;
