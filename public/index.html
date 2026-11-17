@@ -4142,7 +4142,7 @@ function filamentReplacementReferences(oldId){
 function populateFilamentReplacement(){
  const old=document.getElementById("replaceFilamentOld"),next=document.getElementById("replaceFilamentNew");
  if(!old||!next)return;
- const list=(db.materials||[]).filter(m=>/filamento|pla|petg|abs|tpu/i.test([m.category,m.type,m.name].join(" ")));
+ const list=(db.materials||[]).filter(m=>/filamento|pla|petg|abs|tpu/i.test([m.category,m.type,m.name].join(" "))).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base",numeric:true}));
  const safeText=v=>String(v??"").replace(/[&<>"\']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","\'":"&#39;"}[ch]));
  const options=list.map(m=>'<option value="'+safeText(m.id)+'">'+safeText(m.name)+' — '+safeText(m.brand||"Sem marca")+(m.color?" • "+safeText(m.color):"")+'</option>').join("");
  old.innerHTML='<option value="">Selecione o filamento atual</option>'+options;
