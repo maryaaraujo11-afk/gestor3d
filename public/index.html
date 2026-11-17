@@ -4828,7 +4828,7 @@ db.products.forEach(p=>{
    const outs=(db.movements||[]).filter(m=>String(m.materialId)===String(mat.id) && String(m.type).toLowerCase().includes("saída"));
    const used=outs.reduce((sum,m)=>sum+(Number(m.qty)||0),0);
    return {mat,used};
- }).sort((a,b)=>b.used-a.used || String(a.mat.name||"").localeCompare(String(b.mat.name||""),"pt-BR"));
+ }).sort((a,b)=>String(a.mat.name||"").localeCompare(String(b.mat.name||""),"pt-BR",{sensitivity:"base",numeric:true}));
  const consumptionTable=document.getElementById("consumptionTable");
  if(consumptionTable) consumptionTable.innerHTML=consumptionRows.map(({mat,used})=>`<tr><td><b>${mat.name}</b>${mat.color?`<div class="sub">${mat.color}</div>`:""}</td><td>${categoryBadge(mat.category)}</td><td><b>${Number(used).toLocaleString("pt-BR",{maximumFractionDigits:4})}</b></td><td><b>${Number(mat.stock||0).toLocaleString("pt-BR",{maximumFractionDigits:4})}</b></td><td>${mat.unit||"—"}</td><td>${(+mat.stock||0)<=0?'<span class="tag warn">Sem estoque</span>':(+mat.stock||0)<=(+mat.minStock||0)?'<span class="tag warn">Baixo</span>':'<span class="tag good">Normal</span>'}</td></tr>`).join("")||'<tr><td colspan="6">Nenhum material cadastrado.</td></tr>';
  const consumptionHistory=(db.movements||[]).filter(m=>String(m.type).toLowerCase().includes("saída")).slice(0,100);
