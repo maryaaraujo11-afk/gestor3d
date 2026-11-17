@@ -1760,7 +1760,7 @@ function inventoryTab(tab,btn){
 function refreshMovementSelect(){
  const sel=document.getElementById("mvMaterial");
  if(!sel)return;
- sel.innerHTML=(db.materials||[]).map(m=>`<option value="${m.id}">${m.name} — estoque: ${m.stock} ${m.unit}</option>`).join("");
+ sel.innerHTML=[...(db.materials||[])].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base",numeric:true})).map(m=>`<option value="${m.id}">${m.name} — estoque: ${m.stock} ${m.unit}</option>`).join("");
 }
 function addMovement(){
  const m=db.materials.find(x=>String(x.id)===String(mvMaterial.value));
