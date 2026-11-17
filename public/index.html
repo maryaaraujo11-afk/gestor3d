@@ -392,6 +392,22 @@ table tbody tr.stock-empty td:first-child{border-left:4px solid #c9362b!importan
 table tbody tr.stock-low td:last-child,table tbody tr.stock-empty td:last-child{border-right:1px solid #efb5ad!important}
 </style>
 <!-- Gestor 3D V58 — trigger de publicação -->
+
+<style id="readability-sales-orders">
+/* Ajuste de legibilidade — Vendas & Pedidos */
+#salesTable{font-size:14px!important;min-width:1480px}
+#salesTable th{font-size:11px!important;line-height:1.35;padding:12px 9px!important;white-space:nowrap}
+#salesTable td{font-size:13px!important;line-height:1.45;padding:13px 9px!important;vertical-align:middle}
+#salesTable td small,#salesTable td .sub{font-size:11px!important;line-height:1.4!important}
+#salesTable td b{font-size:14px}
+#salesTable .status-select{font-size:13px!important;min-height:36px;padding:7px 9px!important}
+#salesTable .btn.xs{font-size:12px!important;padding:8px 10px!important}
+@media(max-width:900px){
+ #salesTable{min-width:1380px}
+ #salesTable td{padding:11px 8px!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -4872,7 +4888,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '160';
+const GESTOR_APP_VERSION = '161';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
