@@ -2456,7 +2456,7 @@ function saveSaleForm(){
   const invalid=items.find(item=>{const p=db.products.find(p=>String(p.id)===String(item.productId));return (Array.isArray(p?.variants)&&p.variants.length&&!item.variantId)||(Array.isArray(p?.colors)&&p.colors.length&&!item.colorId);});
   if(invalid){alert("Selecione o tamanho e a cor de todos os produtos que possuem essas opções.");return;}
   const dateISO=dateEl.value||todayISO(),time=timeEl?.value||new Date().toTimeString().slice(0,5),postDays=Math.min(5,Math.max(1,Number(daysEl?.value)||1)),dueDate=addBusinessDays(dateISO,postDays);
-  const shippingPackaging=(db.materials||[]).find(m=>String(m.id)===String(document.getElementById("sShippingPackaging")?.value||""))||null,shippingPackagingCost=shippingPackaging?Math.max(0,Number(shippingPackaging.unitCost)||0):0,packaging=shippingPackagingCost,cost=saleItemsCost(items)+shippingPackagingCost;
+  const shippingPackaging=(db.materials||[]).find(m=>String(m.id)===String(document.getElementById("sShippingPackaging")?.value||""))||null,shippingPackagingCost=shippingPackaging?Math.max(0,Number(shippingPackaging.unitCost)||0):0,bubbleWrapCost=0.20,packaging=shippingPackagingCost+bubbleWrapCost,cost=saleItemsCost(items)+packaging;
   const catalogGross=saleItemsAdvertisedGross(items);
   const suggestedGross=catalogGross!==null?catalogGross:suggestedOrderGross(items,channel,packaging);
   const grossRaw=String(grossEl.value||"").trim(),netRaw=String(netEl.value||"").trim(),gross=grossRaw!==""?Number(grossRaw):suggestedGross;
@@ -2468,7 +2468,7 @@ function saveSaleForm(){
   const activeForStock=statusEl.value!=="Cancelado"&&statusEl.value!=="Pendente";
   if(shippingPackaging&&activeForStock){const available=(Number(shippingPackaging.stock)||0)+((old&&old.status!=="Cancelado"&&old.status!=="Pendente"&&String(old.shippingPackagingId)===String(shippingPackaging.id))?1:0);if(available<1){alert("A embalagem selecionada está sem estoque. Registre uma compra ou escolha outra embalagem.");return;}}
   if(old&&old.status!=="Cancelado"&&old.status!=="Pendente")adjustStockForSale(old,1,`Estorno para edição: ${old.product||"Venda"}`);
-  const first=items[0],sale={id:old?old.id:Date.now(),manualKey:old?.manualKey,orderSn:old?.orderSn||"",source:old?.source||"",syncedFromShopee:old?.syncedFromShopee||false,pendingShopee:false,dateISO,time,customerName:customerNameEl?.value.trim()||"",state:stateEl?.value||"",dueDate,postDays,date:formatDateISO(dateISO),product:items.length===1?first.product:`${first.product} + ${items.length-1} outro${items.length-1===1?"":"s"}`,productId:first.productId,variantId:first.variantId||"",variantName:first.variantName||"",colorId:first.colorId||"",colorName:first.colorName||"",items,store:storeEl.value,channel,value:gross,grossValue:gross,netValue:net,qty:items.reduce((a,i)=>a+i.qty,0),status:statusEl.value,sentAt:statusEl.value==="Enviado"?(old?.status==="Enviado"?(old.sentAt||todayISO()):todayISO()):"",completedDate:old?.completedDate||"",cost,fee:channel==="Direta"?0:fee,packaging,shippingPackagingId:shippingPackaging?shippingPackaging.id:"",shippingPackagingName:shippingPackaging?.name||"",shippingPackagingCost,notes:notesEl?.value.trim()||""};
+  const first=items[0],sale={id:old?old.id:Date.now(),manualKey:old?.manualKey,orderSn:old?.orderSn||"",source:old?.source||"",syncedFromShopee:old?.syncedFromShopee||false,pendingShopee:false,dateISO,time,customerName:customerNameEl?.value.trim()||"",state:stateEl?.value||"",dueDate,postDays,date:formatDateISO(dateISO),product:items.length===1?first.product:`${first.product} + ${items.length-1} outro${items.length-1===1?"":"s"}`,productId:first.productId,variantId:first.variantId||"",variantName:first.variantName||"",colorId:first.colorId||"",colorName:first.colorName||"",items,store:storeEl.value,channel,value:gross,grossValue:gross,netValue:net,qty:items.reduce((a,i)=>a+i.qty,0),status:statusEl.value,sentAt:statusEl.value==="Enviado"?(old?.status==="Enviado"?(old.sentAt||todayISO()):todayISO()):"",completedDate:old?.completedDate||"",cost,fee:channel==="Direta"?0:fee,packaging,shippingPackagingId:shippingPackaging?shippingPackaging.id:"",shippingPackagingName:shippingPackaging?.name||"",shippingPackagingCost,bubbleWrapCost,notes:notesEl?.value.trim()||""};
   if(old)Object.assign(old,sale);else{db.sales=db.sales||[];db.sales.unshift(sale);}
   syncCustomersFromSales();
   if(sale.status!=="Cancelado"&&sale.status!=="Pendente")adjustStockForSale(sale,-1,`${old?"Edição":"Venda"}: ${sale.product}`);
@@ -2480,7 +2480,7 @@ function updateSalePreview(){
  const grossEl=document.getElementById("sGross"),netEl=document.getElementById("sNet");if(!grossEl||!netEl)return;
  const items=collectSaleItems(),channel=document.getElementById("sChannel")?.value||"Shopee";
  const selectedPackaging=(db.materials||[]).find(m=>String(m.id)===String(document.getElementById("sShippingPackaging")?.value||""));
- const packaging=selectedPackaging?Math.max(0,Number(selectedPackaging.unitCost)||0):0;
+ const packaging=(selectedPackaging?Math.max(0,Number(selectedPackaging.unitCost)||0):0)+0.20;
  const catalogGross=saleItemsAdvertisedGross(items);
  const suggestedGross=catalogGross!==null?catalogGross:suggestedOrderGross(items,channel,packaging);
  if(!grossEl.dataset.manual||grossEl.value==="")grossEl.value=suggestedGross?suggestedGross.toFixed(2):"";
@@ -3607,7 +3607,7 @@ function populateSaleShippingPackaging(selectedId=""){
 function updateSalePackagingHint(){
  const el=document.getElementById("sShippingPackaging"),hint=document.getElementById("sShippingPackagingHint");if(!hint)return;
  const m=(db.materials||[]).find(x=>String(x.id)===String(el?.value||""));
- hint.textContent=m?'Custo de envio: '+money(m.unitCost)+'. Será descontada 1 unidade do estoque ao confirmar o pedido.':'Selecione a embalagem utilizada no envio. O custo será incluído na venda e 1 unidade será baixada do estoque.';
+ hint.textContent=m?'Custo da embalagem: '+money(m.unitCost)+' + plástico-bolha R$ 0,20. Será descontada 1 unidade do estoque ao confirmar o pedido.':'Plástico-bolha: R$ 0,20 por pedido. Selecione a caixa ou envelope; 1 unidade será baixada do estoque.';
 }
 function populateSaleProducts(){
  populateSaleShippingPackaging();
