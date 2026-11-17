@@ -409,18 +409,21 @@ table tbody tr.stock-low td:last-child,table tbody tr.stock-empty td:last-child{
 </style>
 
 <style id="readability-sales-orders-v2">
-/* V165 — leitura ampliada dos dados dos pedidos */
-#salesTable{min-width:1580px!important;width:100%!important}
-#salesTable tr>td{font-size:15px!important;line-height:1.5!important;padding:15px 10px!important;vertical-align:middle}
-#salesTable tr>td:nth-child(1),#salesTable tr>td:nth-child(3),#salesTable tr>td:nth-child(5),#salesTable tr>td:nth-child(6),#salesTable tr>td:nth-child(8){font-size:13px!important}
-#salesTable tr>td:nth-child(2),#salesTable tr>td:nth-child(4),#salesTable tr>td:nth-child(12){font-size:14px!important}
-#salesTable tr>td small,#salesTable tr>td .sub{font-size:12px!important;line-height:1.45!important}
-#salesTable tr>td b{font-size:16px!important}
-#salesTable tr>td:nth-child(10) b{font-size:17px!important}
-#salesTable .status-select{font-size:14px!important;min-height:40px!important;padding:8px 11px!important}
-#salesTable .btn.xs{font-size:13px!important;padding:9px 11px!important}
-#salesTable tr>td:nth-child(4){min-width:210px}
-#salesTable tr>td:nth-child(12){min-width:150px}
+/* V168 — ajuste equilibrado de legibilidade */
+#salesTable{min-width:1480px!important;width:100%!important}
+#salesTable th{font-size:10px!important;line-height:1.3!important;padding:10px 8px!important}
+#salesTable tr>td{font-size:12px!important;line-height:1.4!important;padding:11px 8px!important;vertical-align:middle}
+#salesTable tr>td:nth-child(2),
+#salesTable tr>td:nth-child(4),
+#salesTable tr>td:nth-child(12){font-size:12px!important}
+#salesTable tr>td small,
+#salesTable tr>td .sub{font-size:10px!important;line-height:1.35!important}
+#salesTable tr>td b{font-size:13px!important}
+#salesTable tr>td:nth-child(10) b{font-size:15px!important}
+#salesTable .status-select{font-size:12px!important;min-height:34px!important;padding:6px 9px!important}
+#salesTable .btn.xs{font-size:11px!important;padding:7px 9px!important}
+#salesTable tr>td:nth-child(4){min-width:180px}
+#salesTable tr>td:nth-child(12){min-width:125px}
 </style>
 </head>
 <body>
@@ -4906,7 +4909,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '167';
+const GESTOR_APP_VERSION = '168';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
