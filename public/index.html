@@ -977,6 +977,7 @@ table tbody tr.stock-low td:last-child,table tbody tr.stock-empty td:last-child{
 <button type="button" class="btn secondary" onclick="addSaleItemRow()">+ Adicionar produto ao pedido</button>
 <div class="sub" style="margin-top:6px">Um mesmo pedido pode ter vários produtos e quantidades. Cada item pode usar uma cor / variação diferente.</div>
 </div>
+<div class="field"><label>Embalagem de envio</label><select id="sShippingPackaging" onchange="updateSalePackagingHint()"><option value="">Sem embalagem selecionada</option></select><div class="sub" id="sShippingPackagingHint">Selecione a embalagem utilizada no envio. O custo será incluído na venda e 1 unidade será baixada do estoque.</div></div>
 <div class="field"><label>Loja</label><select id="sStore"><option value="F4R Studio 3D">F4R Studio 3D</option><option value="F4RM 3D">F4RM 3D</option></select></div><div class="field"><label>Canal da venda</label><select id="sChannel" onchange="updateSalePreview()"><option value="Shopee">Shopee</option><option value="Direta">Venda direta</option></select><div class="sub">Venda direta não aplica taxa da Shopee.</div></div>
 <div class="field"><label>Valor total da venda (R$)</label><input id="sGross" type="number" step=".01" placeholder="Valor pago pelo cliente"></div>
 <div class="field"><label>Valor líquido recebido (R$)</label><input id="sNet" type="number" step=".01" placeholder="Após taxas/descontos"></div>
@@ -2012,7 +2013,7 @@ function startEditSale(id){
  document.getElementById("sPostDays").value=String(s.postDays||1);
  document.getElementById("saleItemsList").innerHTML="";
  (Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,variantId:s.variantId,colorId:s.colorId,qty:s.qty}]).forEach(item=>addSaleItemRow(item));
- document.getElementById("sStore").value=s.store||"F4R Studio 3D"; document.getElementById("sChannel").value=s.channel||"Shopee";
+ document.getElementById("sStore").value=s.store||"F4R Studio 3D"; document.getElementById("sChannel").value=s.channel||"Shopee"; populateSaleShippingPackaging(s.shippingPackagingId||"");
  document.getElementById("sQty").value=s.qty||1;
  const grossField=document.getElementById("sGross"),netField=document.getElementById("sNet");
  const readSavedMoney=(...values)=>{
@@ -2046,7 +2047,7 @@ function cancelEditSale(){
  document.getElementById("saleCancelEditBtn").classList.add("hidden");
  const editDiag=document.getElementById("saleEditDiagnostics");if(editDiag){editDiag.style.display="none";editDiag.textContent="";} document.getElementById("sQty").value="1"; document.getElementById("sGross").value=""; document.getElementById("sNet").value=""; delete document.getElementById("sGross").dataset.manual; delete document.getElementById("sNet").dataset.manual; document.getElementById("sNotes").value="";
  document.getElementById("saleItemsList").innerHTML=""; addSaleItemRow(); document.getElementById("sDate").value=todayISO(); document.getElementById("sTime").value=new Date().toTimeString().slice(0,5); document.getElementById("sCustomerName").value=""; document.getElementById("sState").value=""; document.getElementById("sPostDays").value="1";
- document.getElementById("sStatus").value="Recebido"; document.getElementById("sChannel").value="Shopee"; updatePostDate();
+ document.getElementById("sStatus").value="Recebido"; document.getElementById("sChannel").value="Shopee"; const packageSelect=document.getElementById("sShippingPackaging");if(packageSelect)packageSelect.value="";updateSalePackagingHint(); updatePostDate();
 }
 function deleteSale(id){
  const s=db.sales.find(x=>String(x.id)===String(id)); if(!s)return;
@@ -2442,6 +2443,11 @@ function adjustStockForSale(s,direction,note){
    db.movements.unshift({id:Date.now()+Math.random(),date:new Date().toLocaleString("pt-BR"),materialId:m.id,material:m.name,type:direction<0?"saída":"entrada",qty:Math.abs(use),note,before,after:m.stock});
   });
  });
+ const packageId=s.shippingPackagingId;
+ if(packageId!==undefined&&packageId!==null&&String(packageId)!==""){
+  const material=(db.materials||[]).find(m=>String(m.id)===String(packageId));
+  if(material){const before=Number(material.stock)||0;material.stock=Math.max(0,before+direction);db.movements=db.movements||[];db.movements.unshift({id:Date.now()+Math.random(),date:new Date().toLocaleString("pt-BR"),materialId:material.id,material:material.name,type:direction<0?"saída":"entrada",qty:1,note:(note||"Venda")+" — embalagem de envio",before,after:material.stock});}
+ }
 }
 function saveSaleForm(){
  try{
@@ -2450,7 +2456,7 @@ function saveSaleForm(){
   const invalid=items.find(item=>{const p=db.products.find(p=>String(p.id)===String(item.productId));return (Array.isArray(p?.variants)&&p.variants.length&&!item.variantId)||(Array.isArray(p?.colors)&&p.colors.length&&!item.colorId);});
   if(invalid){alert("Selecione o tamanho e a cor de todos os produtos que possuem essas opções.");return;}
   const dateISO=dateEl.value||todayISO(),time=timeEl?.value||new Date().toTimeString().slice(0,5),postDays=Math.min(5,Math.max(1,Number(daysEl?.value)||1)),dueDate=addBusinessDays(dateISO,postDays);
-  const packaging=saleItemsPackaging(items),cost=saleItemsCost(items)+packaging;
+  const packaging=saleItemsPackaging(items),shippingPackaging=(db.materials||[]).find(m=>String(m.id)===String(document.getElementById("sShippingPackaging")?.value||""))||null,shippingPackagingCost=shippingPackaging?Math.max(0,Number(shippingPackaging.unitCost)||0):0,cost=saleItemsCost(items)+packaging+shippingPackagingCost;
   const catalogGross=saleItemsAdvertisedGross(items);
   const suggestedGross=catalogGross!==null?catalogGross:suggestedOrderGross(items,channel,packaging);
   const grossRaw=String(grossEl.value||"").trim(),netRaw=String(netEl.value||"").trim(),gross=grossRaw!==""?Number(grossRaw):suggestedGross;
@@ -2459,8 +2465,10 @@ function saveSaleForm(){
   const defaultNet=Math.max(0,gross-estimatedFees);
   const net=netRaw!==""?Number(netRaw):defaultNet;if(!Number.isFinite(net)||net<0){alert("Informe um valor líquido recebido válido.");return;}
   const fee=Math.max(0,gross-net),old=editingSaleId!=null?db.sales.find(x=>String(x.id)===String(editingSaleId)):null;
+  const activeForStock=statusEl.value!=="Cancelado"&&statusEl.value!=="Pendente";
+  if(shippingPackaging&&activeForStock){const available=(Number(shippingPackaging.stock)||0)+((old&&old.status!=="Cancelado"&&old.status!=="Pendente"&&String(old.shippingPackagingId)===String(shippingPackaging.id))?1:0);if(available<1){alert("A embalagem selecionada está sem estoque. Registre uma compra ou escolha outra embalagem.");return;}}
   if(old&&old.status!=="Cancelado"&&old.status!=="Pendente")adjustStockForSale(old,1,`Estorno para edição: ${old.product||"Venda"}`);
-  const first=items[0],sale={id:old?old.id:Date.now(),manualKey:old?.manualKey,orderSn:old?.orderSn||"",source:old?.source||"",syncedFromShopee:old?.syncedFromShopee||false,pendingShopee:false,dateISO,time,customerName:customerNameEl?.value.trim()||"",state:stateEl?.value||"",dueDate,postDays,date:formatDateISO(dateISO),product:items.length===1?first.product:`${first.product} + ${items.length-1} outro${items.length-1===1?"":"s"}`,productId:first.productId,variantId:first.variantId||"",variantName:first.variantName||"",colorId:first.colorId||"",colorName:first.colorName||"",items,store:storeEl.value,channel,value:gross,grossValue:gross,netValue:net,qty:items.reduce((a,i)=>a+i.qty,0),status:statusEl.value,sentAt:statusEl.value==="Enviado"?(old?.status==="Enviado"?(old.sentAt||todayISO()):todayISO()):"",completedDate:old?.completedDate||"",cost,fee:channel==="Direta"?0:fee,packaging,notes:notesEl?.value.trim()||""};
+  const first=items[0],sale={id:old?old.id:Date.now(),manualKey:old?.manualKey,orderSn:old?.orderSn||"",source:old?.source||"",syncedFromShopee:old?.syncedFromShopee||false,pendingShopee:false,dateISO,time,customerName:customerNameEl?.value.trim()||"",state:stateEl?.value||"",dueDate,postDays,date:formatDateISO(dateISO),product:items.length===1?first.product:`${first.product} + ${items.length-1} outro${items.length-1===1?"":"s"}`,productId:first.productId,variantId:first.variantId||"",variantName:first.variantName||"",colorId:first.colorId||"",colorName:first.colorName||"",items,store:storeEl.value,channel,value:gross,grossValue:gross,netValue:net,qty:items.reduce((a,i)=>a+i.qty,0),status:statusEl.value,sentAt:statusEl.value==="Enviado"?(old?.status==="Enviado"?(old.sentAt||todayISO()):todayISO()):"",completedDate:old?.completedDate||"",cost,fee:channel==="Direta"?0:fee,packaging,shippingPackagingId:shippingPackaging?shippingPackaging.id:"",shippingPackagingName:shippingPackaging?.name||"",shippingPackagingCost,notes:notesEl?.value.trim()||""};
   if(old)Object.assign(old,sale);else{db.sales=db.sales||[];db.sales.unshift(sale);}
   syncCustomersFromSales();
   if(sale.status!=="Cancelado"&&sale.status!=="Pendente")adjustStockForSale(sale,-1,`${old?"Edição":"Venda"}: ${sale.product}`);
@@ -3587,7 +3595,21 @@ function migrateKitChaveirosVariations(){
  return true;
 }
 if(migrateKitChaveirosVariations()) localStorage.setItem(KEY,JSON.stringify(db));
+function populateSaleShippingPackaging(selectedId=""){
+ const el=document.getElementById("sShippingPackaging");if(!el)return;
+ const current=String(selectedId||el.value||"");
+ const materials=(db.materials||[]).filter(m=>String(m.category||"").trim().toLowerCase()==="embalagem").sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR"));
+ el.innerHTML='<option value="">Sem embalagem selecionada</option>'+materials.map(m=>'<option value="'+String(m.id).replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'">'+String(m.name||"Embalagem")+' — '+money(m.unitCost)+' / '+String(m.unit||"unidades")+' (estoque: '+(Number(m.stock)||0)+')</option>').join("");
+ if(materials.some(m=>String(m.id)===current))el.value=current;
+ updateSalePackagingHint();
+}
+function updateSalePackagingHint(){
+ const el=document.getElementById("sShippingPackaging"),hint=document.getElementById("sShippingPackagingHint");if(!hint)return;
+ const m=(db.materials||[]).find(x=>String(x.id)===String(el?.value||""));
+ hint.textContent=m?'Custo de envio: '+money(m.unitCost)+'. Será descontada 1 unidade do estoque ao confirmar o pedido.':'Selecione a embalagem utilizada no envio. O custo será incluído na venda e 1 unidade será baixada do estoque.';
+}
 function populateSaleProducts(){
+ populateSaleShippingPackaging();
  const el=document.getElementById("sProduct");
  if(!el) return;
  const current=String(el.value||"");
