@@ -3598,7 +3598,7 @@ if(migrateKitChaveirosVariations()) localStorage.setItem(KEY,JSON.stringify(db))
 function populateSaleShippingPackaging(selectedId=""){
  const el=document.getElementById("sShippingPackaging");if(!el)return;
  const current=String(selectedId||el.value||"");
- const materials=(db.materials||[]).filter(m=>String(m.category||"").trim().toLowerCase()==="embalagem").sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR"));
+ const materials=(db.materials||[]).filter(m=>String(m.category||"").trim().toLowerCase()==="embalagem"&&/caixa|envelope/i.test(String(m.name||""))).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR"));
  el.innerHTML='<option value="">Sem embalagem selecionada</option>'+materials.map(m=>'<option value="'+String(m.id).replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'">'+String(m.name||"Embalagem")+' — '+money(m.unitCost)+' / '+String(m.unit||"unidades")+' (estoque: '+(Number(m.stock)||0)+')</option>').join("");
  if(materials.some(m=>String(m.id)===current))el.value=current;
  updateSalePackagingHint();
