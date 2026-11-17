@@ -266,6 +266,80 @@ table td,table th{border-bottom-color:#f0e7e0}
 /* Destaca vendas diretas com saldo financeiro pendente. */
 #dsTable .ds-payment-pending{display:inline-block;background:#fff0cf;color:#925600;padding:4px 8px;border-radius:6px;font-weight:800}
 #dsTable .ds-payment-pending-label{display:inline-block;margin-left:4px;background:#ffe2a3;color:#805000;padding:3px 6px;border-radius:10px;font-size:10px;font-weight:700}
+
+/* Vendas & Pedidos — interface profissional */
+#sales.sales-page{max-width:none;padding:30px 32px 48px;background:#f7f5f3}
+#sales .top h1{font-size:29px;font-weight:800;letter-spacing:-.8px;color:#302722}
+#sales>.top{margin-bottom:24px}
+#sales .sales-kpis{gap:14px}
+#sales .sales-kpis .card{position:relative;overflow:hidden;min-height:104px;padding:17px 18px 16px 20px;border:1px solid #e9e1dc;border-radius:13px;box-shadow:0 3px 12px rgba(55,38,27,.035);background:linear-gradient(145deg,#fff 0%,#fdfcfb 100%)}
+#sales .sales-kpis .card:before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:#b18a75}
+#sales .sales-kpis .card:nth-child(2):before{background:#c58b4a}
+#sales .sales-kpis .card:nth-child(3):before{background:#4b9872}
+#sales .sales-kpis .card:nth-child(4):before{background:#c45f5b}
+#sales .sales-kpis .card:nth-child(5):before{background:#6d8fb1}
+#sales .sales-kpis .label{font-size:11px;font-weight:700;letter-spacing:.35px;text-transform:uppercase;color:#82766e}
+#sales .sales-kpis .value{margin-top:9px;font-size:27px;line-height:1.1;color:#302722}
+#sales .panel{padding:22px 23px;border:1px solid #e8e0db;border-radius:15px;box-shadow:0 4px 16px rgba(55,38,27,.035);margin-bottom:18px}
+#sales .sales-form-panel{background:#fff}
+#sales .sales-panel-heading{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #f0eae6}
+#sales .sales-panel-heading h2,#sales .sales-orders-panel h2{margin:4px 0 0;font-size:17px;font-weight:800;color:#352b25}
+#sales .sales-panel-heading p{margin:5px 0 0;font-size:12px;color:#8a7d74}
+#sales .sales-eyebrow{display:block;font-size:9px;font-weight:800;letter-spacing:1.15px;color:#a17a65}
+#sales .formgrid{gap:16px 18px}
+#sales .field label,#sales .sale-item-row label{font-size:11px;font-weight:700;letter-spacing:.1px;color:#776b63;margin-bottom:7px}
+#sales .field input,#sales .field select,#sales .sale-item-row input,#sales .sale-item-row select{min-height:42px;padding:10px 12px;border:1px solid #ded5cf;border-radius:9px;background:#fff;color:#332c27;font-size:13px;transition:border-color .15s,box-shadow .15s}
+#sales .field input:focus,#sales .field select:focus,#sales .sale-item-row input:focus,#sales .sale-item-row select:focus{outline:none;border-color:#a77b63;box-shadow:0 0 0 3px rgba(167,123,99,.12)}
+#sales .formgrid>.field:nth-child(7){padding:17px 0 13px;border-top:1px solid #eee7e2;border-bottom:1px solid #eee7e2}
+#sales #saleItemsList{margin:9px 0 11px}
+#sales .sale-item-row.panel{margin:9px 0;padding:14px 15px!important;border:1px solid #e8dfd9;border-radius:11px;background:#fbf9f7!important;box-shadow:none}
+#sales .sale-item-row .formgrid{grid-template-columns:minmax(260px,2.2fr) minmax(120px,.85fr) minmax(120px,.85fr) minmax(100px,.65fr) auto!important;align-items:end;gap:12px!important}
+#sales .sale-item-cost{font-size:11px;color:#897b72}
+#sales .remove-material{padding:10px 12px;background:#f8eae7;color:#a34d43;font-size:11px;font-weight:700}
+#sales .sales-form-panel>.btn{min-height:42px;padding:11px 20px;border-radius:9px;box-shadow:0 3px 8px rgba(139,94,74,.16)}
+#sales .sales-toolbar{background:#fcfbfa;padding:16px 20px}
+#sales .sales-toolbar h2{font-size:14px;margin:0;font-weight:800}
+#sales .sales-toolbar .sub{font-size:11px}
+#sales .sales-toolbar .top{align-items:center;gap:18px}
+#sales .sales-toolbar .search-box{min-width:300px!important;max-width:440px}
+#sales .sales-toolbar input,#sales .sales-toolbar select{height:40px;border:1px solid #ded5cf;border-radius:9px;padding:9px 12px;background:#fff;font-size:12px}
+#sales .sales-orders-panel{padding:20px 0 0;overflow:hidden}
+#sales .sales-orders-panel>.top{padding:0 22px}
+#sales .sales-orders-panel>div[style*="overflow:auto"]{overflow-x:auto!important;overflow-y:visible}
+#sales .sales-orders-panel table{min-width:1450px;width:100%;border-collapse:separate;border-spacing:0;font-size:12px}
+#sales .sales-orders-panel thead th{position:sticky;top:0;z-index:2;padding:13px 11px;background:#f8f5f2;border-top:1px solid #eee6e0;border-bottom:1px solid #e7ded8;color:#786b62;font-size:9px;font-weight:800;letter-spacing:.55px;white-space:nowrap}
+#sales .sales-orders-panel tbody td{padding:14px 11px;vertical-align:middle;border-bottom:1px solid #f0eae6;color:#403832;line-height:1.45}
+#sales .sales-orders-panel tbody tr:nth-child(even){background:#fdfcfa}
+#sales .sales-orders-panel tbody tr:hover{background:#f8f2ed}
+#sales .sales-orders-panel tbody td:nth-child(1),#sales .sales-orders-panel tbody td:nth-child(2),#sales .sales-orders-panel tbody td:nth-child(3),#sales .sales-orders-panel tbody td:nth-child(5),#sales .sales-orders-panel tbody td:nth-child(6),#sales .sales-orders-panel tbody td:nth-child(7),#sales .sales-orders-panel tbody td:nth-child(8),#sales .sales-orders-panel tbody td:nth-child(11){white-space:nowrap}
+#sales .sales-orders-panel tbody td:nth-child(4){min-width:260px;max-width:330px;font-weight:650;color:#342c27}
+#sales .sales-orders-panel tbody td:nth-child(12){min-width:170px;max-width:230px;color:#80746c}
+#sales .sales-orders-panel .sub{font-size:10px;line-height:1.35;color:#8c8179}
+#sales .sales-orders-panel .status-select{min-width:130px;min-height:34px;border-radius:8px;font-size:11px;font-weight:750;padding:6px 26px 6px 9px}
+#sales .sales-orders-panel .row-actions{gap:5px}
+#sales .sales-orders-panel .btn.xs{padding:7px 9px;border-radius:7px;font-size:10px}
+#sales .sales-orders-panel .tag{font-size:10px;font-weight:700;padding:5px 8px}
+#sales .sales-orders-panel .sale-cost-detail-row:hover{background:#fff}
+@media(max-width:1100px){
+ #sales.sales-page{padding:22px 18px 36px}
+ #sales .sales-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #sales .sales-toolbar .top{align-items:flex-start;flex-direction:column}
+ #sales .sales-toolbar .top>div:last-child{width:100%;justify-content:flex-start!important}
+}
+@media(max-width:700px){
+ #sales.sales-page{padding:16px 12px 28px}
+ #sales .sales-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px}
+ #sales .sales-kpis .card{min-height:88px;padding:13px}
+ #sales .sales-kpis .value{font-size:23px}
+ #sales .panel{padding:16px}
+ #sales .formgrid{grid-template-columns:1fr 1fr}
+ #sales .sale-item-row .formgrid{grid-template-columns:1fr 1fr!important}
+ #sales .sales-toolbar .top>div:last-child{flex-wrap:wrap}
+ #sales .sales-toolbar .search-box{min-width:100%!important;max-width:none}
+ #sales .sales-orders-panel{padding:16px 0 0}
+ #sales .sales-orders-panel>.top{padding:0 16px}
+}
+
 </style>
 <!-- Gestor 3D V58 — trigger de publicação -->
 </head>
@@ -831,16 +905,16 @@ table td,table th{border-bottom-color:#f0e7e0}
 <div class="panel"><h2>Vendas cadastradas</h2><div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Produto</th><th>Prazo</th><th>Desconto</th><th>Total</th><th>Recebido</th><th>Saldo</th><th>Status</th><th>Ações</th></tr></thead><tbody id="dsTable"></tbody></table></div></div>
 <div class="panel"><h2 id="dsPaymentTitle">Registrar pagamento</h2><div class="formgrid"><div class="field"><label>Venda</label><select id="dsPaySale"></select></div><div class="field"><label>Valor recebido (R$)</label><input id="dsPayAmount" type="number" min="0.01" step="0.01"></div><div class="field"><label>Data</label><input id="dsPayDate" type="date"></div><div class="field"><label>Forma de pagamento</label><select id="dsPayMethod"><option>Pix</option><option>Dinheiro</option><option>Cartão</option><option>Transferência</option><option>Outro</option></select></div></div><div class="actions" style="margin-top:12px"><button class="btn" onclick="saveDirectPayment()">Registrar pagamento</button><button class="btn outline" onclick="cancelDirectPaymentEdit()">Cancelar</button></div><div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Data</th><th>Cliente</th><th>Valor</th><th>Forma</th><th>Ações</th></tr></thead><tbody id="dsPayments"></tbody></table></div></div>
 </section>
-<section id="sales" class="hidden">
+<section id="sales" class="hidden sales-page">
 <div class="top"><div><h1>Vendas & Pedidos</h1><div class="sub">Registre, acompanhe e finalize seus pedidos.</div></div></div>
-<div class="cards" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px">
+<div class="cards sales-kpis" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:20px">
 <div class="card"><div class="label">Total de pedidos</div><div class="value" id="salesTotal">0</div></div>
 <div class="card"><div class="label">Em produção</div><div class="value" id="salesInProduction">0</div></div>
 <div class="card"><div class="label">Prontos</div><div class="value" id="salesReady">0</div></div>
 <div class="card"><div class="label">Atrasados</div><div class="value" id="salesLate">0</div></div>
 <div class="card"><div class="label">Entregues</div><div class="value" id="salesDelivered">0</div></div>
 </div>
-<div class="panel"><h2 id="saleFormTitle">Registrar venda / pedido</h2><div class="formgrid">
+<div class="panel sales-form-panel"><div class="sales-panel-heading"><div><span class="sales-eyebrow">NOVO REGISTRO</span><h2 id="saleFormTitle">Registrar venda / pedido</h2><p>Preencha os dados da compra e acompanhe a produção em um só lugar.</p></div></div><div class="formgrid">
 <div class="field"><label>Data da compra</label><input id="sDate" type="date"></div>
 <div class="field"><label>Horário da compra</label><input id="sTime" type="time"></div>
 <div class="field"><label>Primeiro nome do cliente</label><input id="sCustomerName" type="text" placeholder="Ex.: Maria"></div>
@@ -860,8 +934,8 @@ table td,table th{border-bottom-color:#f0e7e0}
 <div class="field" style="grid-column:1/-1"><label>Observações</label><input id="sNotes" placeholder="Ex.: personalização, nome, cor, envio..."></div>
 <div id="saleEditDiagnostics" class="sub" style="grid-column:1/-1;display:none;padding:10px;border:1px dashed #b58b75;border-radius:8px;white-space:pre-wrap"></div>
 </div><br><button id="saleSubmitBtn" class="btn" onclick="saveSaleForm()">Registrar pedido</button> <button id="saleCancelEditBtn" class="btn outline hidden" type="button" onclick="cancelEditSale()">Cancelar edição</button></div>
-<div class="panel" style="margin-top:0">
-<div class="top" style="margin-bottom:12px">
+<div class="panel sales-toolbar" style="margin-top:0">
+<div class="top" style="margin-bottom:0">
   <div><h2>Pesquisar pedidos</h2><div class="sub">Pesquise pelo nome do cliente ou filtre pelo status.</div></div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
     <div class="search-box" style="min-width:280px;flex:1"><input id="salesSearch" type="search" placeholder="🔎 Pesquisar cliente..." oninput="renderSalesTable()"></div>
@@ -869,8 +943,8 @@ table td,table th{border-bottom-color:#f0e7e0}
   </div>
 </div>
 </div>
-<div class="panel">
-<div class="top" style="margin-bottom:12px"><div><h2>Pedidos</h2><div class="sub">Pedidos registrados e acompanhamento do status.</div></div></div>
+<div class="panel sales-orders-panel">
+<div class="top" style="margin-bottom:12px"><div><span class="sales-eyebrow">ACOMPANHAMENTO</span><h2>Pedidos</h2><div class="sub">Pedidos registrados e acompanhamento do status.</div></div></div>
 <div style="overflow:auto"><table><thead><tr><th>Compra</th><th>Cliente</th><th>Estado</th><th>Produto</th><th>Loja</th><th>Canal</th><th>Qtd.</th><th>Postagem até</th><th>Venda / Líquido</th><th>Lucro estimado</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="salesTable"></tbody></table></div>
 </div>
 </section>
