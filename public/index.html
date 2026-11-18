@@ -2122,6 +2122,35 @@ function addManualProduction(){
  db.productionManual.push({id:"manual-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),productId,productName:product.name||"Produto",variantId:variant?.id||"",colorId:color?.id||"",variantName:variant?.name||color?.name||"",qty,createdAt:new Date().toISOString()});
  save();renderProductionQueue();document.getElementById("productionManualQty").value="1";toggleProductionManualForm(false);
 }
+
+function removeManualProduction(key){
+ const target=String(key||"");
+ const manual=Array.isArray(db.productionManual)?db.productionManual:[];
+ const matches=item=>{
+  const productId=String(item.productId||""),name=String(item.productName||"Produto sem nome");
+  const variantKey=String(item.variantId||item.colorId||item.variantName||"");
+  return (productId||name)+"::"+variantKey===target;
+ };
+ const count=manual.filter(matches).length;
+ if(!count){alert("Não há produção manual para remover deste produto.");return;}
+ if(!confirm("Remover a produção manual deste produto/variação? Os pedidos de clientes serão mantidos."))return;
+ db.productionManual=manual.filter(item=>!matches(item));
+ const activeStatuses=new Set(["Pendente","Recebido","Em produção"]);
+ const hasSale=(db.sales||[]).some(s=>{
+  if(!activeStatuses.has(String(s.status||"Recebido")))return false;
+  const items=Array.isArray(s.items)&&s.items.length?s.items:[{productId:s.productId,product:s.product,variantId:s.variantId,variantName:s.variantName,colorId:s.colorId,colorName:s.colorName,qty:s.qty||1}];
+  return items.some(item=>{
+   const product=(db.products||[]).find(p=>String(p.id)===String(item.productId));
+   const name=String(product?.name||item.product||s.product||"Produto sem nome");
+   const variant=String(item.variantName||item.colorName||item.variant||"").trim();
+   return String(item.productId||name)+"::"+String(item.variantId||item.colorId||variant)===target;
+  });
+ });
+ const hasDirect=(db.directSales||[]).some(s=>String(s.status||"").trim()==="Em produção"&&String(s.productId||"").trim()+"::"===target);
+ if(!hasSale&&!hasDirect&&db.productionStatuses)delete db.productionStatuses[target];
+ save();renderProductionQueue();
+ alert("Produção manual removida da fila. Os pedidos de clientes não foram alterados.");
+}
 function renderProductionQueue(){
  // Corrige pedidos que já foram enviados hoje antes desta atualização: consome
  // uma única vez a quantidade concluída correspondente ao estoque produzido manualmente.
@@ -2167,7 +2196,7 @@ function renderProductionQueue(){
  const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
  table.innerHTML=visible.map(g=>{
   const st=db.productionStatuses[g.key]||{},defaults=db.productionTimeDefaults&&typeof db.productionTimeDefaults==="object"?db.productionTimeDefaults:{},savedMinutes=Number(st.timeMinutes??defaults[g.key]),batch=Math.max(0,Number(st.batchQty)||0),done=Math.max(0,Number(st.completedQty)||0),mins=Math.max(0,Number.isFinite(savedMinutes)?savedMinutes:0),remaining=Math.max(0,g.qty-done),status=done>=g.qty?"Concluído":batch>0?"Em produção":"Pendente",timeText=Math.floor(mins/60)+"h "+(mins%60)+"min";
-  return '<tr><td><b>'+esc(g.productName)+'</b>'+(g.variant?'<small class="sub" style="display:block">'+esc(g.variant)+'</small>':'')+'</td><td><b style="font-size:17px">'+g.qty+'</b><small class="sub" style="display:block">'+remaining+' restantes</small></td><td>'+g.orders.size+(g.manualQty?'<small class="sub" style="display:block">+'+g.manualQty+' estoque</small>':'')+'</td><td style="min-width:125px"><input aria-label="Quantidade em produção do lote" type="number" min="0" step="1" value="'+batch+'" style="width:100px" onchange="updateProductionField(\''+esc(g.key)+'\',\'batchQty\',this.value,'+g.qty+')"></td><td style="min-width:150px">'+(st.timerStartedAt?'<b data-production-countdown="'+esc(g.key)+'" style="font-variant-numeric:tabular-nums;color:#9a624b">'+formatProductionCountdown(productionRemainingSeconds(st))+'</b><small class="sub" style="display:block">Tempo restante</small>':'<div style="display:flex;gap:4px;align-items:center"><input aria-label="Horas do lote" type="number" min="0" step="1" value="'+Math.floor(mins/60)+'" style="width:56px" onchange="updateProductionTime(\''+esc(g.key)+'\',this.value,\'hours\')"><span>h</span><input aria-label="Minutos do lote" type="number" min="0" max="59" step="1" value="'+(mins%60)+'" style="width:60px" onchange="updateProductionTime(\''+esc(g.key)+'\',this.value,\'minutes\')"><span>min</span></div><small class="sub">Duração prevista: '+timeText+'</small>')+'</td><td><span class="tag '+(status==="Concluído"?"good":status==="Em produção"?"warn":"")+'">'+status+'</span><small class="sub" style="display:block">Concluídas: '+done+'</small></td><td style="min-width:170px"><div style="display:flex;flex-direction:column;gap:6px">'+ '<button class="btn xs" '+""+' onclick="'+(st.timerStartedAt?"finishProductionTimer('"+esc(g.key)+"',"+g.qty+")":"startProductionTimer('"+esc(g.key)+"')")+'">'+(st.timerStartedAt?"Finalizar e concluir":"Iniciar tempo")+'</button>' + '<button class="btn xs" '+(remaining===0?"disabled":"")+' onclick="completeProductionBatch(\''+esc(g.key)+'\','+g.qty+')">Concluir lote</button><button class="btn xs outline" onclick="updateProductionField(\''+esc(g.key)+'\',\'batchQty\',0,'+g.qty+')">Limpar lote</button></div></td></tr>';
+  return '<tr><td><b>'+esc(g.productName)+'</b>'+(g.variant?'<small class="sub" style="display:block">'+esc(g.variant)+'</small>':'')+'</td><td><b style="font-size:17px">'+g.qty+'</b><small class="sub" style="display:block">'+remaining+' restantes</small></td><td>'+g.orders.size+(g.manualQty?'<small class="sub" style="display:block">+'+g.manualQty+' estoque</small>':'')+'</td><td style="min-width:125px"><input aria-label="Quantidade em produção do lote" type="number" min="0" step="1" value="'+batch+'" style="width:100px" onchange="updateProductionField(\''+esc(g.key)+'\',\'batchQty\',this.value,'+g.qty+')"></td><td style="min-width:150px">'+(st.timerStartedAt?'<b data-production-countdown="'+esc(g.key)+'" style="font-variant-numeric:tabular-nums;color:#9a624b">'+formatProductionCountdown(productionRemainingSeconds(st))+'</b><small class="sub" style="display:block">Tempo restante</small>':'<div style="display:flex;gap:4px;align-items:center"><input aria-label="Horas do lote" type="number" min="0" step="1" value="'+Math.floor(mins/60)+'" style="width:56px" onchange="updateProductionTime(\''+esc(g.key)+'\',this.value,\'hours\')"><span>h</span><input aria-label="Minutos do lote" type="number" min="0" max="59" step="1" value="'+(mins%60)+'" style="width:60px" onchange="updateProductionTime(\''+esc(g.key)+'\',this.value,\'minutes\')"><span>min</span></div><small class="sub">Duração prevista: '+timeText+'</small>')+'</td><td><span class="tag '+(status==="Concluído"?"good":status==="Em produção"?"warn":"")+'">'+status+'</span><small class="sub" style="display:block">Concluídas: '+done+'</small></td><td style="min-width:170px"><div style="display:flex;flex-direction:column;gap:6px">'+ '<button class="btn xs" '+""+' onclick="'+(st.timerStartedAt?"finishProductionTimer('"+esc(g.key)+"',"+g.qty+")":"startProductionTimer('"+esc(g.key)+"')")+'">'+(st.timerStartedAt?"Finalizar e concluir":"Iniciar tempo")+'</button>' + '<button class="btn xs" '+(remaining===0?"disabled":"")+' onclick="completeProductionBatch(\''+esc(g.key)+'\','+g.qty+')">Concluir lote</button><button class="btn xs outline" onclick="updateProductionField(\''+esc(g.key)+'\',\'batchQty\',0,'+g.qty+')">Limpar lote</button>'+(g.manualQty>0?'<button class="btn xs outline" onclick="removeManualProduction(\''+esc(g.key)+'\')">Remover manual</button>':'')+'</div></td></tr>';
  }).join("");
  const empty=document.getElementById("productionQueueEmpty");if(empty)empty.style.display=visible.length?"none":"block";
 }
