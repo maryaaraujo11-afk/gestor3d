@@ -1688,16 +1688,24 @@ function saleRecipeMaterials(p,s){
  const size=variantForSale(p,s?.variantId);
  const colors=Array.isArray(p?.colors)?p.colors:[];
  const color=colors.find(x=>String(x.id)===String(s?.colorId))||null;
- if(!size)return base;
- const sizeMaterials=Array.isArray(size.materials)&&size.materials.length?size.materials:(size.materialId?[size]:[]);
- if(!sizeMaterials.length)return base;
- const mapped=sizeMaterials.map(vm=>{
-   const variableMaterialId=size.colorMaterialId||sizeMaterials[0]?.materialId; const swap=variableMaterialId&&String(variableMaterialId)===String(vm.materialId)&&color;
+ // Sem tamanho selecionado, a receita principal também precisa respeitar a cor escolhida.
+ const source=size
+   ? (Array.isArray(size.materials)&&size.materials.length?size.materials:(size.materialId?[size]:[]))
+   : base;
+ if(!source.length||!color)return size?([...source,...base.filter(r=>!source.some(x=>String(x.materialId)===String(r.materialId))) ]):base;
+ // O material indicado em "Material que muda conforme a cor" é substituído pelo material da cor.
+ // Em produtos sem tamanhos, usa o primeiro material da receita como filamento variável.
+ const variableMaterialId=size
+   ? (size.colorMaterialId||source[0]?.materialId)
+   : (p.colorMaterialId||source[0]?.materialId);
+ const mapped=source.map(vm=>{
+   const swap=variableMaterialId&&String(variableMaterialId)===String(vm.materialId);
    const chosenId=swap?color.materialId:vm.materialId;
    const m=(db.materials||[]).find(x=>String(x.id)===String(chosenId));
-   return {materialId:chosenId,name:m?.name||vm.materialName||size.name,qty:+vm.qty||0,unit:m?.unit||vm.unit||"",unitCost:+(m?.unitCost??vm.unitCost)||0};
+   return {materialId:chosenId,name:m?.name||vm.materialName||vm.name||size?.name,qty:+vm.qty||0,unit:m?.unit||vm.unit||"",unitCost:+(m?.unitCost??vm.unitCost)||0};
  });
- const sizeIds=new Set(sizeMaterials.map(vm=>String(vm.materialId)));
+ if(!size)return mapped;
+ const sizeIds=new Set(source.map(vm=>String(vm.materialId)));
  const shared=base.filter(r=>!sizeIds.has(String(r.materialId)));
  return [...mapped,...shared];
 }
@@ -4912,7 +4920,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '170';
+const GESTOR_APP_VERSION = '171';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
