@@ -1665,7 +1665,7 @@ function addProductVariantRow(variant={}){
 function addProductColorRow(color={}){
  const wrap=document.getElementById("productColorsList"); if(!wrap)return;
  const row=document.createElement("div"); row.className="product-color-row"; row.dataset.colorId=color.id||String(Date.now()+Math.random());
- row.innerHTML=`<div><label class="sub">Nome da cor</label><input class="product-color-name" type="text" placeholder="Ex.: Vermelho" value="${String(color.name||"").replace(/"/g,"&quot;")}"></div><div><label class="sub">Filamento / material da cor</label><select class="product-color-material"><option value="">Selecione</option>${(db.materials||[]).map(m=>`<option value="${m.id}" ${String(m.id)===String(color.materialId||"")?"selected":""}>${m.name}${m.color?" — "+m.color:""} (${money(m.unitCost)}/${m.unit})</option>`).join("")}</select></div><button type="button" class="remove-material" onclick="this.parentElement.parentElement.remove()">Remover</button>`;
+ row.innerHTML=`<div><label class="sub">Nome da cor</label><input class="product-color-name" type="text" placeholder="Ex.: Vermelho" value="${String(color.name||"").replace(/"/g,"&quot;")}"></div><div><label class="sub">Filamento / material da cor</label><select class="product-color-material"><option value="">Selecione</option>${[...(db.materials||[])].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base",numeric:true})).map(m=>`<option value="${m.id}" ${String(m.id)===String(color.materialId||"")?"selected":""}>${m.name}${m.color?" — "+m.color:""} (${money(m.unitCost)}/${m.unit})</option>`).join("")}</select></div><button type="button" class="remove-material" onclick="this.parentElement.parentElement.remove()">Remover</button>`;
  wrap.appendChild(row);
 }
 function collectProductColors(){return [...document.querySelectorAll("#productColorsList .product-color-row")].map(row=>({id:row.dataset.colorId||String(Date.now()+Math.random()),name:row.querySelector(".product-color-name")?.value.trim()||"",materialId:row.querySelector(".product-color-material")?.value||""})).filter(x=>x.name&&x.materialId);}
@@ -4912,7 +4912,7 @@ updateCalcBasisUI(); updateBackupStatus(); setInterval(()=>{
 },15*60*1000);
 </script>
 <script>
-const GESTOR_APP_VERSION = '169';
+const GESTOR_APP_VERSION = '170';
 async function checkGestorVersion(){
   try{
     const r=await fetch('/version.json?_=' + Date.now(), {cache:'no-store'});
