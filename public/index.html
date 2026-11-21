@@ -2563,7 +2563,7 @@ function updateSalePreview(){
  if(!grossEl.dataset.manual||grossEl.value==="")grossEl.value=suggestedGross?suggestedGross.toFixed(2):"";
  const typedGross=Number(grossEl.value);
  const gross=Number.isFinite(typedGross)&&typedGross>=0?typedGross:suggestedGross;
- const estimatedFees=channel==="Direta"?0:shopeeEstimatedOrderFee(items,gross,packaging);
+ const estimatedFees=channel==="Shopee"?shopeeEstimatedOrderFee(items,gross,packaging):0;
  const net=Math.max(0,gross-estimatedFees);
  if(!netEl.dataset.manual||netEl.value==="")netEl.value=net?net.toFixed(2):"";
  document.querySelectorAll("#saleItemsList .sale-item-row").forEach(row=>{const p=(db.products||[]).find(x=>String(x.id)===String(row.querySelector(".sale-item-product")?.value||""));const qty=Math.max(1,Number(row.querySelector(".sale-item-qty")?.value)||1);const v=row.querySelector(".sale-item-variant")?.value||"";const colorId=row.querySelector(".sale-item-color")?.value||"";const cost=p?saleProductionCost(p,qty,{variantId:v,colorId}):0;const el=row.querySelector(".sale-item-cost");if(el)el.textContent=p?`Custo de produção: ${money(cost)} • ${money(cost/Math.max(1,qty))}/un.`:"Selecione o produto";});
