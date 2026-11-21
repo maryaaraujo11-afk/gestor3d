@@ -1014,7 +1014,7 @@ table tbody tr.stock-low td:last-child,table tbody tr.stock-empty td:last-child{
 <div class="sub" style="margin-top:6px">Um mesmo pedido pode ter vários produtos e quantidades. Cada item pode usar uma cor / variação diferente.</div>
 </div>
 <div class="field"><label>Embalagem de envio</label><select id="sShippingPackaging" onchange="updateSalePackagingHint()"><option value="">Sem embalagem selecionada</option></select><div class="sub" id="sShippingPackagingHint">Selecione a embalagem utilizada no envio. O custo será incluído na venda e 1 unidade será baixada do estoque.</div></div>
-<div class="field"><label>Loja</label><select id="sStore"><option value="F4R Studio 3D">F4R Studio 3D</option><option value="F4RM 3D">F4RM 3D</option></select></div><div class="field"><label>Canal da venda</label><select id="sChannel" onchange="updateSalePreview()"><option value="Shopee">Shopee</option><option value="Direta">Venda direta</option></select><div class="sub">Venda direta não aplica taxa da Shopee.</div></div>
+<div class="field"><label>Loja</label><select id="sStore"><option value="F4R Studio 3D">F4R Studio 3D</option><option value="F4RM 3D">F4RM 3D</option></select></div><div class="field"><label>Canal da venda</label><select id="sChannel" onchange="updateSalePreview()"><option value="Shopee">Shopee</option><option value="TikTok Shop">TikTok Shop</option><option value="Direta">Venda direta</option></select><div class="sub">Shopee calcula uma estimativa de taxas. Para TikTok Shop, informe o valor líquido conforme o repasse da plataforma.</div></div>
 <div class="field"><label>Valor total da venda (R$)</label><input id="sGross" type="number" step=".01" placeholder="Valor pago pelo cliente"></div>
 <div class="field"><label>Valor líquido recebido (R$)</label><input id="sNet" type="number" step=".01" placeholder="Após taxas/descontos"></div>
 <div class="field"><label>Status do pedido</label><select id="sStatus"><option>Recebido</option><option>Em produção</option><option>Pronto</option><option>Enviado</option><option>Entregue</option><option>Cancelado</option></select></div>
@@ -2538,7 +2538,7 @@ function saveSaleForm(){
   const suggestedGross=catalogGross!==null?catalogGross:suggestedOrderGross(items,channel,packaging);
   const grossRaw=String(grossEl.value||"").trim(),netRaw=String(netEl.value||"").trim(),gross=grossRaw!==""?Number(grossRaw):suggestedGross;
   if(!Number.isFinite(gross)||gross<0){alert("Informe um valor total da venda válido.");return;}
-  const estimatedFees=channel==="Direta"?0:shopeeEstimatedOrderFee(items,gross,packaging);
+  const estimatedFees=channel==="Shopee"?shopeeEstimatedOrderFee(items,gross,packaging):0;
   const defaultNet=Math.max(0,gross-estimatedFees);
   const net=netRaw!==""?Number(netRaw):defaultNet;if(!Number.isFinite(net)||net<0){alert("Informe um valor líquido recebido válido.");return;}
   const fee=Math.max(0,gross-net),old=editingSaleId!=null?db.sales.find(x=>String(x.id)===String(editingSaleId)):null;
