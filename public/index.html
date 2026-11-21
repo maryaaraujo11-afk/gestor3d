@@ -1515,7 +1515,7 @@ function suggested(p){
 function addMaterialRow(materialId="",qty=""){
  const wrap=document.getElementById("materialsList");
  const row=document.createElement("div"); row.className="material-row";
- const options=(db.materials||[]).map(m=>`<option value="${m.id}" ${String(m.id)===String(materialId)?"selected":""}>${m.name} — ${m.unit} (${money(m.unitCost)}/${m.unit})</option>`).join("");
+ const options=[...(db.materials||[])].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR",{sensitivity:"base",numeric:true})).map(m=>`<option value="${m.id}" ${String(m.id)===String(materialId)?"selected":""}>${m.name} — ${m.unit} (${money(m.unitCost)}/${m.unit})</option>`).join("");
  row.innerHTML=`<div><label class="sub">Material / insumo</label><select class="mat-select" onchange="syncMaterialRow(this)"><option value="">Selecione um material</option>${options}</select></div>
  <div><label class="sub">Consumo por unidade</label><input class="mat-qty" type="number" min="0" step="0.0001" placeholder="Ex.: 0,0667" value="${qty}"></div>
  <button type="button" class="remove-material" onclick="this.parentElement.remove();updateProductMaterialTotal()">Remover</button>`;
