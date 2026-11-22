@@ -756,9 +756,11 @@ table tbody tr.stock-low td:last-child,table tbody tr.stock-empty td:last-child{
         </div>
         <div class="formgrid">
           <div class="field"><label>Nome do produto / projeto</label><input id="calcProjectName" placeholder="Ex.: Mini Jesus"></div>
-          <div class="field"><label>Quantidade produzida</label><input id="calcQty" type="number" min="1" value="1" oninput="runCalc()"></div>
+          <div class="field"><label>Quantidade da venda</label><input id="calcQty" type="number" min="1" value="1" oninput="runCalc()"></div>
+          <div class="field"><label>Quantidade produzida por lote</label><input id="calcProductionBatchQty" type="number" min="1" value="1" oninput="runCalc();updateCalcBasisUI()"><div class="sub">Ex.: venda de 50 unidades, produzindo 25 por vez = 2 lotes.</div></div>
           <div class="field"><label>Cores / acabamento</label><input id="calcColors" placeholder="Ex.: Branco e dourado"></div>
-          <div class="field"><label>Como os dados da impressão foram informados?</label><select id="calcBasis" onchange="updateCalcBasisUI();runCalc()"><option value="unit">Por unidade</option><option value="batch">Total do lote</option></select></div>
+          <div class="field"><label>Como os dados da impressão foram informados?</label><select id="calcBasis" onchange="updateCalcBasisUI();runCalc()"><option value="unit">Por unidade</option><option value="batch">Total de um lote</option></select></div>
+          <div class="field"><label>Canal da venda</label><select id="calcSalesChannel" onchange="runCalc()"><option value="shopee">Shopee</option><option value="direct">Venda direta (sem taxas Shopee)</option></select><div class="sub">O preço e o lucro serão recalculados conforme o canal escolhido.</div></div>
         </div>
         <div id="calcBasisNotice" class="notice" style="margin-top:10px">Por unidade: informe o consumo e o tempo de impressão de uma peça.</div>
 
@@ -2587,10 +2589,11 @@ function addCalcMaterial(id="",qty=""){
 function updateCalcBasisUI(){
  const basis=document.getElementById("calcBasis")?.value||"unit";
  const qty=Math.max(1,+document.getElementById("calcQty")?.value||1);
+ const productionBatchQty=Math.max(1,+document.getElementById("calcProductionBatchQty")?.value||1);
  const notice=document.getElementById("calcBasisNotice");
  const batch=basis==="batch";
  if(notice) notice.textContent=batch
-   ? `Total do lote: informe o consumo total usado para produzir ${qty} unidade${qty===1?"":"s"} e o tempo total da impressão. O sistema divide tudo pela quantidade e calcula o custo de 1 unidade.`
+   ? `Total de um lote: informe o consumo total e o tempo para produzir ${productionBatchQty} unidade(s). O sistema divide pelos itens do lote e multiplica a necessidade conforme a quantidade total da venda (${qty} unidade(s), ${Math.ceil(qty/productionBatchQty)} lote(s)).`
    : "Por unidade: informe o consumo e o tempo de impressão de uma peça.";
  document.querySelectorAll("#calcMaterials .calc-qty-label").forEach(el=>el.textContent=batch?"Quantidade total no lote":"Quantidade por unidade");
  const hoursLabel=document.querySelector('#calcHours')?.closest('.field')?.querySelector('label');
@@ -2690,17 +2693,19 @@ function runCalc(){
  const qty=Math.max(1,+document.getElementById("calcQty")?.value||1);
  const basis=document.getElementById("calcBasis")?.value||"unit";
  const batch=basis==="batch";
+ const productionBatchQty=Math.max(1,+document.getElementById("calcProductionBatchQty")?.value||1);
+ const batchCount=Math.ceil(qty/productionBatchQty);
  let materialsUnit=0;
  document.querySelectorAll("#calcMaterials .material-row").forEach(r=>{
    const m=(db.materials||[]).find(x=>String(x.id)===String(r.querySelector(".calc-mat").value));
    if(m){
      const entered=+r.querySelector(".calc-g").value||0;
-     const qtyUnit=batch?entered/qty:entered;
+     const qtyUnit=batch?entered/productionBatchQty:entered;
      materialsUnit+=qtyUnit*(+m.unitCost||0);
    }
  });
  const enteredHours=parseHoursInput(calcHours.value);
- const hoursUnit=batch?enteredHours/qty:enteredHours;
+ const hoursUnit=batch?enteredHours/productionBatchQty:enteredHours;
  const watts=+calcWatts.value||0, kwh=+calcKwh.value||0;
  const energyUnit=hoursUnit*(watts/1000)*kwh;
  const printer=+calcPrinterValue.value||0, life=Math.max(1,+calcPrinterLife.value||1);
@@ -2711,7 +2716,7 @@ function runCalc(){
  const unitBase=materialsUnit+energyUnit+depreciationUnit+wearUnit+laborUnit+otherUnit;
  const orderPackaging=packEntered;
  const totalBase=unitBase*qty+orderPackaging;
- const markup=(+document.getElementById("calcMarkup")?.value||0)/100, margin=(+calcMargin.value||0)/100, feeEnabled=Number(calcFee.value)>0;
+ const markup=(+document.getElementById("calcMarkup")?.value||0)/100, margin=(+calcMargin.value||0)/100, feeEnabled=(document.getElementById("calcSalesChannel")?.value||"shopee")==="shopee" && Number(calcFee.value)>0;
  const unitCostWithPackaging=unitBase+orderPackaging/qty;
  const unitPriceByMarkup=shopeePriceForTarget(unitCostWithPackaging,markup,"markup",feeEnabled);
  const unitPriceByMargin=shopeePriceForTarget(unitCostWithPackaging,margin,"margin",feeEnabled);
@@ -2727,14 +2732,14 @@ function runCalc(){
  
  resProfit.textContent=money(profit);
  resMargin.textContent=Math.round(actualMargin*100)+"%";
- calcSummary.textContent=`${qty} unidade${qty===1?"":"s"} • custo total ${money(totalBase)} • venda total ${money(totalPrice)} • lucro ${money(profit)}`;
+ calcSummary.textContent=`${qty} unidades na venda • ${batchCount} lote(s) de até ${productionBatchQty} • custo total ${money(totalBase)} • venda total ${money(totalPrice)} • lucro ${money(profit)}`;
  const parts=[["Material (insumos)",materialsUnit], ["Energia elétrica",energyUnit],["Depreciação",depreciationUnit],["Desgaste",wearUnit],["Mão de obra",laborUnit],["Outros / risco",otherUnit]];
  const total=parts.reduce((a,x)=>a+x[1],0)||1;
  costLegend.innerHTML=parts.filter(x=>x[1]>0).map((x,i)=>`<div class="legend-item"><span class="legend-dot" style="background:hsl(${190+i*38},55%,55%)"></span>${x[0]} <b>${money(x[1])}</b> por unidade (${Math.round(x[1]/total*100)}%)</div>`).join("");
  let acc=0, colors=["#4b9fc2","#e5a33e","#8b6d9c","#d46e54","#75a67c","#b98a58","#aaa"];
  costDonut.style.background=`conic-gradient(${parts.map((x,i)=>{let a=acc/total*100,b=(acc+x[1])/total*100;acc+=x[1];return `${colors[i]} ${a}% ${b}%`}).join(",")})`;
- costAnalysis.innerHTML=parts.filter(x=>x[1]>0).map(x=>`<div class="analysis-row"><span>${x[0]} / unidade</span><b>${money(x[1])}</b></div>`).join("")+`<div class="analysis-row"><span>Embalagem do pedido</span><b>${money(orderPackaging)}</b></div><div class="analysis-row"><span>Custo por unidade (produção)</span><b>${money(unitBase)}</b></div><div class="analysis-row"><span>Custo total (${qty} un.) + embalagem</span><b>${money(totalBase)}</b></div><div class="analysis-row"><span>Preço por unidade</span><b>${money(unitPrice)}</b></div><div class="analysis-row"><span>Venda total</span><b>${money(totalPrice)}</b></div><div class="analysis-row"><span>Comissão percentual (${Math.round(feeDetails.rate*1000)/10}%)</span><b>${money(percentageFee)}</b></div><div class="analysis-row"><span>Taxa fixa por item × ${qty}</span><b>${money(fixedFee)}</b></div><div class="analysis-row"><span>Faixa de preço Shopee</span><b>${feeDetails.label}</b></div><div class="analysis-row"><span>Total de taxas Shopee</span><b>${money(marketplace)}</b></div><div class="analysis-row"><span>Lucro total</span><b class="good">${money(profit)}</b></div>`;
- window.lastCalc={qty,unitPrice,totalPrice,profit,unitBase,totalBase,marketplace,feeRate:feeDetails.rate,fixedFee}; updateQuoteAdjustments();
+ costAnalysis.innerHTML=parts.filter(x=>x[1]>0).map(x=>`<div class="analysis-row"><span>${x[0]} / unidade</span><b>${money(x[1])}</b></div>`).join("")+`<div class="analysis-row"><span>Embalagem do pedido</span><b>${money(orderPackaging)}</b></div><div class="analysis-row"><span>Custo por unidade (produção)</span><b>${money(unitBase)}</b></div><div class="analysis-row"><span>Custo total (${qty} un.) + embalagem</span><b>${money(totalBase)}</b></div><div class="analysis-row"><span>Preço por unidade</span><b>${money(unitPrice)}</b></div><div class="analysis-row"><span>Venda total</span><b>${money(totalPrice)}</b></div><div class="analysis-row"><span>Comissão percentual (${Math.round(feeDetails.rate*1000)/10}%)</span><b>${money(percentageFee)}</b></div><div class="analysis-row"><span>Taxa fixa por item × ${qty}</span><b>${money(fixedFee)}</b></div><div class="analysis-row"><span>Canal da venda</span><b>${feeEnabled?"Shopee":"Venda direta"}</b></div><div class="analysis-row"><span>Faixa de preço Shopee</span><b>${feeEnabled?feeDetails.label:"Não se aplica"}</b></div><div class="analysis-row"><span>Total de taxas ${feeEnabled?"Shopee":"da plataforma"}</span><b>${money(marketplace)}</b></div><div class="analysis-row"><span>Lucro total</span><b class="good">${money(profit)}</b></div>`;
+ window.lastCalc={qty,unitPrice,totalPrice,profit,unitBase,totalBase,marketplace,feeRate:feeDetails.rate,fixedFee,batchCount,productionBatchQty,salesChannel:feeEnabled?"shopee":"direct"}; updateQuoteAdjustments();
 }
 
 
@@ -2789,6 +2794,8 @@ function newQuote(){
  calcMode("quote",document.querySelector(".calc-tab"));
  document.getElementById("calcProjectName").value="";
  document.getElementById("calcQty").value=1;
+ document.getElementById("calcProductionBatchQty").value=1;
+ document.getElementById("calcSalesChannel").value="shopee";
  document.getElementById("calcColors").value="";
  document.getElementById("calcDetails").value="";
  clearQuoteAdjustments();
@@ -3061,7 +3068,9 @@ function editQuote(id){
    calcOther:q.calcOther??0,
    calcMarkup:q.calcMarkup??50,
    calcMargin:q.calcMargin??33,
-   calcFee:q.calcFee??20
+   calcFee:q.calcFee??20,
+   calcProductionBatchQty:q.calcProductionBatchQty??q.qty??1,
+   calcSalesChannel:q.calcSalesChannel||"shopee"
  };
  Object.entries(fields).forEach(([id,value])=>{const e=document.getElementById(id);if(e)e.value=value;});
  updateCalcBasisUI();
@@ -3100,7 +3109,7 @@ function saveQuote(status){
  const originalAdjustments=getQuoteAdjustments();
  const c=window.lastCalc||{};
  // Venda direta não inclui comissão/taxa fixa nem markup do marketplace.
- const a=status==="venda direta"?{...originalAdjustments,unitPrice:Math.max(0,Number(c.unitBase)||originalAdjustments.unitPrice),gross:Math.max(0,Number(c.unitBase)||originalAdjustments.unitPrice)*qty,finalTotal:Math.max(0,(Math.max(0,Number(c.unitBase)||originalAdjustments.unitPrice)*qty)-originalAdjustments.discount+originalAdjustments.freight)}:originalAdjustments;
+ const a=originalAdjustments;
  const calcMaterials=[...document.querySelectorAll("#calcMaterials .material-row")].map(row=>{
    const materialId=row.querySelector(".calc-mat")?.value||"";
    const m=(db.materials||[]).find(x=>String(x.id)===String(materialId));
@@ -3137,7 +3146,9 @@ function saveQuote(status){
    calcOther:+document.getElementById("calcOther")?.value||0,
    calcMarkup:+document.getElementById("calcMarkup")?.value||0,
    calcMargin:+document.getElementById("calcMargin")?.value||0,
-   calcFee:+document.getElementById("calcFee")?.value||0
+   calcFee:+document.getElementById("calcFee")?.value||0,
+   calcProductionBatchQty:Math.max(1,+document.getElementById("calcProductionBatchQty")?.value||1),
+   calcSalesChannel:document.getElementById("calcSalesChannel")?.value||"shopee"
  };
  if(editingQuoteId){
    const idx=(db.quotes||[]).findIndex(x=>String(x.id)===String(editingQuoteId));
