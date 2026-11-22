@@ -2722,7 +2722,7 @@ function runCalc(){
  const unitPriceByMargin=shopeePriceForTarget(unitCostWithPackaging,margin,"margin",feeEnabled);
  const unitPrice=Math.max(unitPriceByMarkup,unitPriceByMargin);
  const feeDetails=shopeeFeeForPrice(unitPrice,feeEnabled);
- calcFee.value=feeEnabled?String(Math.round(feeDetails.rate*1000)/10):"0";
+ if(feeEnabled) calcFee.value=String(Math.round(feeDetails.rate*1000)/10);
  const totalPrice=unitPrice*qty;
  const percentageFee=totalPrice*feeDetails.rate;
  const fixedFee=feeDetails.fixedFee*qty;
@@ -2768,7 +2768,7 @@ function saveCalculatorAsProduct(){
  if(!name){alert("Informe o nome do produto / projeto antes de salvar como produto.");return;}
  const basis=document.getElementById("calcBasis")?.value||"unit";
  const batch=basis==="batch";
- const batchQty=Math.max(1,+document.getElementById("calcQty")?.value||1);
+ const batchQty=Math.max(1,+document.getElementById("calcProductionBatchQty")?.value||1);
  const materials=[...document.querySelectorAll("#calcMaterials .material-row")].map(r=>{
    const select=r.querySelector(".calc-mat"); const m=(db.materials||[]).find(x=>String(x.id)===String(select?.value));
    const entered=+r.querySelector(".calc-g")?.value||0;
