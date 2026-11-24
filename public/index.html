@@ -519,7 +519,7 @@ table tbody tr.stock-low td:last-child,table tbody tr.stock-empty td:last-child{
 </div>
 </section>
 <section id="products" class="hidden">
-<div class="top"><div><h1>Produtos</h1><div class="sub">Cadastre a ficha técnica, receita, custos e vínculo com a Shopee</div></div><div class="actions"><button class="btn secondary" type="button" onclick="openMergeProducts()">🔗 Mesclar produtos</button><button class="btn" onclick="toggle('productForm')">+ Novo produto</button></div></div>
+<div class="top"><div><h1>Produtos</h1><div class="sub">Cadastre a ficha técnica, receita, custos e vínculo com a Shopee</div></div><div class="actions"><button class="btn secondary" type="button" onclick="openMergeProducts()">🔗 Mesclar produtos</button><button class="btn secondary" type="button" onclick="openKitForm()">🧩 Montar kit</button><button class="btn" onclick="toggle('productForm')">+ Novo produto</button></div></div>
 <div id="productForm" class="panel hidden"><h2 id="productFormTitle">Novo produto</h2><div class="formgrid">
 <div class="field"><label>Nome</label><input id="pName"></div><div class="field"><label>SKU</label><input id="pSku"></div><div class="field"><label>Loja (opcional)</label><select id="pStore"><option value="">Sem loja definida</option><option value="F4R Studio 3D">F4R Studio 3D</option><option value="F4RM 3D">F4RM 3D</option></select><div class="sub">Os mesmos produtos podem ser vendidos nas duas lojas. A loja é escolhida no momento da venda.</div></div>
 <div class="field"><label>SKU Shopee</label><input id="pShopeeSku" placeholder="Ex.: MINI-JESUS-01"></div>
@@ -558,6 +558,21 @@ table tbody tr.stock-low td:last-child,table tbody tr.stock-empty td:last-child{
 <div class="field" style="display:none"><label>Desgaste por hora (R$)</label><input id="pMachineWear" type="number" min="0" step=".01" value="0.20"></div>
 <div class="field" style="display:none"><label>Taxa marketplace (%)</label><input id="pFee" type="number" step=".1" value="20"></div><div class="field"><label>Margem desejada (%)</label><input id="pMargin" type="number" step=".1" value="30"></div><div class="field"><label>Estoque inicial</label><input id="pStock" type="number" value="0"></div>
 </div><br><button class="btn" id="productSaveBtn" onclick="addProduct()">Salvar produto</button> <button type="button" class="btn secondary" onclick="cancelProductEdit()">Cancelar</button></div>
+<div id="kitForm" class="panel hidden" style="margin-bottom:16px">
+ <div class="top"><div><h2 id="kitFormTitle">Montar kit</h2><div class="sub">Combine produtos e insumos já cadastrados. O custo é calculado automaticamente.</div></div><button type="button" class="btn secondary" onclick="closeKitForm()">Fechar</button></div>
+ <div class="formgrid">
+  <div class="field"><label>Nome do kit</label><input id="kitName" placeholder="Ex.: Kit presente com bandeja e chaveiros"></div>
+  <div class="field"><label>SKU (opcional)</label><input id="kitSku" placeholder="Código do kit"></div>
+  <div class="field"><label>Loja (opcional)</label><select id="kitStore"><option value="">Sem loja definida</option><option>F4R Studio 3D</option><option>F4RM 3D</option></select></div>
+  <div class="field"><label>Margem desejada (%)</label><input id="kitMargin" type="number" min="0" step=".1" value="30"></div>
+  <div class="field"><label>Taxa marketplace (%)</label><input id="kitFee" type="number" min="0" step=".1" value="20"></div>
+  <div class="field"><label>Embalagem do pedido (R$)</label><input id="kitPack" type="number" min="0" step=".01" value="0"></div>
+ </div>
+ <div style="margin-top:16px"><h3>Produtos que fazem parte do kit</h3><div id="kitProductsList"></div><button type="button" class="btn secondary" onclick="addKitProductRow()">+ Adicionar produto</button></div>
+ <div style="margin-top:16px"><h3>Insumos adicionais do kit</h3><div class="sub">Use para laços, caixas, cartões ou outros materiais extras, além dos que já fazem parte dos produtos.</div><div id="kitMaterialsList"></div><button type="button" class="btn secondary" onclick="addKitMaterialRow()">+ Adicionar insumo</button></div>
+ <div id="kitCostPreview" class="notice" style="margin-top:16px">Adicione os produtos do kit para calcular o custo.</div>
+ <div class="quote-actions" style="margin-top:14px"><button type="button" class="btn" onclick="saveKit()">💾 Salvar kit</button><button type="button" class="btn secondary" onclick="closeKitForm()">Cancelar</button></div>
+</div>
 <div class="panel"><div class="top" style="margin-bottom:12px"><div><h2>Produtos cadastrados</h2><div class="sub">Pesquise pelo nome do produto ou SKU.</div></div><div class="search-box" style="min-width:300px;max-width:420px;flex:1"><input id="productsSearch" type="search" placeholder="🔎 Pesquisar produto..." oninput="renderProductsTable()"></div></div><div class="notice" style="margin-bottom:12px">Para unir cadastros duplicados, use <b>Mesclar produtos</b>. O produto principal permanece e vendas/vínculos do outro cadastro passam para ele.</div><table><thead><tr><th>Sel.</th><th>Produto</th><th>SKU</th><th>Loja</th><th>Materiais da receita</th><th>Custo / un.</th><th>Preço sugerido / un.</th><th>Estoque</th><th>Ficha técnica</th><th>Ações</th></tr></thead><tbody id="productsTable"></tbody></table></div>
 </section>
 
@@ -1500,6 +1515,7 @@ function laborAmount(p,variant=null){
 }
 function productionUnitCost(p){return productCostBreakdown(p,null).total}
 function totalCost(p){
+ if(p?.isKit)return saleProductionCost(p,1);
  const base=productionUnitCost(p);
  const variants=Array.isArray(p?.variants)?p.variants.filter(v=>v&&v.name&&(Array.isArray(v.materials)?v.materials.length:(v.materialId&&Number(v.qty)>0))):[];
  if(!variants.length)return base;
@@ -1946,6 +1962,12 @@ function saleProductionCost(p, orderQty=1, sale=null){
  try{
   if(!p)return 0;
   const q=Math.max(0,Number(orderQty)||0);
+  if(p.isKit){
+   const productCost=(Array.isArray(p.kitItems)?p.kitItems:[]).reduce((sum,item)=>{const child=(db.products||[]).find(x=>String(x.id)===String(item.productId));return sum+(child?saleProductionCost(child,q*Math.max(0,Number(item.qty)||0),item):0);},0);
+   const materialsCost=saleRecipeMaterialCost(p,sale,q);
+   const other=Math.max(0,Number(p.other)||0)*q;
+   return productCost+materialsCost+other;
+  }
   const mats=saleRecipeMaterialCost(p,sale,q);
   const comps=Array.isArray(p.components)?p.components.reduce((sum,c)=>sum+(Number(c.qty)||0)*(Number(c.unitCost)||0)*q,0):0;
   const variant=variantForSale(p,sale);
@@ -1975,13 +1997,18 @@ function adjustStockForSale(s, direction, note){
  const p=saleProduct(s); if(!p)return;
  db.movements=db.movements||[];
  const qty=Math.max(0,Number(s.qty)||0);
- if(p.stockManaged) p.stock=Math.max(0,(Number(p.stock)||0)+direction*qty);
- saleRecipeMaterials(p,s).forEach(r=>{
-   const m=db.materials.find(x=>String(x.id)===String(r.materialId)); if(!m)return;
-   const use=materialConsumptionForSale(p,r,qty); const before=Number(m.stock)||0;
-   changeMaterialBrandStock(m,use,direction);
-   db.movements.unshift({id:Date.now()+Math.random(),date:new Date().toLocaleString("pt-BR"),materialId:m.id,material:m.name,type:direction<0?"saída":"entrada",qty:Math.abs(use),note, before, after:m.stock});
- });
+ const processProduct=(product,productQty,saleLike,depth=0)=>{
+  if(!product||depth>8)return;
+  if(product.stockManaged)product.stock=Math.max(0,(Number(product.stock)||0)+direction*productQty);
+  saleRecipeMaterials(product,saleLike).forEach(r=>{
+   const m=(db.materials||[]).find(x=>String(x.id)===String(r.materialId));if(!m)return;
+   const use=materialConsumptionForSale(product,r,productQty);if(!(use>0))return;
+   const before=Number(m.stock)||0;changeMaterialBrandStock(m,use,direction);
+   db.movements.unshift({id:Date.now()+Math.random(),date:new Date().toLocaleString("pt-BR"),materialId:m.id,material:m.name,type:direction<0?"saída":"entrada",qty:Math.abs(use),note,before,after:m.stock});
+  });
+  if(product.isKit)(product.kitItems||[]).forEach(item=>{const child=(db.products||[]).find(x=>String(x.id)===String(item.productId));if(child)processProduct(child,productQty*Math.max(0,Number(item.qty)||0),item,depth+1);});
+ };
+ processProduct(p,qty,s,0);
 }
 function saleStatusKey(status){ return ({"Pendente":"pendente","Recebido":"recebido","Em produção":"producao","Pronto":"pronto","Pronto para embalar":"pronto-embalar","Enviado":"enviado","Entregue":"entregue","Cancelado":"cancelado"}[status]||"recebido"); }
 function applySaleStatusColor(el){ if(!el)return; el.className="status-select status-"+saleStatusKey(el.value); }
@@ -4183,6 +4210,66 @@ function confirmMergeProducts(){
 function normalizeSearchText(value){
  return String(value||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLocaleLowerCase("pt-BR").trim();
 }
+function kitSafeText(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));}
+function openKitForm(id=null){
+ const form=document.getElementById("kitForm");if(!form)return;
+ window.editingKitId=id;
+ const kit=id?(db.products||[]).find(p=>String(p.id)===String(id)&&p.isKit):null;
+ document.getElementById("kitFormTitle").textContent=kit?"Editar kit":"Montar kit";
+ document.getElementById("kitName").value=kit?.name||"";
+ document.getElementById("kitSku").value=kit?.sku||"";
+ document.getElementById("kitStore").value=kit?.store||"";
+ document.getElementById("kitMargin").value=kit?.margin??30;
+ document.getElementById("kitFee").value=kit?.fee??20;
+ document.getElementById("kitPack").value=kit?.pack??0;
+ document.getElementById("kitProductsList").innerHTML="";
+ document.getElementById("kitMaterialsList").innerHTML="";
+ (kit?.kitItems||[]).forEach(item=>addKitProductRow(item.productId,item.qty));
+ (kit?.materials||[]).forEach(item=>addKitMaterialRow(item.materialId,item.qty));
+ if(!kit)addKitProductRow();
+ form.classList.remove("hidden");form.scrollIntoView({behavior:"smooth",block:"start"});updateKitCostPreview();
+}
+function closeKitForm(){document.getElementById("kitForm")?.classList.add("hidden");window.editingKitId=null;}
+function addKitProductRow(productId="",qty=1){
+ const wrap=document.getElementById("kitProductsList");if(!wrap)return;
+ const row=document.createElement("div");row.className="kit-product-row";
+ const options=[...(db.products||[])].filter(p=>!p.isKit).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR")).map(p=>'<option value="'+kitSafeText(p.id)+'" '+(String(p.id)===String(productId)?"selected":"")+'>'+kitSafeText(p.name)+' — custo '+money(totalCost(p))+'</option>').join("");
+ row.style.cssText="display:grid;grid-template-columns:minmax(220px,2fr) minmax(100px,.6fr) auto;gap:8px;align-items:end;margin:8px 0";
+ row.innerHTML='<div class="field"><label>Produto cadastrado</label><select class="kit-product-select" onchange="updateKitCostPreview()"><option value="">Selecione um produto</option>'+options+'</select></div><div class="field"><label>Quantidade</label><input class="kit-product-qty" type="number" min="0.0001" step="0.0001" value="'+kitSafeText(qty)+'" oninput="updateKitCostPreview()"></div><button type="button" class="btn secondary" onclick="this.parentElement.remove();updateKitCostPreview()">Remover</button>';
+ wrap.appendChild(row);
+}
+function addKitMaterialRow(materialId="",qty=1){
+ const wrap=document.getElementById("kitMaterialsList");if(!wrap)return;
+ const row=document.createElement("div");row.className="kit-material-row";
+ const options=[...(db.materials||[])].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR")).map(m=>'<option value="'+kitSafeText(m.id)+'" '+(String(m.id)===String(materialId)?"selected":"")+'>'+kitSafeText(m.name)+' — '+kitSafeText(m.unit)+' ('+money(m.unitCost)+'/'+kitSafeText(m.unit)+')</option>').join("");
+ row.style.cssText="display:grid;grid-template-columns:minmax(220px,2fr) minmax(100px,.6fr) auto;gap:8px;align-items:end;margin:8px 0";
+ row.innerHTML='<div class="field"><label>Insumo cadastrado</label><select class="kit-material-select" onchange="updateKitCostPreview()"><option value="">Selecione um insumo</option>'+options+'</select></div><div class="field"><label>Quantidade por kit</label><input class="kit-material-qty" type="number" min="0.0001" step="0.0001" value="'+kitSafeText(qty)+'" oninput="updateKitCostPreview()"></div><button type="button" class="btn secondary" onclick="this.parentElement.remove();updateKitCostPreview()">Remover</button>';
+ wrap.appendChild(row);
+}
+function getKitDraft(){
+ const items=[...document.querySelectorAll("#kitProductsList .kit-product-row")].map(row=>({productId:row.querySelector(".kit-product-select")?.value,qty:Math.max(0,Number(row.querySelector(".kit-product-qty")?.value)||0)})).filter(x=>x.productId&&x.qty>0);
+ const materials=[...document.querySelectorAll("#kitMaterialsList .kit-material-row")].map(row=>{const id=row.querySelector(".kit-material-select")?.value,m=(db.materials||[]).find(x=>String(x.id)===String(id)),qty=Math.max(0,Number(row.querySelector(".kit-material-qty")?.value)||0);return m&&qty>0?{materialId:m.id,name:m.name,qty,unit:m.unit,unitCost:Number(m.unitCost)||0}:null;}).filter(Boolean);
+ return {items,materials};
+}
+function updateKitCostPreview(){
+ const box=document.getElementById("kitCostPreview");if(!box)return;
+ const draft=getKitDraft();let productCost=0;
+ draft.items.forEach(i=>{const p=(db.products||[]).find(x=>String(x.id)===String(i.productId));if(p)productCost+=saleProductionCost(p,i.qty);});
+ const materialCost=draft.materials.reduce((sum,m)=>sum+m.qty*m.unitCost,0),cost=productCost+materialCost;
+ const margin=Math.max(0,Number(document.getElementById("kitMargin")?.value)||0)/100,fee=Math.max(0,Number(document.getElementById("kitFee")?.value)||0)>0;
+ const price=shopeePriceForTarget(cost,margin,"margin",fee);
+ box.innerHTML='<b>Custo dos produtos:</b> '+money(productCost)+' • <b>Insumos adicionais:</b> '+money(materialCost)+'<br><b>Custo de produção do kit:</b> '+money(cost)+'<br><b>Preço sugerido:</b> '+money(price)+' <span class="sub">• Embalagem do pedido: '+money(Number(document.getElementById("kitPack")?.value)||0)+'</span>';
+}
+function saveKit(){
+ const name=document.getElementById("kitName")?.value.trim()||"",draft=getKitDraft(),editingId=window.editingKitId||null;
+ if(!name){alert("Informe o nome do kit.");return;}
+ if(!draft.items.length){alert("Adicione pelo menos um produto cadastrado ao kit.");return;}
+ const ids=new Set(draft.items.map(x=>String(x.productId)));if(ids.size!==draft.items.length){alert("O mesmo produto foi adicionado mais de uma vez. Ajuste a quantidade em uma única linha.");return;}
+ const old=editingId?(db.products||[]).find(p=>String(p.id)===String(editingId)):null;
+ const kit={...(old||{}),id:editingId||Date.now(),name,sku:document.getElementById("kitSku").value.trim(),store:document.getElementById("kitStore").value,shopeeSku:"",shopeeName:"",materials:draft.materials,kitItems:draft.items,isKit:true,variants:[],colors:[],components:[],printHours:0,other:0,pack:Math.max(0,Number(document.getElementById("kitPack").value)||0),fee:Math.max(0,Number(document.getElementById("kitFee").value)||0),margin:Math.max(0,Number(document.getElementById("kitMargin").value)||0),stock:0,stockManaged:false,productionBasis:"unit",productionBatchQty:1};
+ const idx=(db.products||[]).findIndex(p=>String(p.id)===String(kit.id));if(idx>=0)db.products[idx]=kit;else{db.products=db.products||[];db.products.push(kit);}
+ save();closeKitForm();render();alert(old?"Kit atualizado com sucesso.":"Kit cadastrado como produto com sucesso.");
+}
 function renderProductsTable(){
  const table=document.getElementById("productsTable"); if(!table)return;
  const query=normalizeSearchText(document.getElementById("productsSearch")?.value||"");
@@ -4192,7 +4279,7 @@ function renderProductsTable(){
  }).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR"));
  table.innerHTML=rows.map(p=>{
    const productName=String(p.name||"Produto sem nome");
-   const materialsText=(p.materials||[]).map(m=>String(m.name||"")+" ("+Number(m.qty||m.grams||0).toLocaleString("pt-BR",{maximumFractionDigits:4})+" "+String(m.unit||"un.")+")").join(", ")||"—";
+   const materialsText=p.isKit?((p.kitItems||[]).map(i=>{const child=(db.products||[]).find(x=>String(x.id)===String(i.productId));return (child?.name||"Produto removido")+" × "+Number(i.qty||0);}).concat((p.materials||[]).map(m=>(m.name||"Insumo")+" ("+Number(m.qty||0)+" "+(m.unit||"")+")")).join(", ")||"Kit sem componentes"):((p.materials||[]).map(m=>String(m.name||"")+" ("+Number(m.qty||m.grams||0).toLocaleString("pt-BR",{maximumFractionDigits:4})+" "+String(m.unit||"")+")").join(", ")||"—");
    const productImage=String(p.shopeeImageUrl||"").trim();
    const productNameCell=productImage?'<div style="display:flex;align-items:center;gap:10px"><img src="'+productImage+'" alt="" loading="lazy" style="width:46px;height:46px;object-fit:cover;border-radius:9px;border:1px solid #eadfd8;background:#fff;"><b>'+productName+'</b></div>':'<b>'+productName+'</b>';
    return '<tr><td><input type="checkbox" class="merge-product-check" value="'+String(p.id)+'"></td><td>'+productNameCell+'</td><td>'+String(p.sku||"-")+'</td><td>'+String(p.store||"—")+'</td><td>'+materialsText+'</td><td>'+money(totalCost(p))+'</td><td>'+money(suggested(p))+'</td><td>'+String(p.stock||0)+'</td><td><button class="btn secondary" onclick="openTechModal('+String(p.id)+')">Ver ficha</button></td><td><button class="btn secondary" onclick="editProduct('+String(p.id)+')">✏️ Editar</button></td></tr>';
