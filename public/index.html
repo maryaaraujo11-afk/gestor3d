@@ -2670,10 +2670,11 @@ function openTechModal(id){
   const qty=Number(r.qty??r.grams??0)||0,unit=r.unit||"un.",unitCost=recipeMaterialUnitCost(r);
   return '<div class="tech-row"><span>'+financeEscape(r.name||"Material")+' <small class="sub">'+qty.toLocaleString("pt-BR",{maximumFractionDigits:4})+' '+financeEscape(unit)+'</small></span><b>'+money(qty*unitCost)+'</b></div>';
  }).join("");
- const compRows=(p.components||[]).map(r=>'<div class="tech-row"><span>'+financeEscape(r.name||"Componente")+' <small class="sub">'+(Number(r.qty)||0)+' un.</small></span><b>'+money((Number(r.qty)||0)*(Number(r.unitCost)||0))+'</b></div>').join("");
+ const compRows=p.isKit?(p.kitItems||[]).map(item=>{const child=(db.products||[]).find(x=>String(x.id)===String(item.productId));const qty=Number(item.qty)||0;return '<div class="tech-row"><span>'+financeEscape(child?.name||"Produto removido")+' <small class="sub">'+qty+' un.</small></span><b>'+money(child?saleProductionCost(child,qty,item):0)+'</b></div>';}).join(""):(p.components||[]).map(r=>'<div class="tech-row"><span>'+financeEscape(r.name||"Componente")+' <small class="sub">'+(Number(r.qty)||0)+' un.</small></span><b>'+money((Number(r.qty)||0)*(Number(r.unitCost)||0))+'</b></div>').join("");
  const variants=Array.isArray(p.variants)?p.variants:[];
  const breakdownVariant=lowestCostVariant(p);
  const breakdown=productCostBreakdown(p,breakdownVariant);
+ if(p.isKit){breakdown.components=(p.kitItems||[]).reduce((sum,item)=>{const child=(db.products||[]).find(x=>String(x.id)===String(item.productId));return sum+(child?saleProductionCost(child,Number(item.qty)||0,item):0);},0);breakdown.total=totalCost(p);}
  const total=totalCost(p),price=suggested(p);
  const timeLabel=breakdownVariant&&Number(breakdownVariant.printHours)>0?formatHoursInput(Number(breakdownVariant.printHours)):(Number(p.printHours)>0?formatHoursInput(Number(p.printHours)):"0:00");
  const variantRows=variants.length?'<h3 style="margin-top:18px">Variações de cor / tamanho</h3><div class="tech-list">'+variants.map(v=>{
