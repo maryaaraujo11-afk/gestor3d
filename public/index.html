@@ -2660,7 +2660,7 @@ function loadProductToCalc(){
  updateCalcBasisUI();
  const wrap=document.getElementById("calcMaterials");
  wrap.innerHTML="";
- (p.materials||[]).forEach(r=>addCalcMaterial(r.materialId,r.qty));
+ (p.materials||[]).forEach(r=>addCalcMaterial(r.materialId,isBatchProduct?(r.sourceQty!==undefined?r.sourceQty:(Number(r.qty)||0)*productBatchQty):r.qty));
  if(!(p.materials||[]).length)addCalcMaterial();
  runCalc();
 }
