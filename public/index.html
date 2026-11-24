@@ -564,9 +564,9 @@ table tbody tr.stock-low td:last-child,table tbody tr.stock-empty td:last-child{
   <div class="field"><label>Nome do kit</label><input id="kitName" placeholder="Ex.: Kit presente com bandeja e chaveiros"></div>
   <div class="field"><label>SKU (opcional)</label><input id="kitSku" placeholder="Código do kit"></div>
   <div class="field"><label>Loja (opcional)</label><select id="kitStore"><option value="">Sem loja definida</option><option>F4R Studio 3D</option><option>F4RM 3D</option></select></div>
-  <div class="field"><label>Margem desejada (%)</label><input id="kitMargin" type="number" min="0" step=".1" value="30"></div>
-  <div class="field"><label>Taxa marketplace (%)</label><input id="kitFee" type="number" min="0" step=".1" value="20"></div>
-  <div class="field"><label>Embalagem do pedido (R$)</label><input id="kitPack" type="number" min="0" step=".01" value="0"></div>
+  <div class="field"><label>Margem desejada (%)</label><input id="kitMargin" type="number" min="0" step=".1" value="30" oninput="updateKitCostPreview()"></div>
+  <div class="field"><label>Taxa marketplace (%)</label><input id="kitFee" type="number" min="0" step=".1" value="20" oninput="updateKitCostPreview()"></div>
+  <div class="field"><label>Embalagem do pedido (R$)</label><input id="kitPack" type="number" min="0" step=".01" value="0" oninput="updateKitCostPreview()"></div>
  </div>
  <div style="margin-top:16px"><h3>Produtos que fazem parte do kit</h3><div id="kitProductsList"></div><button type="button" class="btn secondary" onclick="addKitProductRow()">+ Adicionar produto</button></div>
  <div style="margin-top:16px"><h3>Insumos adicionais do kit</h3><div class="sub">Use para laços, caixas, cartões ou outros materiais extras, além dos que já fazem parte dos produtos.</div><div id="kitMaterialsList"></div><button type="button" class="btn secondary" onclick="addKitMaterialRow()">+ Adicionar insumo</button></div>
@@ -4282,7 +4282,7 @@ function renderProductsTable(){
    const materialsText=p.isKit?((p.kitItems||[]).map(i=>{const child=(db.products||[]).find(x=>String(x.id)===String(i.productId));return (child?.name||"Produto removido")+" × "+Number(i.qty||0);}).concat((p.materials||[]).map(m=>(m.name||"Insumo")+" ("+Number(m.qty||0)+" "+(m.unit||"")+")")).join(", ")||"Kit sem componentes"):((p.materials||[]).map(m=>String(m.name||"")+" ("+Number(m.qty||m.grams||0).toLocaleString("pt-BR",{maximumFractionDigits:4})+" "+String(m.unit||"")+")").join(", ")||"—");
    const productImage=String(p.shopeeImageUrl||"").trim();
    const productNameCell=productImage?'<div style="display:flex;align-items:center;gap:10px"><img src="'+productImage+'" alt="" loading="lazy" style="width:46px;height:46px;object-fit:cover;border-radius:9px;border:1px solid #eadfd8;background:#fff;"><b>'+productName+'</b></div>':'<b>'+productName+'</b>';
-   return '<tr><td><input type="checkbox" class="merge-product-check" value="'+String(p.id)+'"></td><td>'+productNameCell+'</td><td>'+String(p.sku||"-")+'</td><td>'+String(p.store||"—")+'</td><td>'+materialsText+'</td><td>'+money(totalCost(p))+'</td><td>'+money(suggested(p))+'</td><td>'+String(p.stock||0)+'</td><td><button class="btn secondary" onclick="openTechModal('+String(p.id)+')">Ver ficha</button></td><td><button class="btn secondary" onclick="editProduct('+String(p.id)+')">✏️ Editar</button></td></tr>';
+   return '<tr><td><input type="checkbox" class="merge-product-check" value="'+String(p.id)+'"></td><td>'+productNameCell+'</td><td>'+String(p.sku||"-")+'</td><td>'+String(p.store||"—")+'</td><td>'+materialsText+'</td><td>'+money(totalCost(p))+'</td><td>'+money(suggested(p))+'</td><td>'+String(p.stock||0)+'</td><td><button class="btn secondary" onclick="openTechModal('+String(p.id)+')">Ver ficha</button></td><td><button class="btn secondary" onclick="'+(p.isKit?'openKitForm':'editProduct')+'('+String(p.id)+')">✏️ Editar</button></td></tr>';
  }).join("")||'<tr><td colspan="10">Nenhum produto encontrado.</td></tr>';
 }
 function filamentReplacementReferences(oldId){
