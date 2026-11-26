@@ -4229,19 +4229,26 @@ function openKitForm(id=null){
  document.getElementById("kitPack").value=kit?.pack??0;
  document.getElementById("kitProductsList").innerHTML="";
  document.getElementById("kitMaterialsList").innerHTML="";
- (kit?.kitItems||[]).forEach(item=>addKitProductRow(item.productId,item.qty));
+ (kit?.kitItems||[]).forEach(item=>addKitProductRow(item.productId,item.qty,item.colorId||""));
  (kit?.materials||[]).forEach(item=>addKitMaterialRow(item.materialId,item.qty));
  if(!kit)addKitProductRow();
  form.classList.remove("hidden");form.scrollIntoView({behavior:"smooth",block:"start"});updateKitCostPreview();
 }
 function closeKitForm(){document.getElementById("kitForm")?.classList.add("hidden");window.editingKitId=null;}
-function addKitProductRow(productId="",qty=1){
+function addKitProductRow(productId="",qty=1,colorId=""){
  const wrap=document.getElementById("kitProductsList");if(!wrap)return;
  const row=document.createElement("div");row.className="kit-product-row";
  const options=[...(db.products||[])].filter(p=>!p.isKit).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"pt-BR")).map(p=>'<option value="'+kitSafeText(p.id)+'" '+(String(p.id)===String(productId)?"selected":"")+'>'+kitSafeText(p.name)+' — custo '+money(totalCost(p))+'</option>').join("");
- row.style.cssText="display:grid;grid-template-columns:minmax(220px,2fr) minmax(100px,.6fr) auto;gap:8px;align-items:end;margin:8px 0";
- row.innerHTML='<div class="field"><label>Produto cadastrado</label><select class="kit-product-select" onchange="updateKitCostPreview()"><option value="">Selecione um produto</option>'+options+'</select></div><div class="field"><label>Quantidade</label><input class="kit-product-qty" type="number" min="0.0001" step="0.0001" value="'+kitSafeText(qty)+'" oninput="updateKitCostPreview()"></div><button type="button" class="btn secondary" onclick="this.parentElement.remove();updateKitCostPreview()">Remover</button>';
- wrap.appendChild(row);
+ row.style.cssText="display:grid;grid-template-columns:minmax(220px,2fr) minmax(100px,.55fr) minmax(150px,.8fr) auto;gap:8px;align-items:end;margin:8px 0";
+ row.innerHTML='<div class="field"><label>Produto cadastrado</label><select class="kit-product-select" onchange="populateKitProductColors(this);updateKitCostPreview()"><option value="">Selecione um produto</option>'+options+'</select></div><div class="field"><label>Quantidade</label><input class="kit-product-qty" type="number" min="0.0001" step="0.0001" value="'+kitSafeText(qty)+'" oninput="updateKitCostPreview()"></div><div class="field kit-product-color-field"><label>Cor</label><select class="kit-product-color" onchange="updateKitCostPreview()"><option value="">Padrão / sem cor</option></select></div><button type="button" class="btn secondary" onclick="this.parentElement.remove();updateKitCostPreview()">Remover</button>';
+ wrap.appendChild(row);populateKitProductColors(row.querySelector(".kit-product-select"),colorId);
+}
+function populateKitProductColors(select,colorId=""){
+ const row=select?.closest(".kit-product-row");if(!row)return;
+ const colorEl=row.querySelector(".kit-product-color"),p=(db.products||[]).find(x=>String(x.id)===String(select.value)),colors=Array.isArray(p?.colors)?p.colors:[];
+ colorEl.innerHTML='<option value="">Padrão / sem cor</option>'+colors.map(c=>'<option value="'+kitSafeText(c.id)+'">'+kitSafeText(saleColorDisplayName(c))+'</option>').join("");
+ colorEl.value=colors.some(c=>String(c.id)===String(colorId))?String(colorId):"";
+ colorEl.disabled=!colors.length;row.querySelector(".kit-product-color-field").style.opacity=colors.length?"1":".55";
 }
 function addKitMaterialRow(materialId="",qty=1){
  const wrap=document.getElementById("kitMaterialsList");if(!wrap)return;
@@ -4252,7 +4259,7 @@ function addKitMaterialRow(materialId="",qty=1){
  wrap.appendChild(row);
 }
 function getKitDraft(){
- const items=[...document.querySelectorAll("#kitProductsList .kit-product-row")].map(row=>({productId:row.querySelector(".kit-product-select")?.value,qty:Math.max(0,Number(row.querySelector(".kit-product-qty")?.value)||0)})).filter(x=>x.productId&&x.qty>0);
+ const items=[...document.querySelectorAll("#kitProductsList .kit-product-row")].map(row=>{const productId=row.querySelector(".kit-product-select")?.value,p=(db.products||[]).find(x=>String(x.id)===String(productId)),colorId=row.querySelector(".kit-product-color")?.value||"",color=(p?.colors||[]).find(x=>String(x.id)===String(colorId));return {productId,qty:Math.max(0,Number(row.querySelector(".kit-product-qty")?.value)||0),colorId:color?.id||"",colorName:color?saleColorDisplayName(color):""};}).filter(x=>x.productId&&x.qty>0);
  const materials=[...document.querySelectorAll("#kitMaterialsList .kit-material-row")].map(row=>{const id=row.querySelector(".kit-material-select")?.value,m=(db.materials||[]).find(x=>String(x.id)===String(id)),qty=Math.max(0,Number(row.querySelector(".kit-material-qty")?.value)||0);return m&&qty>0?{materialId:m.id,name:m.name,qty,unit:m.unit,unitCost:Number(m.unitCost)||0}:null;}).filter(Boolean);
  return {items,materials};
 }
