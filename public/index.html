@@ -2500,7 +2500,7 @@ function saleColorOptionsForProduct(p){
  const options=[];
  (p.kitItems||[]).forEach(item=>{
   const child=(db.products||[]).find(x=>String(x.id)===String(item.productId));
-  (child?.colors||[]).forEach(c=>options.push({id:"kit:"+String(child.id)+":"+String(c.id),name:(child.name||"Componente")+" — "+saleColorDisplayName(c),colorId:c.id,childProductId:child.id,colorName:(child.name||"Componente")+" — "+saleColorDisplayName(c)}));
+  (child?.colors||[]).forEach(c=>options.push({id:"kit:"+String(child.id)+":"+String(c.id),name:saleColorDisplayName(c),colorId:c.id,childProductId:child.id,colorName:saleColorDisplayName(c)}));
  });
  return options;
 }
