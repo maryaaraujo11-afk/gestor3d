@@ -1963,7 +1963,7 @@ function saleProductionCost(p, orderQty=1, sale=null){
   if(!p)return 0;
   const q=Math.max(0,Number(orderQty)||0);
   if(p.isKit){
-   const productCost=(Array.isArray(p.kitItems)?p.kitItems:[]).reduce((sum,item)=>{const child=(db.products||[]).find(x=>String(x.id)===String(item.productId));return sum+(child?saleProductionCost(child,q*Math.max(0,Number(item.qty)||0),item):0);},0);
+   const productCost=(Array.isArray(p.kitItems)?p.kitItems:[]).reduce((sum,item)=>{const child=(db.products||[]).find(x=>String(x.id)===String(item.productId));const selectedColor=sale?.kitColorSelections?.[String(item.productId)];return sum+(child?saleProductionCost(child,q*Math.max(0,Number(item.qty)||0),{...item,colorId:selectedColor||item.colorId||""}):0);},0);
    const materialsCost=saleRecipeMaterialCost(p,sale,q);
    const other=Math.max(0,Number(p.other)||0)*q;
    return productCost+materialsCost+other;
@@ -2006,7 +2006,7 @@ function adjustStockForSale(s, direction, note){
    const before=Number(m.stock)||0;changeMaterialBrandStock(m,use,direction);
    db.movements.unshift({id:Date.now()+Math.random(),date:new Date().toLocaleString("pt-BR"),materialId:m.id,material:m.name,type:direction<0?"saída":"entrada",qty:Math.abs(use),note,before,after:m.stock});
   });
-  if(product.isKit)(product.kitItems||[]).forEach(item=>{const child=(db.products||[]).find(x=>String(x.id)===String(item.productId));if(child)processProduct(child,productQty*Math.max(0,Number(item.qty)||0),item,depth+1);});
+  if(product.isKit)(product.kitItems||[]).forEach(item=>{const child=(db.products||[]).find(x=>String(x.id)===String(item.productId));const selectedColor=saleLike?.kitColorSelections?.[String(item.productId)];if(child)processProduct(child,productQty*Math.max(0,Number(item.qty)||0),{...item,colorId:selectedColor||item.colorId||""},depth+1);});
  };
  processProduct(p,qty,s,0);
 }
@@ -2494,12 +2494,22 @@ function saleColorDisplayName(color){
  const match=label.match(/^(preto|branco|cinza|bege|vermelho|verde|azul|amarelo|rosa|marrom|roxo|laranja)(?:\\b|\\s)/i);
  return match?match[1].charAt(0).toLocaleUpperCase("pt-BR")+match[1].slice(1):label.replace(/\\s+(?:pla|petg|abs|asa|tpu|nylon)\\b.*$/i,"").replace(/\\s+(?:sunlu|elegoo|esun|polymaker|f3d|voolt|masterprint).*$/i,"").trim()||label;
 }
+function saleColorOptionsForProduct(p){
+ const own=(Array.isArray(p?.colors)?p.colors:[]).map(c=>({id:String(c.id),name:saleColorDisplayName(c),colorId:c.id,colorName:saleColorDisplayName(c)}));
+ if(own.length||!p?.isKit)return own;
+ const options=[];
+ (p.kitItems||[]).forEach(item=>{
+  const child=(db.products||[]).find(x=>String(x.id)===String(item.productId));
+  (child?.colors||[]).forEach(c=>options.push({id:"kit:"+String(child.id)+":"+String(c.id),name:(child.name||"Componente")+" — "+saleColorDisplayName(c),colorId:c.id,childProductId:child.id,colorName:(child.name||"Componente")+" — "+saleColorDisplayName(c)}));
+ });
+ return options;
+}
 function populateSaleItemVariants(productEl,selectedId="",selectedColorId=""){
  const row=productEl?.closest(".sale-item-row"); if(!row)return;
  const vEl=row.querySelector(".sale-item-variant"),cEl=row.querySelector(".sale-item-color"),vf=row.querySelector(".sale-item-variant-field"),cf=row.querySelector(".sale-item-color-field");
- const p=(db.products||[]).find(x=>String(x.id)===String(productEl.value)); const variants=Array.isArray(p?.variants)?p.variants:[]; const colors=Array.isArray(p?.colors)?p.colors:[];
- vEl.innerHTML=variants.length?'<option value="">Selecione o tamanho</option>'+variants.map((v,i)=>`<option value="${v.id}">${saleVariantDisplayName(p,v,i)}</option>`).join(""):'<option value="">Produto sem tamanho</option>';
- cEl.innerHTML=colors.length?'<option value="">Selecione a cor</option>'+colors.map(v=>`<option value="${v.id}">${saleColorDisplayName(v)}</option>`).join(""):'<option value="">Produto sem cor</option>';
+ const p=(db.products||[]).find(x=>String(x.id)===String(productEl.value)); const variants=Array.isArray(p?.variants)?p.variants:[]; const colors=saleColorOptionsForProduct(p);
+ vEl.innerHTML=variants.length?'<option value="">Selecione o tamanho</option>'+variants.map((v,i)=>'<option value="'+String(v.id)+'">'+saleVariantDisplayName(p,v,i)+'</option>').join(""):'<option value="">Produto sem tamanho</option>';
+ cEl.innerHTML=colors.length?'<option value="">Selecione a cor</option>'+colors.map(v=>'<option value="'+String(v.id).replace(/"/g,"&quot;")+'">'+String(v.name).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")+'</option>').join(""):'<option value="">Produto sem cor</option>';
  if(selectedId)vEl.value=String(selectedId); if(selectedColorId)cEl.value=String(selectedColorId);
  vf.style.display=variants.length?"block":"none"; cf.style.display=colors.length?"block":"none"; vEl.disabled=!variants.length;cEl.disabled=!colors.length;
 }
@@ -2507,9 +2517,12 @@ function collectSaleItems(){
  return [...document.querySelectorAll("#saleItemsList .sale-item-row")].map(row=>{
   const p=(db.products||[]).find(x=>String(x.id)===String(row.querySelector(".sale-item-product")?.value||""));
   const variantId=row.querySelector(".sale-item-variant")?.value||"",colorId=row.querySelector(".sale-item-color")?.value||"";
-  const variant=variantForSale(p,variantId),color=(p?.colors||[]).find(x=>String(x.id)===String(colorId));
+  const variant=variantForSale(p,variantId),colorOption=saleColorOptionsForProduct(p).find(x=>String(x.id)===String(colorId));
+  const kitColorSelections={};
+  if(colorOption?.childProductId)kitColorSelections[String(colorOption.childProductId)]=colorOption.colorId;
+  const color=(p?.colors||[]).find(x=>String(x.id)===String(colorId));
   const qty=Math.max(1,Number(row.querySelector(".sale-item-qty")?.value)||1);
-  return p?{itemId:row.dataset.itemId||String(Date.now()+Math.random()),productId:p.id,product:p.name,variantId:variant?.id||"",variantName:variant?.name||"",colorId:color?.id||"",colorName:color?.name||"",qty}:null;
+  return p?{itemId:row.dataset.itemId||String(Date.now()+Math.random()),productId:p.id,product:p.name,variantId:variant?.id||"",variantName:variant?.name||"",colorId:colorOption?.id||"",colorName:colorOption?.colorName||color?.name||"",kitColorSelections,qty}:null;
  }).filter(Boolean);
 }
 function saleItemsAdvertisedGross(items){
@@ -2559,7 +2572,7 @@ function saveSaleForm(){
  try{
   const storeEl=document.getElementById("sStore"),dateEl=document.getElementById("sDate"),timeEl=document.getElementById("sTime"),customerNameEl=document.getElementById("sCustomerName"),stateEl=document.getElementById("sState"),daysEl=document.getElementById("sPostDays"),grossEl=document.getElementById("sGross"),netEl=document.getElementById("sNet"),statusEl=document.getElementById("sStatus"),notesEl=document.getElementById("sNotes"); const channelEl=document.getElementById("sChannel"),channel=channelEl?.value||"Shopee";
   const items=collectSaleItems(); if(!items.length){alert("Adicione pelo menos um produto ao pedido.");return;}
-  const invalid=items.find(item=>{const p=db.products.find(p=>String(p.id)===String(item.productId));return (Array.isArray(p?.variants)&&p.variants.length&&!item.variantId)||(Array.isArray(p?.colors)&&p.colors.length&&!item.colorId);});
+  const invalid=items.find(item=>{const p=db.products.find(p=>String(p.id)===String(item.productId));return (Array.isArray(p?.variants)&&p.variants.length&&!item.variantId)||(saleColorOptionsForProduct(p).length&&!item.colorId);});
   if(invalid){alert("Selecione o tamanho e a cor de todos os produtos que possuem essas opções.");return;}
   const dateISO=dateEl.value||todayISO(),time=timeEl?.value||new Date().toTimeString().slice(0,5),postDays=Math.min(5,Math.max(1,Number(daysEl?.value)||1)),dueDate=addBusinessDays(dateISO,postDays);
   const shippingPackaging=(db.materials||[]).find(m=>String(m.id)===String(document.getElementById("sShippingPackaging")?.value||""))||null,shippingPackagingCost=shippingPackaging?Math.max(0,Number(shippingPackaging.unitCost)||0):0,bubbleWrapCost=0.20,packaging=shippingPackagingCost+bubbleWrapCost,cost=saleItemsCost(items)+packaging;
